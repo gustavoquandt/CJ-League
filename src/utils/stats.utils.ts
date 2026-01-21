@@ -110,10 +110,12 @@ export function filterBySearch(
  */
 export function filterByPot(
   players: PlayerStats[],
-  pot: number | 'all'
+  pot: number | 'all' | string  // ← Aceita string
 ): PlayerStats[] {
   if (pot === 'all') return players;
-  return players.filter(player => player.pot === pot);
+  
+  const potNum = Number(pot);  // ← Converte para number
+  return players.filter(player => player.pot === potNum);
 }
 
 /**

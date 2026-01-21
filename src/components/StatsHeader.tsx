@@ -40,11 +40,9 @@ export default function StatsHeader({
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-faceit-orange to-orange-400 bg-clip-text text-transparent">
-            🎮 Mix Dez 2025
+            🎮 CJ League - Season 0
           </h1>
-          <p className="text-text-secondary mt-1">
-            Hub Privado FACEIT - Estatísticas CS2
-          </p>
+          
         </div>
 
         {/* TOGGLE REMOVIDO - agora só tem o botão de refresh */}
