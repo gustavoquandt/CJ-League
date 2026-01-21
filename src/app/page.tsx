@@ -24,7 +24,7 @@ export default function HomePage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [nextUpdate, setNextUpdate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
-  
+
   const [filters, setFilters] = useState<PlayerFilters>({
     searchTerm: '',
     pot: 'all',
@@ -41,7 +41,7 @@ export default function HomePage() {
       // 1. Check localStorage cache (unless force refresh)
       if (!forceRefresh) {
         const cache = storageService.getCache();
-        
+
         if (cache && !cacheService.shouldUpdate(cache)) {
           console.log('✅ Using localStorage cache');
           setPlayers(cache.players);
@@ -87,7 +87,7 @@ export default function HomePage() {
     } catch (err) {
       console.error('❌ Error loading data:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
-      
+
       // Fallback to old cache
       const cache = storageService.getCache();
       if (cache && cache.players.length > 0) {
@@ -104,7 +104,7 @@ export default function HomePage() {
   // Initial load
   useEffect(() => {
     loadData();
-    
+
     // Save last visit
     storageService.saveLastVisit();
   }, [loadData]);
@@ -115,7 +115,10 @@ export default function HomePage() {
 
     // Apply filters
     result = filterBySearch(result, filters.searchTerm);
-    result = filterByPot(result, filters.pot);
+  
+    // FIX: Garantir que pot é number | 'all'
+    const pot = filters.pot ?? 'all';
+    result = filterByPot(result, pot);
 
     // Apply sorting
     result.sort((a, b) => comparePlayers(a, b, filters.sortBy, filters.sortOrder));
@@ -155,7 +158,7 @@ export default function HomePage() {
           isLoading={loading}
           onRefresh={handleRefresh}
         />
-        
+
 
         {/* Error banner (if exists but we have cached data) */}
         {error && players.length > 0 && (
@@ -184,11 +187,10 @@ export default function HomePage() {
           <div className="flex bg-faceit-darker rounded-lg p-1 border border-faceit-light-gray">
             <button
               onClick={() => setViewMode('cards')}
-              className={`px-4 py-2 rounded-md transition-all ${
-                viewMode === 'cards'
+              className={`px-4 py-2 rounded-md transition-all ${viewMode === 'cards'
                   ? 'bg-faceit-orange text-white'
                   : 'text-text-secondary hover:text-white'
-              }`}
+                }`}
               title="Vista de Cards"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,11 +199,10 @@ export default function HomePage() {
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`px-4 py-2 rounded-md transition-all ${
-                viewMode === 'table'
+              className={`px-4 py-2 rounded-md transition-all ${viewMode === 'table'
                   ? 'bg-faceit-orange text-white'
                   : 'text-text-secondary hover:text-white'
-              }`}
+                }`}
               title="Vista de Tabela"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +233,7 @@ export default function HomePage() {
           )}
         </div>
 
-      
+
       </div>
     </div>
   );

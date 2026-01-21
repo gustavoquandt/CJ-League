@@ -23,11 +23,9 @@ const nextConfig = {
         pathname: '/**',
       }
     ],
-    domains: ['avatars.faceit.com', 'cdn.faceit.com', 'distribution.faceit-cdn.net', 'assets.faceit-cdn.net']
   },
   reactStrictMode: true,
-  swcMinify: true,
-  output: 'standalone'
+  // swcMinify removido - não é mais necessário no Next.js 15
 };
 
 module.exports = nextConfig;
