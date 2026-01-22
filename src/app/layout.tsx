@@ -1,35 +1,64 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
+import type { Metadata } from 'next'
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'FACEIT Hub Stats - Mix Dez 2025',
-  description: 'Sistema de estatísticas para HUB privado da FACEIT - Mix Dez 2025',
-  keywords: ['faceit', 'cs2', 'stats', 'hub', 'gaming'],
-  authors: [{ name: 'Mix Dez 2025' }],
+  title: 'CJ Stats',
+  description: 'Estatísticas e ranking da CJ League',
+  
+  // Open Graph (WhatsApp, Facebook, Telegram)
   openGraph: {
-    title: 'FACEIT Hub Stats - Mix Dez 2025',
-    description: 'Ranking e estatísticas dos jogadores do hub',
+    title: 'CJ Stats',
+    description: 'Estatísticas e ranking da CJ League',
+    url: 'https://www.statscj.com', // ← SUBSTITUIR pelo seu domínio
+    siteName: 'CJ Stats',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'CJ Stats - Ranking da Liga',
+      },
+    ],
+    locale: 'pt_BR',
     type: 'website',
   },
-};
+  
+  // Twitter Card
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CJ Stats',
+    description: 'Estatísticas e ranking da CJ League',
+    images: ['/og-image.png'],
+  },
+  
+  // Metadados adicionais
+  keywords: ['CJ League', 'CS2', 'Counter-Strike', 'FACEIT', 'Ranking', 'Estatísticas'],
+  authors: [{ name: 'CJ League' }],
+  creator: 'CJ League',
+  publisher: 'CJ League',
+  robots: {
+    index: true,
+    follow: true,
+  },
+  
+  // App icons
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="pt-BR">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Favicon automático pelo Next.js */}
       </head>
-      <body className={inter.className}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
-  );
+  )
 }

@@ -1,72 +1,66 @@
 'use client';
 
 /**
- * Componente de Cards de Premiação
- * Mostra os prêmios da liga (1º, 2º e 3º lugar)
+ * Cards de Premiação - Full Width
+ * - Mesma largura dos outros elementos
+ * - Sem ícone
+ * - Sem fundo laranja
+ * - USPs originais
  */
 
-interface Prize {
-  position: number;
-  weapon: string;
-  skin: string;
-  condition: string;
-  color: string;
-  gradient: string;
-}
-
-const PRIZES: Prize[] = [
-  {
-    position: 1,
-    weapon: 'USP-S',
-    skin: 'Jawbreaker',
-    condition: 'Field-Tested',
-    color: '#FFD700',
-    gradient: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'
-  },
-  {
-    position: 2,
-    weapon: 'USP-S',
-    skin: 'Tropical Breeze',
-    condition: 'Minimal Wear',
-    color: '#C0C0C0',
-    gradient: 'linear-gradient(135deg, #E8E8E8 0%, #A8A8A8 100%)'
-  },
-  {
-    position: 3,
-    weapon: 'USP-S',
-    skin: 'Ticket to Hell',
-    condition: 'Minimal Wear',
-    color: '#CD7F32',
-    gradient: 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'
-  }
-];
-
-function PrizeCard({ prize }: { prize: Prize }) {
-  return (
-    <div className="prize-card">
-      {/* Medalha de posição */}
-      <div className="prize-medal" style={{ background: prize.gradient }}>
-        <span className="prize-position">{prize.position}º</span>
-      </div>
-
-      {/* Conteúdo do prêmio */}
-      <div className="prize-content">
-        <div className="prize-weapon">{prize.weapon}</div>
-        <div className="prize-skin">{prize.skin}</div>
-        <div className="prize-condition">({prize.condition})</div>
-      </div>
-
-    </div>
-  );
-}
-
 export default function PrizeCards() {
+  const prizes = [
+    {
+      position: '1º',
+      weapon: 'USP-S',
+      skin: 'Jawbreaker',
+      condition: 'Field-Tested',
+    },
+    {
+      position: '2º',
+      weapon: 'USP-S',
+      skin: 'Tropical Breeze',
+      condition: 'Minimal Wear',
+    },
+    {
+      position: '3º',
+      weapon: 'USP-S',
+      skin: 'Ticket to Hell',
+      condition: 'Minimal Wear',
+    },
+  ];
+
   return (
-    <div className="prizes-section">
-           
-      <div className="prizes-grid">
-        {PRIZES.map((prize) => (
-          <PrizeCard key={prize.position} prize={prize} />
+    <div className="mt-6">
+      {/* SEM max-width - usa largura total do container pai */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {prizes.map((item) => (
+          <div
+            key={item.position}
+            className="card hover:scale-105 transition-transform duration-300"
+          >
+            <div className="text-center">
+              {/* Posição */}
+              <p className="text-sm text-text-secondary font-medium mb-1">
+                {item.position} Lugar
+              </p>
+
+              {/* Arma */}
+              <p className="text-lg font-bold text-white">
+                {item.weapon}
+              </p>
+
+              {/* Skin */}
+              <p className="text-base text-faceit-orange font-semibold">
+                {item.skin}
+              </p>
+
+              {/* Condição */}
+              <p className="text-xs text-text-secondary mt-1">
+                ({item.condition})
+              </p>
+            </div>
+          </div>
         ))}
       </div>
     </div>

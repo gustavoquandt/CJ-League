@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import type { PlayerFilters, SortOption } from '@/types/app.types';
 import { POT_CONFIG } from '@/config/constants';
 import { formatDateTime, formatRelativeTime } from '@/utils/date.utils';
+import UpdateBadge from '@/components/UpdateBadge';
 
 interface StatsHeaderProps {
   filters: PlayerFilters;
@@ -11,8 +11,8 @@ interface StatsHeaderProps {
   totalPlayers: number;
   lastUpdated: Date | null;
   nextUpdate: Date | null;
-  isLoading?: boolean;
-  onRefresh?: () => void;
+  isUpdating?: boolean;
+  updateProgress?: number;
 }
 
 export default function StatsHeader({
@@ -21,8 +21,8 @@ export default function StatsHeader({
   totalPlayers,
   lastUpdated,
   nextUpdate,
-  isLoading,
-  onRefresh,
+  isUpdating = false,
+  updateProgress = 0,
 }: StatsHeaderProps) {
   const sortOptions: { value: SortOption; label: string }[] = [
     { value: 'rankingPoints', label: 'Pontos' },
@@ -36,17 +36,17 @@ export default function StatsHeader({
 
   return (
     <div className="space-y-4">
-      {/* Header com Logo */}
+      {/* Header com Logo e Badge */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-faceit-orange to-orange-400 bg-clip-text text-transparent">
-            🎮 CJ League - Season 0
+            🏆 CJ League - Season 0
           </h1>
           
         </div>
 
-        {/* TOGGLE REMOVIDO - agora só tem o botão de refresh */}
-       
+        {/* Update Badge (substitui o botão de atualizar) */}
+        <UpdateBadge isUpdating={isUpdating} progress={updateProgress} />
       </div>
 
       {/* Info cards */}
@@ -124,8 +124,13 @@ export default function StatsHeader({
               🎯 Filtrar por Pote
             </label>
             <select
-              value={filters.pot}
-              onChange={(e) => onFiltersChange({ ...filters, pot: e.target.value as any })}
+              value={filters.pot || 'all'}
+              onChange={(e) =>
+                onFiltersChange({
+                  ...filters,
+                  pot: e.target.value === 'all' ? 'all' : parseInt(e.target.value),
+                })
+              }
               className="input"
             >
               <option value="all">Todos os Potes</option>

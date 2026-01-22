@@ -48,6 +48,8 @@ export interface PlayerStats {
   
   // Meta
   lastMatch?: Date;
+
+  lastMatchId?: string;  // ← ADICIONAR
 }
 
 // ==================== CACHE TYPES ====================

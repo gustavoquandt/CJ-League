@@ -1,15 +1,19 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { PlayerStats, HubStatsResponse, PlayerFilters } from '@/types/app.types';
 import { storageService } from '@/services/storage.service';
-import { cacheService } from '@/services/cache.service';
+import { useBackgroundUpdate } from '@/hooks/useBackgroundUpdate';
+import { useAdmin } from '@/hooks/useAdmin';
 import StatsHeader from '@/components/StatsHeader';
 import PrizeCards from '@/components/PrizeCards';
 import PlayerCard from '@/components/PlayerCard';
 import PlayerTable from '@/components/PlayerTable';
-import LoadingState, { CardSkeleton } from '@/components/LoadingState';
+import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
+import UpdateToast from '@/components/UpdateToast';
+import AdminPanel from '@/components/AdminPanel';
+import PlayerManagementPanel from '@/components/PlayerManagementPanel';
 import {
   filterBySearch,
   filterByPot,
@@ -24,7 +28,10 @@ export default function HomePage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [nextUpdate, setNextUpdate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
-
+  const [showToast, setShowToast] = useState(false);
+  const [isForceUpdating, setIsForceUpdating] = useState(false);
+  const [showPlayerManagement, setShowPlayerManagement] = useState(false);
+  
   const [filters, setFilters] = useState<PlayerFilters>({
     searchTerm: '',
     pot: 'all',
@@ -32,107 +39,157 @@ export default function HomePage() {
     sortOrder: 'desc',
   });
 
-  // Load data
-  const loadData = useCallback(async (forceRefresh = false) => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Hooks
+  const { status: updateStatus, applyUpdate } = useBackgroundUpdate((newPlayers) => {
+    setPlayers(newPlayers);
+  });
 
-      // 1. Check localStorage cache (unless force refresh)
-      if (!forceRefresh) {
+  const {
+    isAdmin,
+    showAdminModal,
+    setShowAdminModal,
+    adminLogin,
+    adminLogout,
+  } = useAdmin();
+
+  // Mostrar toast quando tiver dados novos
+  useEffect(() => {
+    if (updateStatus.hasNewData) {
+      setShowToast(true);
+    }
+  }, [updateStatus.hasNewData]);
+
+  // Load inicial (APENAS CACHE)
+  useEffect(() => {
+    const loadInitialCache = () => {
+      try {
+        setLoading(true);
+        
         const cache = storageService.getCache();
-
-        if (cache && !cacheService.shouldUpdate(cache)) {
-          console.log('✅ Using localStorage cache');
+        
+        if (cache && cache.players.length > 0) {
+          console.log('✅ Carregando do cache local');
           setPlayers(cache.players);
           setLastUpdated(new Date(cache.lastUpdated));
           setNextUpdate(new Date(cache.nextUpdate));
-          setLoading(false);
-          return;
+        } else {
+          console.log('⚠️ Cache vazio, buscando dados...');
+          loadFromAPI();
         }
+      } catch (err) {
+        console.error('Erro ao carregar cache:', err);
+        loadFromAPI();
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // 2. Fetch from API
-      console.log('🔄 Fetching fresh data from API...');
+    loadInitialCache();
+    storageService.saveLastVisit();
+  }, []);
+
+  // Fallback: buscar da API
+  const loadFromAPI = async () => {
+    try {
       const response = await fetch('/api/faceit/hub-stats');
       const data: HubStatsResponse = await response.json();
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch data');
+      if (data.success && data.data) {
+        setPlayers(data.data);
+        setLastUpdated(new Date(data.cache.lastUpdated));
+        setNextUpdate(new Date(data.cache.nextUpdate));
+        
+        storageService.saveCache({
+          players: data.data,
+          lastUpdated: data.cache.lastUpdated,
+          nextUpdate: data.cache.nextUpdate,
+          version: '1.0.0',
+        });
       }
-
-      if (!data.data || data.data.length === 0) {
-        throw new Error('No players found');
-      }
-
-      // 3. Save to localStorage
-      storageService.saveCache({
-        players: data.data,
-        lastUpdated: data.cache.lastUpdated,
-        nextUpdate: data.cache.nextUpdate,
-        version: '1.0.0',
-      });
-
-      // 4. Update state
-      setPlayers(data.data);
-      setLastUpdated(new Date(data.cache.lastUpdated));
-      setNextUpdate(new Date(data.cache.nextUpdate));
-
-      console.log('✅ Data loaded successfully:', {
-        players: data.data.length,
-        fromCache: data.cache.fromCache,
-        duration: data.meta?.updateDuration,
-      });
-
     } catch (err) {
-      console.error('❌ Error loading data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
-
-      // Fallback to old cache
-      const cache = storageService.getCache();
-      if (cache && cache.players.length > 0) {
-        console.log('📦 Using old cache as fallback');
-        setPlayers(cache.players);
-        setLastUpdated(new Date(cache.lastUpdated));
-        setNextUpdate(new Date(cache.nextUpdate));
-      }
-    } finally {
-      setLoading(false);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
     }
-  }, []);
+  };
 
-  // Initial load
-  useEffect(() => {
-    loadData();
+  // Admin: Forçar atualização
+  const handleForceUpdate = async () => {
+    if (!isAdmin) return;
 
-    // Save last visit
-    storageService.saveLastVisit();
-  }, [loadData]);
+    setIsForceUpdating(true);
+    console.log('🔐 [ADMIN] Forçando atualização...');
+
+    try {
+      // Pegar senha do env (lado cliente)
+      const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
+
+      const response = await fetch('/api/admin/force-update', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminSecret}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data: HubStatsResponse = await response.json();
+
+      if (data.success && data.data) {
+        console.log('✅ [ADMIN] Atualização forçada bem-sucedida');
+        setPlayers(data.data);
+        setLastUpdated(new Date(data.cache.lastUpdated));
+        setNextUpdate(new Date(data.cache.nextUpdate));
+
+        // Salvar no cache
+        storageService.saveCache({
+          players: data.data,
+          lastUpdated: data.cache.lastUpdated,
+          nextUpdate: data.cache.nextUpdate,
+          version: '1.0.0',
+        });
+
+        // Mostrar sucesso
+        alert('✅ Atualização concluída com sucesso!');
+      } else {
+        throw new Error(data.error || 'Erro ao forçar atualização');
+      }
+    } catch (err) {
+      console.error('❌ [ADMIN] Erro:', err);
+      alert('❌ Erro ao forçar atualização: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
+    } finally {
+      setIsForceUpdating(false);
+    }
+  };
+
+  const handleManagePlayers = () => {
+  setShowPlayerManagement(true);
+};
 
   // Filtered and sorted players
   const filteredPlayers = useMemo(() => {
     let result = [...players];
 
-    // Apply filters
     result = filterBySearch(result, filters.searchTerm);
-  
-    // FIX: Garantir que pot é number | 'all'
+    
     const pot = filters.pot ?? 'all';
-    result = filterByPot(result, pot);
+    const potFilter = pot === 'all' ? 'all' : Number(pot);
+    result = filterByPot(result, potFilter);
 
-    // Apply sorting
     result.sort((a, b) => comparePlayers(a, b, filters.sortBy, filters.sortOrder));
 
     return result;
   }, [players, filters]);
 
   // Handlers
-  const handleRefresh = () => {
-    loadData(true);
-  };
-
   const handleFiltersChange = (newFilters: PlayerFilters) => {
     setFilters(newFilters);
+  };
+
+  const handleApplyUpdate = () => {
+    applyUpdate();
+    setShowToast(false);
+  };
+
+  const handleDismissToast = () => {
+    setShowToast(false);
   };
 
   // Render states
@@ -141,26 +198,27 @@ export default function HomePage() {
   }
 
   if (error && players.length === 0) {
-    return <ErrorState error={error} onRetry={handleRefresh} />;
+    return <ErrorState error={error} onRetry={loadFromAPI} />;
   }
 
   return (
     <div className="min-h-screen">
       {/* Container */}
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header with filters */}
+        {/* Header */}
         <StatsHeader
           filters={filters}
           onFiltersChange={handleFiltersChange}
           totalPlayers={players.length}
           lastUpdated={lastUpdated}
           nextUpdate={nextUpdate}
-          isLoading={loading}
-          onRefresh={handleRefresh}
+          isUpdating={updateStatus.isUpdating}
+          updateProgress={updateStatus.progress}
         />
+        
+        <PrizeCards />
 
-
-        {/* Error banner (if exists but we have cached data) */}
+        {/* Error banner */}
         {error && players.length > 0 && (
           <div className="mt-6 card bg-warning/10 border-warning/30">
             <div className="flex items-center gap-3">
@@ -187,10 +245,11 @@ export default function HomePage() {
           <div className="flex bg-faceit-darker rounded-lg p-1 border border-faceit-light-gray">
             <button
               onClick={() => setViewMode('cards')}
-              className={`px-4 py-2 rounded-md transition-all ${viewMode === 'cards'
+              className={`px-4 py-2 rounded-md transition-all ${
+                viewMode === 'cards'
                   ? 'bg-faceit-orange text-white'
                   : 'text-text-secondary hover:text-white'
-                }`}
+              }`}
               title="Vista de Cards"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,10 +258,11 @@ export default function HomePage() {
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`px-4 py-2 rounded-md transition-all ${viewMode === 'table'
+              className={`px-4 py-2 rounded-md transition-all ${
+                viewMode === 'table'
                   ? 'bg-faceit-orange text-white'
                   : 'text-text-secondary hover:text-white'
-                }`}
+              }`}
               title="Vista de Tabela"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,9 +292,32 @@ export default function HomePage() {
             <PlayerTable players={filteredPlayers} />
           )}
         </div>
-
-
       </div>
+
+      {/* Toast de atualização */}
+      <UpdateToast
+        show={showToast}
+        onApply={handleApplyUpdate}
+        onDismiss={handleDismissToast}
+      />
+
+      {/* Admin Panel */}
+      <AdminPanel
+        isAdmin={isAdmin}
+        showModal={showAdminModal}
+        onLogin={adminLogin}
+        onClose={() => setShowAdminModal(false)}
+        onLogout={adminLogout}
+        onForceUpdate={handleForceUpdate}
+        onManagePlayers={handleManagePlayers}  // ← ADICIONAR
+        isUpdating={isForceUpdating}
+      />
+
+      {/* Player Management Panel */}
+<PlayerManagementPanel
+  isVisible={showPlayerManagement}
+  onClose={() => setShowPlayerManagement(false)}
+/>
     </div>
   );
 }

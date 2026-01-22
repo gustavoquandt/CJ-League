@@ -1,6 +1,6 @@
 /**
- * Serviço FACEIT - VERSÃO CORRIGIDA FINAL
- * K/D e ADR usando os campos corretos
+ * Serviço FACEIT - K/D e ADR CALCULADOS DA FILA
+ * Versão corrigida que busca stats de cada partida da queue
  */
 
 import type {
@@ -50,12 +50,18 @@ interface FetchProgress {
 
 type ProgressCallback = (progress: FetchProgress) => void;
 
-// Stats específicas da queue
+// Stats específicas da queue - ATUALIZADO com campos de stats
 interface QueuePlayerStats {
   wins: number;
   losses: number;
   matchesPlayed: number;
   points: number;
+  lastMatchId?: string;
+  // NOVOS CAMPOS para K/D e ADR corretos:
+  totalKills: number;
+  totalDeaths: number;
+  totalDamage: number;
+  totalRounds: number;
 }
 
 class FaceitService {
@@ -185,16 +191,22 @@ class FaceitService {
   }
 
   /**
-   * Busca PARTIDAS do jogador e filtra pela queue
+   * Busca PARTIDAS do jogador e CALCULA STATS da queue
+   * ATUALIZADO: Agora busca K/D e ADR de cada partida
    */
   async getPlayerMatchesInQueue(playerId: string, nickname: string): Promise<QueuePlayerStats> {
     console.log(`   🔍 Buscando partidas de ${nickname} na queue...`);
     
     let wins = 0;
     let losses = 0;
+    let totalKills = 0;
+    let totalDeaths = 0;
+    let totalDamage = 0;
+    let totalRounds = 0;
     let offset = 0;
     const limit = 20;
     let foundMatches = 0;
+    let lastMatchId: string | undefined = undefined;
     
     try {
       // Busca últimas 100 partidas (5 páginas de 20)
@@ -214,20 +226,55 @@ class FaceitService {
           );
 
           foundMatches += queueMatches.length;
+          
+          // Salvar primeiro match
+          if (!lastMatchId && queueMatches.length > 0) {
+            lastMatchId = queueMatches[0].match_id;
+          }
 
-          // Conta wins/losses
-          queueMatches.forEach((match: any) => {
-            // Verifica se jogador ganhou
-            const playerTeam = match.teams?.faction1?.players?.some((p: any) => p.player_id === playerId)
-              ? 'faction1'
-              : 'faction2';
-            
-            if (match.results?.winner === playerTeam) {
-              wins++;
-            } else {
-              losses++;
+          // Para CADA partida da fila, buscar stats detalhadas
+          for (const match of queueMatches) {
+            try {
+              // Buscar stats completas do match
+              const matchStats: any = await this.request(`/matches/${match.match_id}/stats`);
+              
+              // Encontrar stats do jogador nessa partida
+              const rounds = matchStats.rounds || [];
+              
+              for (const round of rounds) {
+                // Procurar jogador em ambos os times
+                const allPlayers = [
+                  ...(round.teams?.[0]?.players || []),
+                  ...(round.teams?.[1]?.players || [])
+                ];
+                
+                const playerStats = allPlayers.find((p: any) => p.player_id === playerId);
+                
+                if (playerStats) {
+                  // Somar kills, deaths, damage dessa round
+                  totalKills += parseInt(playerStats.player_stats?.Kills || '0');
+                  totalDeaths += parseInt(playerStats.player_stats?.Deaths || '0');
+                  totalDamage += parseInt(playerStats.player_stats?.Damage || '0');
+                  totalRounds++;
+                }
+              }
+              
+              // Contar win/loss
+              const playerTeam = match.teams?.faction1?.players?.some((p: any) => p.player_id === playerId)
+                ? 'faction1'
+                : 'faction2';
+              
+              if (match.results?.winner === playerTeam) {
+                wins++;
+              } else {
+                losses++;
+              }
+              
+            } catch (matchError) {
+              console.error(`   ⚠️ Erro ao buscar stats do match ${match.match_id}:`, matchError);
+              // Continua para próxima partida sem travar
             }
-          });
+          }
 
           offset += limit;
           
@@ -245,13 +292,33 @@ class FaceitService {
       const matchesPlayed = wins + losses;
       const points = RANKING_CONFIG.INITIAL_POINTS + (wins * 3) - (losses * 3);
 
-      console.log(`   ✅ ${nickname}: ${wins}W/${losses}L = ${points} pts (${foundMatches} partidas da queue)`);
+      console.log(`   ✅ ${nickname}: ${wins}W/${losses}L = ${points} pts (${foundMatches} partidas)`);
+      console.log(`      📊 Stats da fila: ${totalKills}K/${totalDeaths}D em ${totalRounds} rounds`);
 
-      return { wins, losses, matchesPlayed, points };
+      return { 
+        wins, 
+        losses, 
+        matchesPlayed, 
+        points, 
+        lastMatchId,
+        totalKills,
+        totalDeaths,
+        totalDamage,
+        totalRounds
+      };
       
     } catch (error) {
       console.error(`   ❌ Erro ao buscar partidas de ${nickname}:`, error);
-      return { wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS };
+      return { 
+        wins: 0, 
+        losses: 0, 
+        matchesPlayed: 0, 
+        points: RANKING_CONFIG.INITIAL_POINTS,
+        totalKills: 0,
+        totalDeaths: 0,
+        totalDamage: 0,
+        totalRounds: 0
+      };
     }
   }
 
@@ -264,10 +331,10 @@ class FaceitService {
         return null;
       }
 
-      // 2. Buscar partidas da queue (wins/losses/points)
+      // 2. Buscar partidas da queue (wins/losses/points + K/D/ADR)
       const queueStats = await this.getPlayerMatchesInQueue(playerInfo.player_id, nickname);
 
-      // 3. Buscar stats gerais CS2 (K/D, ADR, HS%, etc)
+      // 3. Buscar stats gerais CS2 (HS%, streaks, etc)
       const stats = await this.getPlayerStats(playerInfo.player_id);
 
       // 4. Montar PlayerStats
@@ -279,115 +346,74 @@ class FaceitService {
     }
   }
 
-  // VERSÃO COM LOGS DETALHADOS
-// Substitua apenas a função buildPlayerStats
+  /**
+   * Monta PlayerStats usando K/D e ADR DA FILA
+   */
+  private buildPlayerStats(
+    nickname: string,
+    player: FaceitPlayer,
+    queueStats: QueuePlayerStats,
+    stats?: FaceitPlayerStats | null
+  ): PlayerStats {
+    const playerId = player.player_id;
+    const avatar = player.avatar;
+    const country = player.country;
+    const faceitElo = player.faceit_elo || 0;
+    const skillLevel = player.skill_level || 0;
 
-private buildPlayerStats(
-  nickname: string,
-  player: FaceitPlayer,
-  queueStats: QueuePlayerStats,
-  stats?: FaceitPlayerStats | null
-): PlayerStats {
-  const playerId = player.player_id;
-  const avatar = player.avatar;
-  const country = player.country;
-  const faceitElo = player.faceit_elo || 0;
-  const skillLevel = player.skill_level || 0;
+    // ========== K/D E ADR DA FILA (NÃO GLOBAIS) ==========
+    const { wins, losses, matchesPlayed, points, lastMatchId, totalKills, totalDeaths, totalDamage, totalRounds } = queueStats;
+    
+    // K/D calculado APENAS dos jogos da fila
+    const kd = totalDeaths > 0 ? parseFloat((totalKills / totalDeaths).toFixed(2)) : 0;
+    
+    // ADR calculado APENAS dos jogos da fila
+    const adr = totalRounds > 0 ? parseFloat((totalDamage / totalRounds).toFixed(1)) : 0;
+    
+    // Kills/Deaths médios por partida
+    const kills = matchesPlayed > 0 ? parseFloat((totalKills / matchesPlayed).toFixed(1)) : 0;
+    const deaths = matchesPlayed > 0 ? parseFloat((totalDeaths / matchesPlayed).toFixed(1)) : 0;
 
-  // Stats gerais do CS2
-  const lifetime = stats?.lifetime as any;
-  
-  // ========== LOGS DETALHADOS ==========
-  console.log(`\n🔍 ========== ${nickname} ==========`);
-  
-  // Mostra se stats existem
-  if (!stats || !lifetime) {
-    console.log('⚠️ STATS NÃO ENCONTRADAS!');
-    console.log('stats:', stats);
-    console.log('lifetime:', lifetime);
-  } else {
-    console.log('✅ Stats encontradas');
-    
-    // Lista TODOS os campos disponíveis
-    console.log('📋 Campos disponíveis:', Object.keys(lifetime));
-    
-    // Mostra os campos que estamos tentando usar
-    console.log('\n🎯 Campos específicos:');
-    console.log('  Average K/D Ratio:', lifetime['Average K/D Ratio']);
-    console.log('  K/D Ratio:', lifetime['K/D Ratio']);
-    console.log('  ADR:', lifetime['ADR']);
-    console.log('  Average ADR:', lifetime['Average ADR']);
+    // ========== STATS GLOBAIS (para contexto) ==========
+    const lifetime = stats?.lifetime as any;
+    const assists = parseStatValue(lifetime?.['Average Assists']) || 0;
+    const kr = parseStatValue(lifetime?.['K/R Ratio']) || 0;
+    const headshotPercentage = parsePercentage(lifetime?.['Average Headshots %']) || 0;
+    const longestWinStreak = parseStatValue(lifetime?.['Longest Win Streak']) || 0;
+    const currentStreak = parseStatValue(lifetime?.['Current Win Streak']) || 0;
+
+    const winRate = matchesPlayed > 0 
+      ? parseFloat(((wins / matchesPlayed) * 100).toFixed(1))
+      : 0;
+
+    const pot = PLAYER_POTS[nickname];
+
+    return sanitizePlayer({
+      playerId,
+      nickname,
+      avatar,
+      country,
+      pot,
+      rankingPoints: points,
+      position: 0,
+      matchesPlayed,
+      wins,
+      losses,
+      winRate,
+      kills,      // ← Média da fila
+      deaths,     // ← Média da fila
+      assists,    // ← Global (não temos por partida)
+      kd,         // ← CALCULADO DA FILA ✅
+      kr,         // ← Global
+      adr,        // ← CALCULADO DA FILA ✅
+      headshotPercentage,
+      faceitElo,
+      skillLevel,
+      currentStreak,
+      longestWinStreak,
+      lastMatchId,
+    });
   }
-  
-  // ========== K/D ==========
-  const kdValue = lifetime?.['Average K/D Ratio'];
-  console.log('\n📊 K/D:');
-  console.log('  Raw value:', kdValue);
-  console.log('  Type:', typeof kdValue);
-  
-  const kd = parseStatValue(kdValue) || 0;
-  console.log('  Parsed:', kd);
-  
-  // ========== ADR ==========
-  const adrValue = lifetime?.['ADR'];
-  console.log('\n💥 ADR:');
-  console.log('  Raw value:', adrValue);
-  console.log('  Type:', typeof adrValue);
-  
-  const adr = parseStatValue(adrValue) || 0;
-  console.log('  Parsed:', adr);
-  
-  // ========== OUTRAS STATS ==========
-  const estimatedDeaths = 15;
-  const kills = kd * estimatedDeaths;
-  const deaths = estimatedDeaths;
-  
-  const assists = parseStatValue(lifetime?.['Average Assists']) || 0;
-  const kr = parseStatValue(lifetime?.['K/R Ratio']) || 0;
-  const headshotPercentage = parsePercentage(lifetime?.['Average Headshots %']) || 0;
-  const longestWinStreak = parseStatValue(lifetime?.['Longest Win Streak']) || 0;
-  const currentStreak = parseStatValue(lifetime?.['Current Win Streak']) || 0;
-
-  // Dados DA QUEUE
-  const { wins, losses, matchesPlayed, points } = queueStats;
-  const winRate = matchesPlayed > 0 
-    ? parseFloat(((wins / matchesPlayed) * 100).toFixed(1))
-    : 0;
-
-  const pot = PLAYER_POTS[nickname];
-  
-  console.log('\n✅ Resultado final:');
-  console.log('  K/D:', kd);
-  console.log('  ADR:', adr);
-  console.log('  Kills:', kills.toFixed(1));
-  console.log('  Deaths:', deaths);
-  console.log('==================\n');
-
-  return sanitizePlayer({
-    playerId,
-    nickname,
-    avatar,
-    country,
-    pot,
-    rankingPoints: points,
-    position: 0,
-    matchesPlayed,
-    wins,
-    losses,
-    winRate,
-    kills,
-    deaths,
-    assists,
-    kd,
-    kr,
-    adr,
-    headshotPercentage,
-    faceitElo,
-    skillLevel,
-    currentStreak,
-    longestWinStreak,
-  });
-}
 
   /**
    * MÉTODO PRINCIPAL
@@ -398,7 +424,7 @@ private buildPlayerStats(
     console.log('🚀 Iniciando busca de jogadores DA QUEUE...');
     console.log(`🎯 Queue/Competition ID: ${QUEUE_ID}`);
     console.log(`📋 Total de ${PLAYER_NICKNAMES.length} jogadores configurados`);
-    console.log('⏱️ Tempo estimado: 1-2 minutos (buscando partidas individuais)');
+    console.log('⏱️ Tempo estimado: 5-10 minutos (buscando stats detalhadas de cada partida)');
     console.log('');
     
     const startTime = Date.now();
@@ -454,7 +480,7 @@ private buildPlayerStats(
     console.log('');
     console.log('🏆 TOP 5:');
     players.slice(0, 5).forEach((p, i) => {
-      console.log(`   ${i + 1}. ${p.nickname}: ${p.rankingPoints} pts (${p.wins}W/${p.losses}L)`);
+      console.log(`   ${i + 1}. ${p.nickname}: ${p.rankingPoints} pts (${p.wins}W/${p.losses}L) - K/D: ${p.kd} ADR: ${p.adr}`);
     });
 
     return players;

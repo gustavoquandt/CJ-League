@@ -89,7 +89,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         </div>
       </div>
 
-      {/* Stats Secundárias - Apenas ADR e HS% */}
+      {/* Stats Secundárias - Apenas ADR e HS% 
       <div className="grid grid-cols-2 gap-2 pt-3 border-t border-faceit-light-gray text-center">
         <div>
           <p className="text-xs text-text-secondary mb-1">ADR</p>
@@ -103,8 +103,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
           <p className="text-sm font-semibold">
             {formatStat(player.headshotPercentage, 1)}%
           </p>
-        </div>
-      </div>
+        </div> */}
     </div>
   );
 }
