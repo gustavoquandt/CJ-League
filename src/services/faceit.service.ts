@@ -1,6 +1,6 @@
 /**
- * Serviço FACEIT - 100 PARTIDAS COM MÁXIMO PARALELISMO
- * Meta: < 300 segundos processando TUDO em paralelo
+ * Serviço FACEIT - ATUALIZAÇÃO INCREMENTAL
+ * Atualiza APENAS jogadores com partidas novas na última hora
  */
 
 import type {
@@ -27,12 +27,12 @@ import {
 const CLUB_ID = process.env.NEXT_PUBLIC_HUB_ID || '42393c93-5da0-4a6b-bcda-32de8d727658';
 const QUEUE_ID = process.env.NEXT_PUBLIC_COMPETITION_ID || 'f2dec63c-b3c1-4df6-8193-0b83fc6640ef';
 
-// CONFIGURAÇÕES DE MÁXIMO DESEMPENHO
-const HISTORY_PAGES = 5; // 5 páginas × 20 = 100 partidas
-const PARALLEL_PAGES = 5; // Buscar TODAS as 5 páginas ao mesmo tempo
-const PARALLEL_MATCHES = 10; // Buscar 10 partidas em paralelo
-const PARALLEL_PLAYERS = 5; // Processar 5 jogadores ao mesmo tempo
-const REQUEST_TIMEOUT = 6000; // 6s timeout (rápido)
+// CONFIGURAÇÕES
+const HISTORY_PAGES = 5;
+const PARALLEL_MATCHES = 8;
+const PARALLEL_PLAYERS = 3;
+const REQUEST_TIMEOUT = 12000;
+const MIN_DELAY_BETWEEN_REQUESTS = 200;
 
 interface FaceitServiceConfig {
   apiKey: string;
@@ -81,16 +81,15 @@ class FaceitService {
     this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl || FACEIT_API.BASE_URL;
     this.timeout = REQUEST_TIMEOUT;
-    this.defaultRetries = 1; // Falha rápido
+    this.defaultRetries = 2;
   }
 
   private async waitForRateLimit(): Promise<void> {
     const now = Date.now();
     const timeSinceLastRequest = now - this.lastRequestTime;
-    const minDelay = 50; // MUITO rápido: 50ms
 
-    if (timeSinceLastRequest < minDelay) {
-      const waitTime = minDelay - timeSinceLastRequest;
+    if (timeSinceLastRequest < MIN_DELAY_BETWEEN_REQUESTS) {
+      const waitTime = MIN_DELAY_BETWEEN_REQUESTS - timeSinceLastRequest;
       await this.delay(waitTime);
     }
 
@@ -110,7 +109,7 @@ class FaceitService {
       method = 'GET',
       headers = {},
       retries = this.defaultRetries,
-      delay = 300,
+      delay = 800,
     } = options;
 
     const url = `${this.baseUrl}${endpoint}`;
@@ -141,7 +140,9 @@ class FaceitService {
           }
 
           if (response.status === 429) {
-            await this.delay(1000);
+            const waitTime = 3000 * (attempt + 1);
+            console.log(`⚠️ Rate limit, aguardando ${waitTime/1000}s...`);
+            await this.delay(waitTime);
             continue;
           }
 
@@ -153,12 +154,51 @@ class FaceitService {
 
       } catch (error) {
         lastError = error as Error;
-        if (attempt === retries) break;
-        await this.delay(delay);
+        if (attempt < retries) {
+          await this.delay(delay * (attempt + 1));
+        }
       }
     }
 
     throw lastError || new Error('Request failed');
+  }
+
+  /**
+   * NOVA FUNÇÃO: Verificar se jogador tem partidas novas
+   * Retorna o ID da última partida OU null se não houver partidas novas
+   */
+  async getLatestMatchId(playerId: string, nickname: string, currentLastMatchId?: string): Promise<string | null> {
+    try {
+      // Buscar apenas primeira página (últimas 20 partidas)
+      const endpoint = `/players/${playerId}/history?game=cs2&offset=0&limit=20`;
+      const response: any = await this.request(endpoint);
+      
+      if (!response.items || response.items.length === 0) {
+        return null;
+      }
+
+      // Filtrar partidas da queue
+      const queueMatches = response.items.filter((match: any) => match.competition_id === QUEUE_ID);
+      
+      if (queueMatches.length === 0) {
+        return null;
+      }
+
+      const latestMatchId = queueMatches[0]?.match_id;
+
+      // Se é a mesma partida que já temos, não precisa atualizar
+      if (latestMatchId === currentLastMatchId) {
+        console.log(`   ⏭️  ${nickname}: Sem partidas novas`);
+        return null;
+      }
+
+      console.log(`   🆕 ${nickname}: Partida nova detectada!`);
+      return latestMatchId;
+
+    } catch (error) {
+      console.error(`   ⚠️ ${nickname}: Erro ao verificar partidas`);
+      return null;
+    }
   }
 
   async getPlayerByNickname(nickname: string): Promise<FaceitPlayer | null> {
@@ -180,12 +220,7 @@ class FaceitService {
     }
   }
 
-  /**
-   * VERSÃO ULTRA OTIMIZADA - 100 partidas em paralelo máximo
-   */
   async getPlayerMatchesInQueue(playerId: string, nickname: string): Promise<QueuePlayerStats> {
-    console.log(`   🔍 ${nickname}...`);
-    
     let wins = 0;
     let losses = 0;
     let totalKills = 0;
@@ -195,7 +230,7 @@ class FaceitService {
     let lastMatchId: string | undefined = undefined;
     
     try {
-      // FASE 1: Buscar TODAS as 5 páginas EM PARALELO (não sequencial!)
+      // Buscar histórico (5 páginas = 100 partidas)
       const pagePromises = [];
       for (let page = 0; page < HISTORY_PAGES; page++) {
         const offset = page * 20;
@@ -204,8 +239,6 @@ class FaceitService {
       }
 
       const pageResults: any[] = await Promise.all(pagePromises);
-      
-      // Juntar todas as partidas
       const allMatches = pageResults.flatMap(result => result.items || []);
       
       if (allMatches.length === 0) {
@@ -215,7 +248,6 @@ class FaceitService {
         };
       }
 
-      // Filtrar apenas partidas da queue
       const queueMatches = allMatches.filter((match: any) => match.competition_id === QUEUE_ID);
 
       if (queueMatches.length === 0) {
@@ -227,8 +259,7 @@ class FaceitService {
 
       lastMatchId = queueMatches[0]?.match_id;
 
-      // FASE 2: Buscar stats de TODAS as partidas EM PARALELO
-      // Dividir em chunks de 10 para não sobrecarregar
+      // Buscar stats em chunks
       const chunks = [];
       for (let i = 0; i < queueMatches.length; i += PARALLEL_MATCHES) {
         chunks.push(queueMatches.slice(i, i + PARALLEL_MATCHES));
@@ -270,13 +301,12 @@ class FaceitService {
             return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, won };
             
           } catch (error) {
-            return null; // Falha silenciosa
+            return null;
           }
         });
 
         const chunkResults = await Promise.all(matchStatsPromises);
         
-        // Somar resultados deste chunk
         for (const result of chunkResults) {
           if (result) {
             totalKills += result.kills;
@@ -292,7 +322,7 @@ class FaceitService {
       const matchesPlayed = wins + losses;
       const points = RANKING_CONFIG.INITIAL_POINTS + (wins * 3) - (losses * 3);
 
-      console.log(`   ✅ ${nickname}: ${wins}W/${losses}L (${queueMatches.length} partidas)`);
+      console.log(`   ✅ ${nickname}: ${wins}W/${losses}L`);
 
       return { 
         wins, losses, matchesPlayed, points, lastMatchId,
@@ -300,7 +330,7 @@ class FaceitService {
       };
       
     } catch (error) {
-      console.error(`   ❌ ${nickname}: erro`);
+      console.error(`   ❌ ${nickname}: Erro`);
       return { 
         wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
         totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0
@@ -364,24 +394,146 @@ class FaceitService {
     });
   }
 
+  /**
+   * ATUALIZAÇÃO INCREMENTAL
+   * Atualiza APENAS jogadores com partidas novas
+   */
+  async fetchAllPlayersStatsIncremental(
+    cachedPlayers: PlayerStats[],
+    onProgress?: ProgressCallback
+  ): Promise<PlayerStats[]> {
+    console.log('🔄 ATUALIZAÇÃO INCREMENTAL');
+    console.log(`📋 ${PLAYER_NICKNAMES.length} jogadores no total`);
+    console.log(`💾 ${cachedPlayers.length} jogadores em cache`);
+    console.log('');
+    
+    const startTime = Date.now();
+    
+    // FASE 1: Verificar quais jogadores precisam atualizar (RÁPIDO - só 1 request por jogador)
+    console.log('🔍 FASE 1: Verificando partidas novas...');
+    
+    const playersToUpdate: string[] = [];
+    const cachedByNickname = new Map(cachedPlayers.map(p => [p.nickname, p]));
+    
+    // Verificar em batches pequenos
+    for (let i = 0; i < PLAYER_NICKNAMES.length; i += PARALLEL_PLAYERS) {
+      const batch = PLAYER_NICKNAMES.slice(i, i + PARALLEL_PLAYERS);
+      
+      const checkPromises = batch.map(async (nickname) => {
+        const cached = cachedByNickname.get(nickname);
+        
+        // Se não tem cache, precisa atualizar
+        if (!cached) {
+          playersToUpdate.push(nickname);
+          return;
+        }
+
+        // Buscar player_id
+        const playerInfo = await this.getPlayerByNickname(nickname);
+        if (!playerInfo) return;
+
+        // Verificar se tem partidas novas
+        const latestMatchId = await this.getLatestMatchId(playerInfo.player_id, nickname, cached.lastMatchId);
+        
+        if (latestMatchId) {
+          playersToUpdate.push(nickname);
+        }
+      });
+
+      await Promise.all(checkPromises);
+    }
+
+    console.log('');
+    console.log(`✅ ${playersToUpdate.length} jogadores COM partidas novas`);
+    console.log(`⏭️  ${PLAYER_NICKNAMES.length - playersToUpdate.length} jogadores SEM partidas novas`);
+    console.log('');
+
+    // FASE 2: Atualizar APENAS jogadores com partidas novas
+    if (playersToUpdate.length > 0) {
+      console.log('🔄 FASE 2: Atualizando jogadores modificados...');
+      
+      const updatedPlayers: PlayerStats[] = [];
+      
+      for (let i = 0; i < playersToUpdate.length; i += PARALLEL_PLAYERS) {
+        const batch = playersToUpdate.slice(i, i + PARALLEL_PLAYERS);
+        
+        console.log(`📊 Atualizando: ${batch.join(', ')}`);
+        
+        const batchPromises = batch.map(async (nickname) => {
+          if (onProgress) {
+            onProgress({
+              total: playersToUpdate.length,
+              current: i + 1,
+              currentPlayer: nickname,
+              percentage: Math.round(((i + 1) / playersToUpdate.length) * 100),
+            });
+          }
+
+          return await this.getConsolidatedPlayerData(nickname);
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        updatedPlayers.push(...batchResults.filter((p): p is PlayerStats => p !== null));
+      }
+
+      console.log(`✅ ${updatedPlayers.length} jogadores atualizados`);
+      
+      // Mesclar: Jogadores atualizados + jogadores em cache sem mudanças
+      const finalPlayers = [...updatedPlayers];
+      
+      for (const cached of cachedPlayers) {
+        if (!playersToUpdate.includes(cached.nickname)) {
+          finalPlayers.push(cached);
+        }
+      }
+
+      // Ordenar
+      finalPlayers.sort((a, b) => {
+        if (a.rankingPoints !== b.rankingPoints) return b.rankingPoints - a.rankingPoints;
+        if (a.wins !== b.wins) return b.wins - a.wins;
+        return b.matchesPlayed - a.matchesPlayed;
+      });
+
+      finalPlayers.forEach((player, index) => {
+        player.position = index + 1;
+      });
+
+      const duration = Date.now() - startTime;
+      console.log('');
+      console.log(`✅ CONCLUÍDO em ${(duration / 1000).toFixed(1)}s`);
+      console.log(`🔢 ${this.requestCount} requisições`);
+
+      return finalPlayers;
+      
+    } else {
+      console.log('✅ Nenhum jogador precisa atualizar!');
+      console.log('📊 Retornando cache existente');
+      
+      const duration = Date.now() - startTime;
+      console.log(`⚡ Concluído em ${(duration / 1000).toFixed(1)}s`);
+      
+      return cachedPlayers;
+    }
+  }
+
+  /**
+   * ATUALIZAÇÃO COMPLETA (fallback)
+   */
   async fetchAllPlayersStats(onProgress?: ProgressCallback): Promise<PlayerStats[]> {
-    console.log('🚀 MÁXIMO PARALELISMO - 100 partidas por jogador');
-    console.log(`🎯 Queue: ${QUEUE_ID}`);
+    console.log('🔄 ATUALIZAÇÃO COMPLETA (todos os jogadores)');
     console.log(`📋 ${PLAYER_NICKNAMES.length} jogadores`);
-    console.log(`⚡ ${PARALLEL_PLAYERS} jogadores em paralelo`);
-    console.log('⏱️ Meta: < 300s');
     console.log('');
     
     const startTime = Date.now();
     const players: PlayerStats[] = [];
 
-    // PROCESSAR 5 JOGADORES EM PARALELO
     for (let i = 0; i < PLAYER_NICKNAMES.length; i += PARALLEL_PLAYERS) {
       const batch = PLAYER_NICKNAMES.slice(i, i + PARALLEL_PLAYERS);
       
+      console.log(`📊 [${i + 1}-${Math.min(i + PARALLEL_PLAYERS, PLAYER_NICKNAMES.length)}/${PLAYER_NICKNAMES.length}] ${batch.join(', ')}`);
+      
       const batchPromises = batch.map(async (nickname, index) => {
         const globalIndex = i + index;
-        console.log(`📊 [${globalIndex + 1}/${PLAYER_NICKNAMES.length}] ${nickname}`);
 
         if (onProgress) {
           onProgress({
@@ -411,7 +563,7 @@ class FaceitService {
 
     const duration = Date.now() - startTime;
     console.log('');
-    console.log(`✅ Concluído em ${(duration / 1000).toFixed(1)}s`);
+    console.log(`✅ CONCLUÍDO em ${(duration / 1000).toFixed(1)}s`);
     console.log(`📊 ${players.length}/${PLAYER_NICKNAMES.length} jogadores`);
     console.log(`🔢 ${this.requestCount} requisições`);
 

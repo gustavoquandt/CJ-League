@@ -1,30 +1,29 @@
 /**
  * API Route: /api/admin/force-update
  * 
- * Endpoint admin para forçar atualização manual
- * Versão com resposta rápida para cron-job.org
- * 
- * Retorna 200 OK imediatamente e processa em background
+ * VERSÃO COM ATUALIZAÇÃO INCREMENTAL
+ * Atualiza apenas jogadores com partidas novas
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { HubStatsResponse } from '@/types/app.types';
 import { getFaceitService } from '@/services/faceit.service';
 import { saveCacheEverywhere } from '@/services/cache.service';
+import { storageService } from '@/services/storage.service';
 
 const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'default_admin_secret_change_me';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('🔐 [ADMIN] Requisição de atualização forçada recebida');
+  console.log('🔐 [ADMIN] Requisição de atualização recebida');
 
   try {
-    // 1. Verificar autenticação
+    // 1. Autenticação
     const authHeader = request.headers.get('authorization');
     const providedSecret = authHeader?.replace('Bearer ', '');
 
     if (!providedSecret || providedSecret !== ADMIN_SECRET) {
-      console.log('❌ [ADMIN] Senha incorreta ou ausente');
+      console.log('❌ [ADMIN] Não autorizado');
       return NextResponse.json({
         success: false,
         error: 'Não autorizado',
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 401 });
     }
 
-    console.log('✅ [ADMIN] Autenticação bem-sucedida');
+    console.log('✅ [ADMIN] Autenticado');
 
     // 2. Validar API key
     if (!FACEIT_API_KEY) {
@@ -52,35 +51,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 500 });
     }
 
-    // 3. INICIAR PROCESSAMENTO EM BACKGROUND (não espera terminar!)
-    console.log('🔄 [ADMIN] Iniciando atualização em background...');
+    // 3. INICIAR PROCESSAMENTO EM BACKGROUND
+    console.log('🔄 [ADMIN] Iniciando atualização incremental em background...');
     
-    // Processa em background sem bloquear a resposta
-    processUpdateInBackground(FACEIT_API_KEY).catch((error) => {
+    processIncrementalUpdate(FACEIT_API_KEY).catch((error) => {
       console.error('❌ [ADMIN] Erro no background:', error);
     });
 
-    // 4. RETORNAR RESPOSTA IMEDIATA (antes de terminar a atualização!)
-    console.log('✅ [ADMIN] Resposta enviada, processamento continua em background');
+    // 4. RETORNAR RESPOSTA IMEDIATA
+    console.log('✅ [ADMIN] Resposta enviada, processamento em background');
     
     return NextResponse.json({
       success: true,
-      message: 'Atualização iniciada em background',
-      data: [], // Array vazio enquanto processa
+      message: 'Atualização incremental iniciada',
+      data: [],
       cache: {
         lastUpdated: new Date().toISOString(),
-        nextUpdate: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // +1 hora
+        nextUpdate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         fromCache: false,
       },
       meta: {
-        totalPlayers: 0, // Será atualizado quando processar
+        totalPlayers: 0,
         status: 'processing',
-        estimatedDuration: '5-10 minutos',
+        mode: 'incremental',
+        estimatedDuration: '10-60 segundos (depende de quantos jogaram)',
       },
     });
 
   } catch (error) {
-    console.error('❌ [ADMIN] Erro ao iniciar atualização:', error);
+    console.error('❌ [ADMIN] Erro:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -94,47 +93,74 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 /**
- * Processa a atualização em background
- * Esta função roda DEPOIS da resposta ser enviada
+ * Processamento em background com atualização incremental
  */
-async function processUpdateInBackground(apiKey: string): Promise<void> {
+async function processIncrementalUpdate(apiKey: string): Promise<void> {
   const startTime = Date.now();
   
   try {
-    console.log('📊 [BACKGROUND] Iniciando busca de dados...');
+    console.log('📊 [BACKGROUND] Iniciando atualização incremental...');
     
     const faceitService = getFaceitService(apiKey);
     
-    const players = await faceitService.fetchAllPlayersStats((progress) => {
-      if (progress.current % 10 === 0 || progress.current === progress.total) {
-        console.log(
-          `📊 [BACKGROUND] Progresso: ${progress.current}/${progress.total} ` +
-          `(${progress.percentage}%)`
-        );
-      }
-    });
+    // Carregar cache atual usando storageService
+    const cachedData = storageService.getCache();
+    const cachedPlayers = cachedData?.players || [];
+    
+    console.log(`💾 [BACKGROUND] Cache carregado: ${cachedPlayers.length} jogadores`);
+    
+    let players;
+    
+    // Se não tem cache, fazer atualização completa
+    if (cachedPlayers.length === 0) {
+      console.log('⚠️ [BACKGROUND] Sem cache, fazendo atualização COMPLETA...');
+      
+      players = await faceitService.fetchAllPlayersStats((progress) => {
+        if (progress.current % 10 === 0 || progress.current === progress.total) {
+          console.log(
+            `📊 [BACKGROUND] Progresso: ${progress.current}/${progress.total} ` +
+            `(${progress.percentage}%)`
+          );
+        }
+      });
+    } else {
+      // Fazer atualização INCREMENTAL
+      console.log('🔄 [BACKGROUND] Fazendo atualização INCREMENTAL...');
+      
+      players = await faceitService.fetchAllPlayersStatsIncremental(
+        cachedPlayers,
+        (progress) => {
+          if (progress.current % 5 === 0 || progress.current === progress.total) {
+            console.log(
+              `📊 [BACKGROUND] Atualizando: ${progress.current}/${progress.total} ` +
+              `(${progress.percentage}%)`
+            );
+          }
+        }
+      );
+    }
 
     if (players.length === 0) {
       console.warn('⚠️ [BACKGROUND] Nenhum jogador retornado');
       return;
     }
 
-    // Atualizar cache
+    // Salvar cache atualizado
     saveCacheEverywhere(players, () => {});
 
     const duration = Date.now() - startTime;
     const requestCount = faceitService.getRequestCount();
 
-    console.log(`✅ [BACKGROUND] Atualização concluída em ${(duration / 1000).toFixed(1)}s`);
+    console.log(`✅ [BACKGROUND] Concluído em ${(duration / 1000).toFixed(1)}s`);
     console.log(`📊 [BACKGROUND] ${players.length} jogadores | ${requestCount} requisições`);
 
   } catch (error) {
-    console.error('❌ [BACKGROUND] Erro durante atualização:', error);
+    console.error('❌ [BACKGROUND] Erro:', error);
     throw error;
   }
 }
 
-// Configuração da rota
+// Configuração
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutos (para o background job)
+export const maxDuration = 300;
