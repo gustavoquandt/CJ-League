@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import type { PlayerStats, HubStatsResponse, PlayerFilters } from '@/types/app.types';
 import { storageService } from '@/services/storage.service';
 import { useBackgroundUpdate } from '@/hooks/useBackgroundUpdate';
@@ -20,7 +20,7 @@ import {
   comparePlayers,
 } from '@/utils/stats.utils';
 
-export default function HomePage() {
+function HomePageContent() {
   // State
   const [players, setPlayers] = useState<PlayerStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +86,7 @@ export default function HomePage() {
 
     loadInitialCache();
     storageService.saveLastVisit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fallback: buscar da API
@@ -116,7 +117,7 @@ export default function HomePage() {
     if (!isAdmin) return;
 
     setIsForceUpdating(true);
-    console.log('🔐 [ADMIN] Forçando atualização...');
+    console.log('🔄 [ADMIN] Forçando atualização...');
 
     try {
       // Pegar senha do env (lado cliente)
@@ -160,8 +161,8 @@ export default function HomePage() {
   };
 
   const handleManagePlayers = () => {
-  setShowPlayerManagement(true);
-};
+    setShowPlayerManagement(true);
+  };
 
   // Filtered and sorted players
   const filteredPlayers = useMemo(() => {
@@ -309,15 +310,24 @@ export default function HomePage() {
         onClose={() => setShowAdminModal(false)}
         onLogout={adminLogout}
         onForceUpdate={handleForceUpdate}
-        onManagePlayers={handleManagePlayers}  // ← ADICIONAR
+        onManagePlayers={handleManagePlayers}
         isUpdating={isForceUpdating}
       />
 
       {/* Player Management Panel */}
-<PlayerManagementPanel
-  isVisible={showPlayerManagement}
-  onClose={() => setShowPlayerManagement(false)}
-/>
+      <PlayerManagementPanel
+        isVisible={showPlayerManagement}
+        onClose={() => setShowPlayerManagement(false)}
+      />
     </div>
+  );
+}
+
+// Componente principal com Suspense
+export default function HomePage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <HomePageContent />
+    </Suspense>
   );
 }
