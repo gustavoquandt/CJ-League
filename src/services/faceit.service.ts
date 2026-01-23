@@ -288,8 +288,7 @@ class FaceitService {
                 matchKills += parseInt(playerStats.player_stats?.Kills || '0');
                 matchDeaths += parseInt(playerStats.player_stats?.Deaths || '0');
                 matchDamage += parseInt(playerStats.player_stats?.Damage || '0');
-                matchRounds++;
-              }
+}
             }
             
             const playerTeam = match.teams?.faction1?.players?.some((p: any) => p.player_id === playerId)
