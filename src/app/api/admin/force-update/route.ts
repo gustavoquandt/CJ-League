@@ -1,20 +1,19 @@
 /**
- * Versão com LOGS FORÇADOS para debugging
+ * Rota com detector de novos jogadores + ultra safe
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { HubStatsResponse } from '@/types/app.types';
 import { getFaceitService } from '@/services/faceit.service';
 import { kvCacheService } from '@/services/kv-cache.service';
+import { detectNewPlayers } from '@/services/new-players-detector';
 
 const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'default_admin_secret_change_me';
 
-// Função para forçar output de logs
 function forceLog(message: string) {
   console.log(message);
-  console.error(message); // Também em stderr para garantir
-  process.stdout.write(message + '\n'); // Forçar flush
+  console.error(message);
+  process.stdout.write(message + '\n');
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -42,10 +41,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 500 });
     }
 
-    forceLog('🔄 [ADMIN] INICIANDO processamento SÍNCRONO (não background)...');
+    forceLog('🔄 [ADMIN] Iniciando processamento síncrono...');
     
-    // MUDAR PARA SÍNCRONO para ver todos os logs
     try {
+      // 1. DETECTAR NOVOS JOGADORES PRIMEIRO
+      forceLog('\n' + '='.repeat(60));
+      const detection = await detectNewPlayers();
+      forceLog('='.repeat(60) + '\n');
+      
+      if (detection.newPlayers.length > 0) {
+        forceLog(`⚠️ ATENÇÃO: ${detection.newPlayers.length} NOVOS JOGADORES!`);
+        forceLog('📝 Veja os logs acima para adicionar ao constants.ts');
+      }
+      
+      // 2. PROCESSAR JOGADORES
       await processUpdateSync(FACEIT_API_KEY);
       
       forceLog('✅ [ADMIN] Processamento COMPLETO!');
@@ -53,6 +62,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({
         success: true,
         message: 'Atualização concluída com sucesso',
+        newPlayers: detection.newPlayers,
       });
     } catch (error) {
       forceLog(`❌ [ADMIN] Erro no processamento: ${error}`);
@@ -68,13 +78,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-/**
- * Processamento SÍNCRONO com logs forçados
- */
 async function processUpdateSync(apiKey: string): Promise<void> {
   const startTime = Date.now();
   
-  forceLog('📊 [SYNC] Iniciando...');
+  forceLog('📊 [SYNC] Iniciando atualização...');
   
   try {
     const faceitService = getFaceitService(apiKey);
@@ -85,24 +92,13 @@ async function processUpdateSync(apiKey: string): Promise<void> {
     
     forceLog(`💾 [SYNC] Cache carregado: ${cachedPlayers.length} jogadores`);
     
-    let players;
+    forceLog('⚠️ [SYNC] Fazendo atualização COMPLETA (ultra safe)...');
     
-    if (cachedPlayers.length === 0) {
-      forceLog('⚠️ [SYNC] Sem cache, fazendo atualização COMPLETA...');
-      
-      players = await faceitService.fetchAllPlayersStats((progress) => {
+    const players = await faceitService.fetchAllPlayersStats((progress) => {
+      if (progress.current % 5 === 0 || progress.current === progress.total) {
         forceLog(`📊 [SYNC] Progresso: ${progress.current}/${progress.total} (${progress.percentage}%)`);
-      });
-    } else {
-      forceLog('🔄 [SYNC] Fazendo atualização INCREMENTAL...');
-      
-      players = await faceitService.fetchAllPlayersStatsIncremental(
-        cachedPlayers,
-        (progress) => {
-          forceLog(`📊 [SYNC] Atualizando: ${progress.current}/${progress.total} (${progress.percentage}%)`);
-        }
-      );
-    }
+      }
+    });
 
     forceLog(`📊 [SYNC] Recebeu ${players.length} jogadores`);
 
