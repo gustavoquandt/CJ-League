@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 /**
- * Painel Admin - ATUALIZADO com Detector de Novos Jogadores
+ * Painel Admin - VERSÃO FINAL com Detector de Novos Jogadores DA FILA
  */
 
 interface AdminPanelProps {
@@ -34,6 +34,7 @@ export default function AdminPanel({
   const [isDetecting, setIsDetecting] = useState(false);
   const [newPlayersFound, setNewPlayersFound] = useState<string[]>([]);
   const [showNewPlayers, setShowNewPlayers] = useState(false);
+  const [totalInQueue, setTotalInQueue] = useState(0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,10 +48,10 @@ export default function AdminPanel({
     }
   };
 
-  // Função para detectar novos jogadores
+  // Função para detectar novos jogadores NA FILA
   const handleDetectNewPlayers = async () => {
     setIsDetecting(true);
-    console.log('🔍 Detectando novos jogadores...');
+    console.log('🔍 Detectando novos jogadores na fila...');
 
     try {
       const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
@@ -74,20 +75,28 @@ export default function AdminPanel({
       }
 
       console.log(`✅ Detecção concluída:`);
-      console.log(`   Total no hub: ${data.totalMembers}`);
+      console.log(`   Total na fila: ${data.totalInQueue}`);
       console.log(`   Registrados: ${data.registeredPlayers}`);
       console.log(`   Novos: ${data.newPlayers.length}`);
+
+      setTotalInQueue(data.totalInQueue);
 
       if (data.newPlayers.length > 0) {
         setNewPlayersFound(data.newPlayers);
         setShowNewPlayers(true);
         
         alert(
-          `🆕 ${data.newPlayers.length} novos jogadores encontrados!\n\n` +
+          `🆕 ${data.newPlayers.length} novos jogadores encontrados na fila!\n\n` +
+          `Total na fila: ${data.totalInQueue}\n` +
           `Veja a lista abaixo e adicione ao constants.ts`
         );
       } else {
-        alert('✅ Nenhum jogador novo encontrado!\n\nTodos os membros do hub já estão registrados.');
+        alert(
+          `✅ Nenhum jogador novo encontrado na fila!\n\n` +
+          `Total na fila: ${data.totalInQueue}\n` +
+          `Registrados: ${data.registeredPlayers}\n\n` +
+          `Todos os jogadores da fila já estão no constants.ts`
+        );
       }
 
     } catch (err) {
@@ -190,10 +199,10 @@ export default function AdminPanel({
               {isUpdating ? 'Atualizando...' : 'Forçar Atualização'}
             </button>
 
-            {/* NOVO: Botão Detectar Novos Jogadores */}
+            {/* Botão Detectar Novos Jogadores */}
             <button
               onClick={handleDetectNewPlayers}
-              disabled={isDetecting || isUpdating}
+              disabled={isDetecting}
               className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 
                          text-white rounded-lg font-semibold transition-colors flex items-center 
                          justify-center gap-2"
@@ -208,7 +217,7 @@ export default function AdminPanel({
                 </>
               ) : (
                 <>
-                  <span>🔍</span>
+                  🔍
                   <span>Detectar Novos Jogadores</span>
                 </>
               )}
@@ -231,16 +240,16 @@ export default function AdminPanel({
               onClick={onLogout}
               className="w-full px-4 py-2 bg-faceit-light-gray hover:bg-faceit-lighter-gray rounded-lg transition-colors text-sm"
             >
-              🔓 Sair do Admin
+              🔒 Sair do Admin
             </button>
           </div>
 
-          {/* NOVO: Modal de Novos Jogadores */}
+          {/* Modal de Novos Jogadores */}
           {showNewPlayers && newPlayersFound.length > 0 && (
             <div className="mt-4 p-4 bg-blue-900/30 border border-blue-500/30 rounded-lg">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-blue-400">
-                  🆕 {newPlayersFound.length} Novos Jogadores
+                  🆕 {newPlayersFound.length} Novos na Fila
                 </h3>
                 <button
                   onClick={() => setShowNewPlayers(false)}
@@ -249,6 +258,10 @@ export default function AdminPanel({
                   ✕
                 </button>
               </div>
+
+              <p className="text-xs text-gray-400 mb-2">
+                Total na fila: {totalInQueue} jogadores
+              </p>
               
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {newPlayersFound.map((nickname, index) => (
@@ -257,7 +270,7 @@ export default function AdminPanel({
                     className="flex items-center gap-2 p-2 bg-faceit-darker rounded"
                   >
                     <span className="text-gray-400 text-sm w-8">{index + 1}.</span>
-                    <span className="font-mono text-white text-sm">{nickname}</span>
+                    <span className="font-mono text-white">{nickname}</span>
                   </div>
                 ))}
               </div>

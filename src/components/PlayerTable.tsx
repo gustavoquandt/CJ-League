@@ -184,12 +184,7 @@ export default function PlayerTable({ players }: PlayerTableProps) {
                   </span>
                 </td>
 
-                {/* ADR */}
-                <td className="hidden lg:table-cell">
-                  <span className={`font-semibold ${getADRColor(player.adr)}`}>
-                    {formatStat(player.adr, 1)}
-                  </span>
-                </td>
+               
 
                 {/* HS% */}
                 <td className="hidden xl:table-cell">

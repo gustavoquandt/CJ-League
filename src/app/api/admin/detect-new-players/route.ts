@@ -1,6 +1,6 @@
 /**
  * Rota: /api/admin/detect-new-players
- * Detecta jogadores novos no hub que não estão no constants.ts
+ * Detecta jogadores novos NA FILA que não estão no constants.ts
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,17 +8,17 @@ import { PLAYER_NICKNAMES } from '@/config/constants';
 
 const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'default_admin_secret_change_me';
-const HUB_ID = process.env.NEXT_PUBLIC_HUB_ID || '42393c93-5da0-4a6b-bcda-32de8d727658';
+const QUEUE_ID = process.env.NEXT_PUBLIC_COMPETITION_ID || 'f2dec63c-b3c1-4df6-8193-0b83fc6640ef';
 
-interface HubMember {
+interface QueuePlayer {
   user_id: string;
   nickname: string;
-  avatar: string;
-  country: string;
+  skill_level: number;
+  elo: number;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('🔍 [DETECT] Iniciando detecção de novos jogadores...');
+  console.log('🔍 [DETECT] Iniciando detecção de novos jogadores na FILA...');
 
   try {
     // Autenticação
@@ -41,18 +41,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 500 });
     }
 
-    console.log(`📋 Hub ID: ${HUB_ID}`);
-    console.log(`📝 Jogadores registrados: ${PLAYER_NICKNAMES.length}`);
+    console.log(`📋 Queue ID: ${QUEUE_ID}`);
+    console.log(`📝 Jogadores registrados no constants.ts: ${PLAYER_NICKNAMES.length}`);
 
-    // Buscar TODOS os membros do hub
-    const allMembers: string[] = [];
+    // Buscar TODOS os jogadores da FILA
+    console.log('\n⚡ Buscando jogadores da fila...');
+    
+    const allQueuePlayers: string[] = [];
     let offset = 0;
     const limit = 100;
     let hasMore = true;
 
     while (hasMore) {
       const response = await fetch(
-        `https://open.faceit.com/data/v4/hubs/${HUB_ID}/members?offset=${offset}&limit=${limit}`,
+        `https://open.faceit.com/data/v4/leaderboards/competitions/${QUEUE_ID}?offset=${offset}&limit=${limit}`,
         {
           headers: {
             'Authorization': `Bearer ${FACEIT_API_KEY}`,
@@ -61,20 +63,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
 
       if (!response.ok) {
-        console.error(`❌ Erro ao buscar membros: ${response.status}`);
+        console.error(`❌ Erro ao buscar jogadores da fila: ${response.status}`);
         break;
       }
 
       const data = await response.json();
-      const members: HubMember[] = data.items || [];
+      const players: QueuePlayer[] = data.items || [];
 
-      members.forEach((member) => {
-        allMembers.push(member.nickname);
+      players.forEach((player) => {
+        allQueuePlayers.push(player.nickname);
       });
 
-      console.log(`   📊 Carregados: ${allMembers.length} membros`);
+      console.log(`   📊 Carregados: ${allQueuePlayers.length} jogadores da fila`);
 
-      hasMore = members.length === limit;
+      hasMore = players.length === limit;
       offset += limit;
 
       // Delay para evitar rate limit
@@ -83,20 +85,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    console.log(`\n✅ Total de membros no hub: ${allMembers.length}`);
+    console.log(`\n✅ Total de jogadores na FILA: ${allQueuePlayers.length}`);
 
     // Comparar com PLAYER_NICKNAMES
     const newPlayers: string[] = [];
     const registeredSet = new Set(PLAYER_NICKNAMES.map(n => n.toLowerCase()));
 
-    for (const member of allMembers) {
-      if (!registeredSet.has(member.toLowerCase())) {
-        newPlayers.push(member);
+    for (const player of allQueuePlayers) {
+      if (!registeredSet.has(player.toLowerCase())) {
+        newPlayers.push(player);
       }
     }
 
     if (newPlayers.length > 0) {
-      console.log('\n🆕 NOVOS JOGADORES ENCONTRADOS:');
+      console.log('\n🆕 NOVOS JOGADORES NA FILA:');
       console.log('━'.repeat(50));
       newPlayers.forEach((nickname, index) => {
         console.log(`${index + 1}. ${nickname}`);
@@ -111,17 +113,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.log('];');
       console.log('');
     } else {
-      console.log('\n✅ Nenhum jogador novo encontrado');
+      console.log('\n✅ Nenhum jogador novo encontrado na fila');
     }
 
     return NextResponse.json({
       success: true,
-      totalMembers: allMembers.length,
+      totalInQueue: allQueuePlayers.length,
       registeredPlayers: PLAYER_NICKNAMES.length,
       newPlayers,
       message: newPlayers.length > 0 
-        ? `${newPlayers.length} novos jogadores encontrados!`
-        : 'Nenhum jogador novo encontrado.',
+        ? `${newPlayers.length} novos jogadores encontrados na fila!`
+        : 'Nenhum jogador novo encontrado na fila.',
     });
 
   } catch (error) {
@@ -135,4 +137,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 1 minuto é suficiente
+export const maxDuration = 60;
