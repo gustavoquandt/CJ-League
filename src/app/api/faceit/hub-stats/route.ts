@@ -1,207 +1,66 @@
 /**
  * API Route: /api/faceit/hub-stats
  * 
- * Endpoint principal que:
- * 1. Verifica cache em memória
- * 2. Se cache inválido, busca dados da FACEIT
- * 3. Atualiza cache
- * 4. Retorna dados + metadados
- * 
- * Implementa atualização diária às 02:00
+ * VERSÃO COM VERCEL KV
+ * Lê APENAS do Redis - Zero chamadas à API FACEIT
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { kvCacheService } from '@/services/kv-cache.service';
 import type { HubStatsResponse } from '@/types/app.types';
-import { getFaceitService } from '@/services/faceit.service';
-import {
-  memoryCache,
-  cacheService,
-  saveCacheEverywhere,
-} from '@/services/cache.service';
 
-// ==================== CONFIGURATION ====================
-
-/**
- * IMPORTANTE: Configure variáveis de ambiente
- * FACEIT_API_KEY=sua_chave_aqui
- */
-const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
-
-// ==================== ROUTE HANDLER ====================
-
-/**
- * GET /api/faceit/hub-stats
- * Retorna estatísticas consolidadas de todos os jogadores do hub
- */
-export async function GET(request: NextRequest): Promise<NextResponse<HubStatsResponse>> {
-  const startTime = Date.now();
-  
-  console.log('📥 [API] Nova requisição recebida');
-
-  // ==================== 1. VALIDATION ====================
-
-  if (!FACEIT_API_KEY) {
-    console.error('❌ [API] FACEIT_API_KEY não configurada');
-    return NextResponse.json({
-      success: false,
-      error: 'FACEIT API Key não configurada. Configure FACEIT_API_KEY nas variáveis de ambiente.',
-      cache: {
-        lastUpdated: new Date().toISOString(),
-        nextUpdate: new Date().toISOString(),
-        fromCache: false,
-      },
-    }, { status: 500 });
-  }
-
-  // ==================== 2. CHECK CACHE ====================
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  console.log('📥 [API] Requisição de usuário recebida');
 
   try {
-    // Verifica cache em memória
-    const cachedData = memoryCache.get();
-    
-    if (cachedData && !cacheService.shouldUpdate(cachedData)) {
-      console.log('✅ [API] Retornando dados do cache em memória');
+    // LER APENAS DO REDIS (não chama API FACEIT)
+    const cached = await kvCacheService.getCache();
+
+    if (!cached || !cached.players || cached.players.length === 0) {
+      console.log('⚠️ [API] Cache vazio ou inexistente');
       
-      const duration = Date.now() - startTime;
-      
-      return NextResponse.json({
-        success: true,
-        data: cachedData.players,
-        cache: {
-          lastUpdated: cachedData.lastUpdated,
-          nextUpdate: cachedData.nextUpdate,
-          fromCache: true,
-        },
-        meta: {
-          totalPlayers: cachedData.players.length,
-          updateDuration: duration,
-        },
-      });
-    }
-
-    console.log('🔄 [API] Cache inválido ou inexistente, buscando dados frescos...');
-
-    // ==================== 3. FETCH FRESH DATA ====================
-
-    const faceitService = getFaceitService(FACEIT_API_KEY);
-    
-    // Busca todos os dados
-    const players = await faceitService.fetchAllPlayersStats((progress) => {
-      // Log de progresso (pode ser usado para SSE no futuro)
-      if (progress.current % 10 === 0 || progress.current === progress.total) {
-        console.log(
-          `📊 [API] Progresso: ${progress.current}/${progress.total} ` +
-          `(${progress.percentage}%) - ${progress.currentPlayer}`
-        );
-      }
-    });
-
-    if (players.length === 0) {
-      console.warn('⚠️ [API] Nenhum jogador retornado pela API');
-      
-      // Tenta retornar cache antigo se existir
-      if (cachedData && cachedData.players.length > 0) {
-        console.log('📦 [API] Retornando cache antigo como fallback');
-        return NextResponse.json({
-          success: true,
-          data: cachedData.players,
-          error: 'Aviso: usando dados em cache pois a atualização falhou',
-          cache: {
-            lastUpdated: cachedData.lastUpdated,
-            nextUpdate: cachedData.nextUpdate,
-            fromCache: true,
-          },
-          meta: {
-            totalPlayers: cachedData.players.length,
-          },
-        });
-      }
-
       return NextResponse.json({
         success: false,
-        error: 'Nenhum jogador encontrado',
+        error: 'Dados ainda não disponíveis. Aguarde alguns minutos para a primeira atualização.',
+        data: [],
         cache: {
           lastUpdated: new Date().toISOString(),
           nextUpdate: new Date().toISOString(),
           fromCache: false,
         },
-      }, { status: 404 });
+      } as HubStatsResponse, { status: 503 });
     }
 
-    // ==================== 4. UPDATE CACHE ====================
+    console.log(`✅ [API] Retornando ${cached.players.length} jogadores do cache`);
 
-    const newCacheData = saveCacheEverywhere(
-      players,
-      () => {} // localStorage não disponível no servidor
-    );
-
-    // ==================== 5. RETURN RESPONSE ====================
-
-    const duration = Date.now() - startTime;
-    const requestCount = faceitService.getRequestCount();
-
-    console.log(`✅ [API] Dados atualizados com sucesso em ${(duration / 1000).toFixed(1)}s`);
-    console.log(`📊 [API] ${players.length} jogadores | ${requestCount} requisições à FACEIT`);
-
-    return NextResponse.json({
+    const response: HubStatsResponse = {
       success: true,
-      data: players,
+      data: cached.players,
       cache: {
-        lastUpdated: newCacheData.lastUpdated,
-        nextUpdate: newCacheData.nextUpdate,
-        fromCache: false,
+        lastUpdated: cached.lastUpdated,
+        nextUpdate: new Date(new Date(cached.lastUpdated).getTime() + 60 * 60 * 1000).toISOString(),
+        fromCache: true,
       },
-      meta: {
-        totalPlayers: players.length,
-        updateDuration: duration,
-        apiCalls: requestCount,
-      },
-    });
+    };
+
+    return NextResponse.json(response);
 
   } catch (error) {
-    console.error('❌ [API] Erro ao processar requisição:', error);
-
-    // Tenta retornar cache como fallback
-    const cachedData = memoryCache.get();
-    if (cachedData && cachedData.players.length > 0) {
-      console.log('📦 [API] Retornando cache como fallback após erro');
-      return NextResponse.json({
-        success: true,
-        data: cachedData.players,
-        error: 'Aviso: usando dados em cache devido a um erro na atualização',
-        cache: {
-          lastUpdated: cachedData.lastUpdated,
-          nextUpdate: cachedData.nextUpdate,
-          fromCache: true,
-        },
-        meta: {
-          totalPlayers: cachedData.players.length,
-        },
-      });
-    }
-
-    // Erro fatal - sem cache disponível
+    console.error('❌ [API] Erro ao buscar cache:', error);
+    
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Erro desconhecido ao buscar dados',
+      error: 'Erro ao buscar dados do servidor',
+      data: [],
       cache: {
         lastUpdated: new Date().toISOString(),
         nextUpdate: new Date().toISOString(),
         fromCache: false,
       },
-    }, { status: 500 });
+    } as HubStatsResponse, { status: 500 });
   }
 }
 
-// ==================== ROUTE CONFIG ====================
-
-/**
- * Configuração do Next.js para esta rota
- * - dynamic: 'force-dynamic' = nunca cacheia (sempre executa)
- * - runtime: 'nodejs' = usa Node.js runtime (não Edge)
- */
+// Configurações
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-// Timeout de 5 minutos (para buscar muitos jogadores)
-export const maxDuration = 300;
