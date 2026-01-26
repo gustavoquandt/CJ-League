@@ -117,6 +117,9 @@ export const PLAYER_POTS: Record<string, number> = {
   'QGZERA': 4,
   'Snoop-D0gg': 1,
   'NegaoReinert': 5,
+  'nollan9': 1,
+  'widmann': 3,
+  
 };
 
 /**
