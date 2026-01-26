@@ -112,53 +112,56 @@ function HomePageContent() {
     }
   };
 
-  // Admin: Forçar atualização
-  const handleForceUpdate = async () => {
-    if (!isAdmin) return;
+ 
+  // SUBSTITUA a função handleForceUpdate (linha ~123-165)
+// Por esta versão corrigida:
 
-    setIsForceUpdating(true);
-    console.log('🔄 [ADMIN] Forçando atualização...');
+const handleForceUpdate = async () => {
+  if (!isAdmin) return;
 
-    try {
-      // Pegar senha do env (lado cliente)
-      const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
+  setIsForceUpdating(true);
+  console.log('🔄 [ADMIN] Forçando atualização...');
 
-      const response = await fetch('/api/admin/force-update', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${adminSecret}`,
-          'Content-Type': 'application/json',
-        },
-      });
+  try {
+    // Pegar senha do env (lado cliente)
+    const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
 
-      const data: HubStatsResponse = await response.json();
+    const response = await fetch('/api/admin/force-update', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${adminSecret}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-      if (data.success && data.data) {
-        console.log('✅ [ADMIN] Atualização forçada bem-sucedida');
-        setPlayers(data.data);
-        setLastUpdated(new Date(data.cache.lastUpdated));
-        setNextUpdate(new Date(data.cache.nextUpdate));
+    const data = await response.json();
 
-        // Salvar no cache
-        storageService.saveCache({
-          players: data.data,
-          lastUpdated: data.cache.lastUpdated,
-          nextUpdate: data.cache.nextUpdate,
-          version: '1.0.0',
-        });
-
-        // Mostrar sucesso
-        alert('✅ Atualização concluída com sucesso!');
-      } else {
-        throw new Error(data.error || 'Erro ao forçar atualização');
-      }
-    } catch (err) {
-      console.error('❌ [ADMIN] Erro:', err);
-      alert('❌ Erro ao forçar atualização: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
-    } finally {
-      setIsForceUpdating(false);
+    if (data.success) {
+      // CORREÇÃO: A rota NÃO retorna dados, apenas confirma que iniciou
+      console.log('✅ [ADMIN] Atualização iniciada em background');
+      
+      alert(
+        '✅ Atualização iniciada!\n\n' +
+        'O processo está rodando em background.\n' +
+        'Aguarde 3-5 minutos e recarregue a página.'
+      );
+      
+      // Opcional: Recarregar após 5 minutos
+      setTimeout(() => {
+        console.log('🔄 Recarregando dados...');
+        window.location.reload();
+      }, 5 * 60 * 1000); // 5 minutos
+      
+    } else {
+      throw new Error(data.error || 'Erro ao forçar atualização');
     }
-  };
+  } catch (err) {
+    console.error('❌ [ADMIN] Erro:', err);
+    alert('❌ Erro ao forçar atualização: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
+  } finally {
+    setIsForceUpdating(false);
+  }
+};
 
   const handleManagePlayers = () => {
     setShowPlayerManagement(true);
