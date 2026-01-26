@@ -113,8 +113,8 @@ function HomePageContent() {
   };
 
  
-  // SUBSTITUA a função handleForceUpdate (linha ~123-165)
-// Por esta versão corrigida:
+// SUBSTITUA a função handleForceUpdate em src/app/page.tsx
+// Por esta versão que trata erros corretamente:
 
 const handleForceUpdate = async () => {
   if (!isAdmin) return;
@@ -134,30 +134,91 @@ const handleForceUpdate = async () => {
       },
     });
 
-    const data = await response.json();
+    // CORREÇÃO: Verificar se a resposta é JSON antes de parsear
+    const contentType = response.headers.get('content-type');
+    
+    if (!contentType || !contentType.includes('application/json')) {
+      // Resposta não é JSON (provavelmente timeout HTML)
+      console.warn('⚠️ [ADMIN] Resposta não é JSON, provavelmente timeout');
+      
+      if (response.status === 504 || response.status === 524) {
+        // Gateway timeout
+        alert(
+          '⚠️ Timeout do servidor (normal)\n\n' +
+          'O processo está rodando em background.\n' +
+          'Aguarde 10-15 minutos e recarregue a página.\n\n' +
+          'Você pode ver o progresso nos logs da Vercel.'
+        );
+      } else {
+        // Outro erro HTML
+        const text = await response.text();
+        console.error('Resposta HTML:', text.substring(0, 200));
+        
+        alert(
+          '⚠️ Erro no servidor\n\n' +
+          'Status: ' + response.status + '\n' +
+          'O processo pode estar rodando em background.\n\n' +
+          'Aguarde alguns minutos e recarregue a página.'
+        );
+      }
+      
+      return;
+    }
+
+    // Tentar parsear JSON
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error('❌ [ADMIN] Erro ao parsear JSON:', jsonError);
+      
+      alert(
+        '⚠️ Erro ao processar resposta\n\n' +
+        'O servidor pode estar sobrecarregado.\n' +
+        'Aguarde alguns minutos e tente novamente.'
+      );
+      
+      return;
+    }
 
     if (data.success) {
       // CORREÇÃO: A rota NÃO retorna dados, apenas confirma que iniciou
       console.log('✅ [ADMIN] Atualização iniciada em background');
       
-      alert(
-        '✅ Atualização iniciada!\n\n' +
-        'O processo está rodando em background.\n' +
-        'Aguarde 3-5 minutos e recarregue a página.'
-      );
+      let message = '✅ Atualização iniciada!\n\n';
+      message += 'O processo está rodando em background.\n';
+      message += 'Aguarde 10-15 minutos e recarregue a página.';
       
-      // Opcional: Recarregar após 5 minutos
+      // Se detectou novos jogadores
+      if (data.newPlayers && data.newPlayers.length > 0) {
+        message += '\n\n🆕 NOVOS JOGADORES DETECTADOS!\n';
+        message += `${data.newPlayers.length} novos jogadores encontrados.\n`;
+        message += 'Veja os logs da Vercel para os nomes.';
+      }
+      
+      alert(message);
+      
+      // Opcional: Recarregar após 15 minutos
       setTimeout(() => {
-        console.log('🔄 Recarregando dados...');
+        console.log('🔄 Recarregando dados após 15 minutos...');
         window.location.reload();
-      }, 5 * 60 * 1000); // 5 minutos
+      }, 15 * 60 * 1000); // 15 minutos
       
     } else {
       throw new Error(data.error || 'Erro ao forçar atualização');
     }
   } catch (err) {
     console.error('❌ [ADMIN] Erro:', err);
-    alert('❌ Erro ao forçar atualização: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
+    
+    let errorMessage = 'Erro ao forçar atualização';
+    
+    if (err instanceof TypeError && err.message.includes('fetch')) {
+      errorMessage = 'Erro de conexão com servidor.\nTente novamente em alguns minutos.';
+    } else if (err instanceof Error) {
+      errorMessage = err.message;
+    }
+    
+    alert('❌ ' + errorMessage);
   } finally {
     setIsForceUpdating(false);
   }
