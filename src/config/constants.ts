@@ -92,7 +92,7 @@ export const PLAYER_POTS: Record<string, number> = {
   'JapaMarley': 1,
   'nansch': 4,
   'caiobafk': 1,
-  'brunocrippam': 4,
+  'BReaC': 4,
   'VTB': 5,
   'umone1': 2,
   'jungee-': 4,

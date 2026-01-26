@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 /**
- * Painel Admin - ATUALIZADO com Gerenciamento de Jogadores
+ * Painel Admin - ATUALIZADO com Detector de Novos Jogadores
  */
 
 interface AdminPanelProps {
@@ -13,7 +13,7 @@ interface AdminPanelProps {
   onClose: () => void;
   onLogout: () => void;
   onForceUpdate: () => void;
-  onManagePlayers: () => void;  // ← NOVO
+  onManagePlayers: () => void;
   isUpdating: boolean;
 }
 
@@ -24,11 +24,16 @@ export default function AdminPanel({
   onClose,
   onLogout,
   onForceUpdate,
-  onManagePlayers,  // ← NOVO
+  onManagePlayers,
   isUpdating,
 }: AdminPanelProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  
+  // Estados para detector de novos jogadores
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [newPlayersFound, setNewPlayersFound] = useState<string[]>([]);
+  const [showNewPlayers, setShowNewPlayers] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +44,57 @@ export default function AdminPanel({
     } else {
       setError('');
       setPassword('');
+    }
+  };
+
+  // Função para detectar novos jogadores
+  const handleDetectNewPlayers = async () => {
+    setIsDetecting(true);
+    console.log('🔍 Detectando novos jogadores...');
+
+    try {
+      const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
+
+      const response = await fetch('/api/admin/detect-new-players', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminSecret}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao detectar jogadores');
+      }
+
+      console.log(`✅ Detecção concluída:`);
+      console.log(`   Total no hub: ${data.totalMembers}`);
+      console.log(`   Registrados: ${data.registeredPlayers}`);
+      console.log(`   Novos: ${data.newPlayers.length}`);
+
+      if (data.newPlayers.length > 0) {
+        setNewPlayersFound(data.newPlayers);
+        setShowNewPlayers(true);
+        
+        alert(
+          `🆕 ${data.newPlayers.length} novos jogadores encontrados!\n\n` +
+          `Veja a lista abaixo e adicione ao constants.ts`
+        );
+      } else {
+        alert('✅ Nenhum jogador novo encontrado!\n\nTodos os membros do hub já estão registrados.');
+      }
+
+    } catch (err) {
+      console.error('❌ Erro:', err);
+      alert('❌ Erro ao detectar novos jogadores: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
+    } finally {
+      setIsDetecting(false);
     }
   };
 
@@ -105,7 +161,7 @@ export default function AdminPanel({
   if (isAdmin) {
     return (
       <div className="fixed bottom-6 left-6 z-40">
-        <div className="bg-faceit-gray border border-faceit-orange rounded-lg p-4 shadow-2xl">
+        <div className="bg-faceit-gray border border-faceit-orange rounded-lg p-4 shadow-2xl max-w-sm">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
             <span className="text-sm font-semibold text-success">Modo Admin</span>
@@ -134,7 +190,31 @@ export default function AdminPanel({
               {isUpdating ? 'Atualizando...' : 'Forçar Atualização'}
             </button>
 
-            {/* NOVO: Botão Gerenciar Jogadores */}
+            {/* NOVO: Botão Detectar Novos Jogadores */}
+            <button
+              onClick={handleDetectNewPlayers}
+              disabled={isDetecting || isUpdating}
+              className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 
+                         text-white rounded-lg font-semibold transition-colors flex items-center 
+                         justify-center gap-2"
+            >
+              {isDetecting ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Detectando...</span>
+                </>
+              ) : (
+                <>
+                  <span>🔍</span>
+                  <span>Detectar Novos Jogadores</span>
+                </>
+              )}
+            </button>
+
+            {/* Botão Gerenciar Jogadores */}
             <button
               onClick={onManagePlayers}
               disabled={isUpdating}
@@ -154,6 +234,49 @@ export default function AdminPanel({
               🔓 Sair do Admin
             </button>
           </div>
+
+          {/* NOVO: Modal de Novos Jogadores */}
+          {showNewPlayers && newPlayersFound.length > 0 && (
+            <div className="mt-4 p-4 bg-blue-900/30 border border-blue-500/30 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-blue-400">
+                  🆕 {newPlayersFound.length} Novos Jogadores
+                </h3>
+                <button
+                  onClick={() => setShowNewPlayers(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {newPlayersFound.map((nickname, index) => (
+                  <div 
+                    key={index}
+                    className="flex items-center gap-2 p-2 bg-faceit-darker rounded"
+                  >
+                    <span className="text-gray-400 text-sm w-8">{index + 1}.</span>
+                    <span className="font-mono text-white text-sm">{nickname}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 p-3 bg-faceit-dark rounded border border-faceit-light-gray">
+                <p className="text-sm text-gray-400 mb-2">
+                  📝 Copie e adicione ao <code className="text-faceit-orange">constants.ts</code>:
+                </p>
+                <pre className="text-xs bg-black/50 p-2 rounded overflow-x-auto">
+                  <code className="text-green-400">
+{`export const PLAYER_NICKNAMES = [
+  // ... jogadores existentes ...
+${newPlayersFound.map(n => `  '${n}',`).join('\n')}
+];`}
+                  </code>
+                </pre>
+              </div>
+            </div>
+          )}
 
           <div className="mt-3 pt-3 border-t border-faceit-light-gray">
             <p className="text-xs text-text-secondary">
