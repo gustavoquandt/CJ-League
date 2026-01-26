@@ -1,6 +1,6 @@
 /**
- * VERSÃO ULTRA CONSERVADORA - TODAS AS PARTIDAS DA FILA
- * Delays maiores, menos paralelismo, mas dados completos
+ * VERSÃO COM PROCESSAMENTO EM BATCHES
+ * Processa 5 jogadores por vez para evitar timeout
  */
 
 import type {
@@ -22,14 +22,12 @@ import {
 
 const QUEUE_ID = process.env.NEXT_PUBLIC_COMPETITION_ID || 'f2dec63c-b3c1-4df6-8193-0b83fc6640ef';
 
-// CONFIGURAÇÕES ULTRA CONSERVADORAS
+// CONFIGURAÇÕES CONSERVADORAS
 const HISTORY_PAGES = 5;              // 5 páginas = 100 partidas
 const PARALLEL_MATCHES = 3;           // 3 partidas em paralelo
-const PARALLEL_PLAYERS = 1;           // 1 jogador por vez (SEQUENCIAL)
 const REQUEST_TIMEOUT = 20000;        // 20s timeout
-const MIN_DELAY_BETWEEN_REQUESTS = 1500; // 1.5 SEGUNDOS entre requests
-const DELAY_BETWEEN_PLAYERS = 3000;   // 3 SEGUNDOS entre cada jogador
-const DELAY_BETWEEN_CHUNKS = 2000;    // 2 SEGUNDOS entre chunks de partidas
+const MIN_DELAY_BETWEEN_REQUESTS = 1200; // 1.2s entre requests
+const DELAY_BETWEEN_CHUNKS = 1500;    // 1.5s entre chunks
 
 interface FaceitServiceConfig {
   apiKey: string;
@@ -115,8 +113,8 @@ class FaceitService {
           }
 
           if (response.status === 429) {
-            const waitTime = 10000 * (attempt + 1); // 10s, 20s, 30s, 40s
-            console.log(`   ⚠️ RATE LIMIT! Aguardando ${waitTime/1000}s (tentativa ${attempt + 1}/${retries + 1})...`);
+            const waitTime = 10000 * (attempt + 1);
+            console.log(`   ⚠️ Rate limit! Aguardando ${waitTime/1000}s...`);
             await this.delay(waitTime);
             continue;
           }
@@ -132,7 +130,6 @@ class FaceitService {
         
         if (attempt < retries) {
           const waitTime = 3000 * (attempt + 1);
-          console.log(`   ⏳ Erro, aguardando ${waitTime/1000}s antes de retry...`);
           await this.delay(waitTime);
         }
       }
@@ -170,25 +167,18 @@ class FaceitService {
     let lastMatchId: string | undefined = undefined;
     
     try {
-      // Buscar TODAS as páginas de histórico (5 páginas = 100 partidas)
-      console.log(`   📜 Buscando histórico (${HISTORY_PAGES} páginas)...`);
-      
-      const pagePromises = [];
+      // Buscar páginas SEQUENCIALMENTE
+      const allMatches = [];
       for (let page = 0; page < HISTORY_PAGES; page++) {
         const offset = page * 20;
         const endpoint = `/players/${playerId}/history?game=cs2&offset=${offset}&limit=20`;
-        
-        // Buscar páginas SEQUENCIALMENTE para evitar rate limit
         const result: any = await this.request(endpoint);
-        pagePromises.push(result);
+        allMatches.push(...(result.items || []));
         
-        // Delay entre páginas
         if (page < HISTORY_PAGES - 1) {
-          await this.delay(800);
+          await this.delay(600);
         }
       }
-
-      const allMatches = pagePromises.flatMap(result => result.items || []);
       
       if (allMatches.length === 0) {
         return {
@@ -200,7 +190,6 @@ class FaceitService {
       const queueMatches = allMatches.filter((match: any) => match.competition_id === QUEUE_ID);
 
       if (queueMatches.length === 0) {
-        console.log(`   ⚠️ Sem partidas da fila`);
         return {
           wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
           totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0
@@ -208,9 +197,8 @@ class FaceitService {
       }
 
       lastMatchId = queueMatches[0]?.match_id;
-      console.log(`   📊 ${queueMatches.length} partidas da fila encontradas`);
 
-      // Buscar stats em chunks PEQUENOS
+      // Processar partidas em chunks
       const chunks = [];
       for (let i = 0; i < queueMatches.length; i += PARALLEL_MATCHES) {
         chunks.push(queueMatches.slice(i, i + PARALLEL_MATCHES));
@@ -228,7 +216,7 @@ class FaceitService {
             let matchDamage = 0;
             
             const rounds = matchStats.rounds || [];
-            const matchRounds = rounds.length; // Número REAL de rounds
+            const matchRounds = rounds.length;
             
             for (const round of rounds) {
               const allPlayers = [
@@ -271,7 +259,6 @@ class FaceitService {
           }
         }
         
-        // Delay MAIOR entre chunks (evitar rate limit)
         if (chunkIndex < chunks.length - 1) {
           await this.delay(DELAY_BETWEEN_CHUNKS);
         }
@@ -352,28 +339,29 @@ class FaceitService {
     });
   }
 
-  async fetchAllPlayersStats(onProgress?: ProgressCallback): Promise<PlayerStats[]> {
-    console.log('🔄 POPULAÇÃO ULTRA CONSERVADORA - TODAS AS PARTIDAS');
-    console.log(`📋 ${PLAYER_NICKNAMES.length} jogadores`);
-    console.log(`⏱️ 1.5s entre requests, 3s entre jogadores`);
-    console.log(`🎯 Até ${HISTORY_PAGES * 20} partidas por jogador (todas da fila)`);
-    console.log('');
+  /**
+   * PROCESSAR UM BATCH DE JOGADORES
+   * Retorna os jogadores processados
+   */
+  async fetchPlayersBatch(
+    playerNicknames: string[],
+    onProgress?: ProgressCallback
+  ): Promise<PlayerStats[]> {
+    console.log(`📦 Processando batch de ${playerNicknames.length} jogadores`);
     
-    const startTime = Date.now();
     const players: PlayerStats[] = [];
 
-    // PROCESSAR UM POR VEZ (SEQUENCIAL)
-    for (let i = 0; i < PLAYER_NICKNAMES.length; i++) {
-      const nickname = PLAYER_NICKNAMES[i];
+    for (let i = 0; i < playerNicknames.length; i++) {
+      const nickname = playerNicknames[i];
       
-      console.log(`\n📊 [${i + 1}/${PLAYER_NICKNAMES.length}] ${nickname}`);
+      console.log(`   [${i + 1}/${playerNicknames.length}] ${nickname}`);
 
       if (onProgress) {
         onProgress({
-          total: PLAYER_NICKNAMES.length,
+          total: playerNicknames.length,
           current: i + 1,
           currentPlayer: nickname,
-          percentage: Math.round(((i + 1) / PLAYER_NICKNAMES.length) * 100),
+          percentage: Math.round(((i + 1) / playerNicknames.length) * 100),
         });
       }
 
@@ -382,41 +370,9 @@ class FaceitService {
       if (player) {
         players.push(player);
       }
-      
-      // DELAY ENTRE JOGADORES (evitar rate limit)
-      if (i < PLAYER_NICKNAMES.length - 1) {
-        console.log(`   ⏳ Aguardando ${DELAY_BETWEEN_PLAYERS/1000}s até próximo jogador...`);
-        await this.delay(DELAY_BETWEEN_PLAYERS);
-      }
     }
 
-    players.sort((a, b) => {
-      if (a.rankingPoints !== b.rankingPoints) return b.rankingPoints - a.rankingPoints;
-      if (a.wins !== b.wins) return b.wins - a.wins;
-      return b.matchesPlayed - a.matchesPlayed;
-    });
-
-    players.forEach((player, index) => {
-      player.position = index + 1;
-    });
-
-    const duration = Date.now() - startTime;
-    console.log('\n' + '='.repeat(60));
-    console.log(`✅ CONCLUÍDO em ${(duration / 1000).toFixed(1)}s (${(duration / 60000).toFixed(1)} minutos)`);
-    console.log(`📊 ${players.length}/${PLAYER_NICKNAMES.length} jogadores processados`);
-    console.log(`🔢 ${this.requestCount} requisições à API FACEIT`);
-    console.log('='.repeat(60));
-
     return players;
-  }
-
-  async fetchAllPlayersStatsIncremental(
-    cachedPlayers: PlayerStats[],
-    onProgress?: ProgressCallback
-  ): Promise<PlayerStats[]> {
-    // Por enquanto, apenas retorna fetchAllPlayersStats
-    // Implementar incremental depois que estabilizar
-    return this.fetchAllPlayersStats(onProgress);
   }
 
   getRequestCount(): number {

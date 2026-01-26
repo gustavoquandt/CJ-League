@@ -113,112 +113,92 @@ function HomePageContent() {
   };
 
  
-// SUBSTITUA a função handleForceUpdate em src/app/page.tsx
-// Por esta versão que trata erros corretamente:
+// SUBSTITUIR a função handleForceUpdate em src/app/page.tsx
+// Por esta versão que processa em batches:
 
 const handleForceUpdate = async () => {
   if (!isAdmin) return;
 
   setIsForceUpdating(true);
-  console.log('🔄 [ADMIN] Forçando atualização...');
+  console.log('📦 [ADMIN] Iniciando atualização em batches...');
 
   try {
-    // Pegar senha do env (lado cliente)
     const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
+    
+    let batchNumber = 0;
+    let hasMore = true;
+    let existingPlayers: any[] = [];
+    let totalBatches = 0;
 
-    const response = await fetch('/api/admin/force-update', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${adminSecret}`,
-        'Content-Type': 'application/json',
-      },
+    // Processar batches sequencialmente
+    while (hasMore) {
+      console.log(`📦 Processando batch ${batchNumber + 1}...`);
+
+      const response = await fetch('/api/admin/batch-update', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminSecret}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          batchNumber,
+          existingPlayers,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro no batch ${batchNumber + 1}: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || `Erro no batch ${batchNumber + 1}`);
+      }
+
+      // Atualizar estado
+      existingPlayers = data.players;
+      hasMore = data.hasMore;
+      totalBatches = data.batch.total;
+
+      console.log(
+        `✅ Batch ${data.batch.current}/${data.batch.total} concluído ` +
+        `(${data.batch.totalPlayers} jogadores processados)`
+      );
+
+      // Atualizar preview no frontend
+      setPlayers(existingPlayers);
+      setLastUpdated(new Date());
+
+      // Próximo batch
+      if (hasMore) {
+        batchNumber = data.nextBatch;
+        
+        // Delay entre batches (opcional, para dar tempo de ver progresso)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    // CONCLUÍDO!
+    console.log(`🎉 Atualização completa! ${existingPlayers.length} jogadores`);
+    
+    // Salvar no cache local
+    storageService.saveCache({
+      players: existingPlayers,
+      lastUpdated: new Date().toISOString(),
+      nextUpdate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      version: '1.0.0',
     });
 
-    // CORREÇÃO: Verificar se a resposta é JSON antes de parsear
-    const contentType = response.headers.get('content-type');
-    
-    if (!contentType || !contentType.includes('application/json')) {
-      // Resposta não é JSON (provavelmente timeout HTML)
-      console.warn('⚠️ [ADMIN] Resposta não é JSON, provavelmente timeout');
-      
-      if (response.status === 504 || response.status === 524) {
-        // Gateway timeout
-        alert(
-          '⚠️ Timeout do servidor (normal)\n\n' +
-          'O processo está rodando em background.\n' +
-          'Aguarde 10-15 minutos e recarregue a página.\n\n' +
-          'Você pode ver o progresso nos logs da Vercel.'
-        );
-      } else {
-        // Outro erro HTML
-        const text = await response.text();
-        console.error('Resposta HTML:', text.substring(0, 200));
-        
-        alert(
-          '⚠️ Erro no servidor\n\n' +
-          'Status: ' + response.status + '\n' +
-          'O processo pode estar rodando em background.\n\n' +
-          'Aguarde alguns minutos e recarregue a página.'
-        );
-      }
-      
-      return;
-    }
+    alert(
+      `✅ Atualização concluída!\n\n` +
+      `${existingPlayers.length} jogadores atualizados em ${totalBatches} batches.\n\n` +
+      `Os dados já estão disponíveis no site!`
+    );
 
-    // Tentar parsear JSON
-    let data;
-    try {
-      data = await response.json();
-    } catch (jsonError) {
-      console.error('❌ [ADMIN] Erro ao parsear JSON:', jsonError);
-      
-      alert(
-        '⚠️ Erro ao processar resposta\n\n' +
-        'O servidor pode estar sobrecarregado.\n' +
-        'Aguarde alguns minutos e tente novamente.'
-      );
-      
-      return;
-    }
-
-    if (data.success) {
-      // CORREÇÃO: A rota NÃO retorna dados, apenas confirma que iniciou
-      console.log('✅ [ADMIN] Atualização iniciada em background');
-      
-      let message = '✅ Atualização iniciada!\n\n';
-      message += 'O processo está rodando em background.\n';
-      message += 'Aguarde 10-15 minutos e recarregue a página.';
-      
-      // Se detectou novos jogadores
-      if (data.newPlayers && data.newPlayers.length > 0) {
-        message += '\n\n🆕 NOVOS JOGADORES DETECTADOS!\n';
-        message += `${data.newPlayers.length} novos jogadores encontrados.\n`;
-        message += 'Veja os logs da Vercel para os nomes.';
-      }
-      
-      alert(message);
-      
-      // Opcional: Recarregar após 15 minutos
-      setTimeout(() => {
-        console.log('🔄 Recarregando dados após 15 minutos...');
-        window.location.reload();
-      }, 15 * 60 * 1000); // 15 minutos
-      
-    } else {
-      throw new Error(data.error || 'Erro ao forçar atualização');
-    }
   } catch (err) {
     console.error('❌ [ADMIN] Erro:', err);
-    
-    let errorMessage = 'Erro ao forçar atualização';
-    
-    if (err instanceof TypeError && err.message.includes('fetch')) {
-      errorMessage = 'Erro de conexão com servidor.\nTente novamente em alguns minutos.';
-    } else if (err instanceof Error) {
-      errorMessage = err.message;
-    }
-    
-    alert('❌ ' + errorMessage);
+    alert('❌ Erro ao atualizar: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
   } finally {
     setIsForceUpdating(false);
   }
