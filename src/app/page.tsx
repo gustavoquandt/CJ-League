@@ -65,6 +65,10 @@ function HomePageContent() {
       try {
         setLoading(true);
         
+        // ✅ LIMPAR CACHE LOCAL PARA SEMPRE BUSCAR DADOS FRESCOS
+        localStorage.removeItem('players_cache');
+        localStorage.removeItem('last_update');
+        
         const cache = storageService.getCache();
         
         if (cache && cache.players.length > 0) {
@@ -92,7 +96,9 @@ function HomePageContent() {
   // Fallback: buscar da API
   const loadFromAPI = async () => {
     try {
-      const response = await fetch('/api/faceit/hub-stats');
+      // ✅ ADICIONAR TIMESTAMP PARA EVITAR CACHE
+      const timestamp = Date.now();
+      const response = await fetch(`/api/faceit/hub-stats?t=${timestamp}`);
       const data: HubStatsResponse = await response.json();
 
       if (data.success && data.data) {
@@ -261,7 +267,7 @@ const handleForceUpdate = async () => {
           updateProgress={updateStatus.progress}
         />
         
-        <PrizeCards />
+        {/* <PrizeCards /> */}
 
         {/* Error banner */}
         {error && players.length > 0 && (

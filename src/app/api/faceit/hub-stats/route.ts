@@ -43,7 +43,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
 
   } catch (error) {
     console.error('❌ [API] Erro ao buscar cache:', error);

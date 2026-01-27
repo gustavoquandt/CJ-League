@@ -95,7 +95,7 @@ export default function PlayerTable({ players }: PlayerTableProps) {
             <SortableHeader column="matchesPlayed" label="Partidas" className="hidden lg:table-cell" />
             <SortableHeader column="winRate" label="Win Rate" />
             <SortableHeader column="kd" label="K/D" />
-            <SortableHeader column="adr" label="ADR" className="hidden lg:table-cell" />
+            
             <th className="hidden xl:table-cell">HS%</th>
            
           </tr>
