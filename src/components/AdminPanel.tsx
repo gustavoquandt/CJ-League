@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 /**
- * Painel Admin - VERSÃO FINAL com Detector de Novos Jogadores DA FILA
+ * Painel Admin - COMPLETO com Detector + Comparação
  */
 
 interface AdminPanelProps {
@@ -35,6 +35,11 @@ export default function AdminPanel({
   const [newPlayersFound, setNewPlayersFound] = useState<string[]>([]);
   const [showNewPlayers, setShowNewPlayers] = useState(false);
   const [totalInQueue, setTotalInQueue] = useState(0);
+
+  // Estados para comparação fila vs site
+  const [isComparing, setIsComparing] = useState(false);
+  const [comparisonResult, setComparisonResult] = useState<any>(null);
+  const [showComparison, setShowComparison] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +109,60 @@ export default function AdminPanel({
       alert('❌ Erro ao detectar novos jogadores: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
     } finally {
       setIsDetecting(false);
+    }
+  };
+
+  // Função para comparar fila vs Redis
+  const handleCompareQueueRedis = async () => {
+    setIsComparing(true);
+    console.log('🔍 Comparando fila com Redis...');
+
+    try {
+      const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
+
+      const response = await fetch('/api/admin/compare-queue-redis', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminSecret}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao comparar');
+      }
+
+      console.log(`✅ Comparação concluída:`);
+      console.log(`   Fila: ${data.totalInQueue}`);
+      console.log(`   Redis: ${data.totalInRedis}`);
+      console.log(`   Faltando: ${data.missing.length}`);
+      console.log(`   Extras: ${data.extra.length}`);
+
+      setComparisonResult(data);
+      setShowComparison(true);
+
+      if (data.missing.length > 0 || data.extra.length > 0) {
+        alert(
+          `⚠️ Diferenças encontradas!\n\n` +
+          `Faltando no Site: ${data.missing.length}\n` +
+          `Extras no Site: ${data.extra.length}\n\n` +
+          `Veja a lista abaixo.`
+        );
+      } else {
+        alert(`✅ Fila e Site estão sincronizados!\n\nNenhuma diferença encontrada.`);
+      }
+
+    } catch (err) {
+      console.error('❌ Erro:', err);
+      alert('❌ Erro ao comparar: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
+    } finally {
+      setIsComparing(false);
     }
   };
 
@@ -223,6 +282,30 @@ export default function AdminPanel({
               )}
             </button>
 
+            {/* Botão Comparar Fila vs Site */}
+            <button
+              onClick={handleCompareQueueRedis}
+              disabled={isComparing}
+              className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 
+                         text-white rounded-lg font-semibold transition-colors flex items-center 
+                         justify-center gap-2"
+            >
+              {isComparing ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Comparando...</span>
+                </>
+              ) : (
+                <>
+                  🔄
+                  <span>Comparar Fila vs Site</span>
+                </>
+              )}
+            </button>
+
             {/* Botão Gerenciar Jogadores */}
             <button
               onClick={onManagePlayers}
@@ -288,6 +371,84 @@ ${newPlayersFound.map(n => `  '${n}',`).join('\n')}
                   </code>
                 </pre>
               </div>
+            </div>
+          )}
+
+          {/* Modal de Comparação */}
+          {showComparison && comparisonResult && (
+            <div className="mt-4 p-4 bg-green-900/30 border border-green-500/30 rounded-lg max-h-96 overflow-y-auto">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-green-400">
+                  🔄 Comparação Fila vs Site
+                </h3>
+                <button
+                  onClick={() => setShowComparison(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-2 mb-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Total na Fila:</span>
+                  <span className="text-white font-semibold">{comparisonResult.totalInQueue}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Total no Site:</span>
+                  <span className="text-white font-semibold">{comparisonResult.totalInRedis}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-red-400">❌ Faltando no Site:</span>
+                  <span className="text-red-400 font-semibold">{comparisonResult.missing.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-yellow-400">⚠️ Extras no Site:</span>
+                  <span className="text-yellow-400 font-semibold">{comparisonResult.extra.length}</span>
+                </div>
+              </div>
+
+              {/* Jogadores FALTANDO */}
+              {comparisonResult.missing.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-red-400 font-semibold mb-2 text-sm">
+                    ❌ Faltando no Site (estão na fila):
+                  </h4>
+                  <div className="space-y-1">
+                    {comparisonResult.missing.map((nick: string, index: number) => (
+                      <div key={index} className="p-2 bg-red-900/20 border border-red-500/30 rounded">
+                        <span className="font-mono text-white text-sm">{nick}</span>
+                        <span className="text-xs text-red-400 ml-2">← Adicione ao constants.ts</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Jogadores EXTRAS */}
+              {comparisonResult.extra.length > 0 && (
+                <div>
+                  <h4 className="text-yellow-400 font-semibold mb-2 text-sm">
+                    ⚠️ Extras no Site (não estão na fila):
+                  </h4>
+                  <div className="space-y-1">
+                    {comparisonResult.extra.map((nick: string, index: number) => (
+                      <div key={index} className="p-2 bg-yellow-900/20 border border-yellow-500/30 rounded">
+                        <span className="font-mono text-white text-sm">{nick}</span>
+                        <span className="text-xs text-yellow-400 ml-2">← Saiu da fila?</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Se tudo OK */}
+              {comparisonResult.missing.length === 0 && comparisonResult.extra.length === 0 && (
+                <div className="p-4 bg-green-900/20 border border-green-500/30 rounded text-center">
+                  <p className="text-green-400 font-semibold">✅ Fila e Site estão sincronizados!</p>
+                  <p className="text-sm text-gray-400 mt-1">Nenhuma diferença encontrada.</p>
+                </div>
+              )}
             </div>
           )}
 
