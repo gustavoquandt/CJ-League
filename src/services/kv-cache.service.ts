@@ -13,7 +13,7 @@ const redis = new Redis({
 });
 
 const CACHE_KEY = 'cj-stats:players';
-const CACHE_DURATION = 60 * 60; // 1 hora em segundos
+// ✅ REMOVIDO: CACHE_DURATION - Dados não expiram mais!
 
 interface CacheData {
   players: PlayerStats[];
@@ -22,7 +22,7 @@ interface CacheData {
 
 export const kvCacheService = {
   /**
-   * Salvar jogadores no Redis
+   * Salvar jogadores no Redis (SEM EXPIRAÇÃO)
    */
   async saveCache(players: PlayerStats[]): Promise<void> {
     try {
@@ -31,11 +31,10 @@ export const kvCacheService = {
         lastUpdated: new Date().toISOString(),
       };
 
-      await redis.set(CACHE_KEY, JSON.stringify(data), {
-        ex: CACHE_DURATION,
-      });
+      // ✅ SEM EXPIRAÇÃO! Dados persistem para sempre
+      await redis.set(CACHE_KEY, JSON.stringify(data));
       
-      console.log(`✅ [REDIS] Cache salvo: ${players.length} jogadores`);
+      console.log(`✅ [REDIS] Cache salvo: ${players.length} jogadores (SEM EXPIRAÇÃO)`);
     } catch (error) {
       console.error('❌ [REDIS] Erro ao salvar cache:', error);
       throw error;
