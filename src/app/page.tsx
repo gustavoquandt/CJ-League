@@ -244,13 +244,79 @@ const handleForceUpdate = async () => {
   };
 
   // Render states
-  if (loading && players.length === 0) {
-    return <LoadingState />;
-  }
+if (loading && players.length === 0) {
+  return <LoadingState />;
+}
 
-  if (error && players.length === 0) {
-    return <ErrorState error={error} onRetry={loadFromAPI} />;
-  }
+// ✅ NOVO: Empty state com botão "Buscar Dados"
+if (!loading && players.length === 0 && !error) {
+  return (
+    <div className="min-h-screen bg-faceit-darker flex items-center justify-center p-4">
+      <div className="card max-w-md w-full text-center py-12 px-6">
+        <div className="mb-6">
+          <svg 
+            className="w-20 h-20 mx-auto text-faceit-orange mb-4" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" 
+            />
+          </svg>
+          
+          <h2 className="text-2xl font-bold mb-3">Nenhum dado disponível</h2>
+          
+          <p className="text-text-secondary mb-6">
+            Os dados ainda não foram carregados ou seu cache foi limpo.<br />
+            Clique no botão abaixo para buscar os dados mais recentes do banco de dados.
+          </p>
+        </div>
+        
+        <button
+          onClick={async () => {
+            setLoading(true);
+            setError(null);
+            await loadFromAPI();
+            setLoading(false);
+          }}
+          disabled={loading}
+          className="btn-primary mx-auto flex items-center gap-2 px-6 py-3"
+        >
+          {loading ? (
+            <>
+              <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>Buscando dados...</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Buscar Dados</span>
+            </>
+          )}
+        </button>
+        
+        <div className="mt-6 p-4 bg-faceit-light-gray/10 rounded-lg">
+          <p className="text-xs text-text-secondary">
+            💡 <strong>Dica:</strong> Os dados são atualizados automaticamente a cada 2 horas
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+if (error && players.length === 0) {
+  return <ErrorState error={error} onRetry={loadFromAPI} />;
+}
 
   return (
     <div className="min-h-screen">
