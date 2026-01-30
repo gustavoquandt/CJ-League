@@ -31,6 +31,7 @@ function HomePageContent() {
   const [showToast, setShowToast] = useState(false);
   const [isForceUpdating, setIsForceUpdating] = useState(false);
   const [showPlayerManagement, setShowPlayerManagement] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false); // ✅ NOVO
   
   const [filters, setFilters] = useState<PlayerFilters>({
     searchTerm: '',
@@ -59,16 +60,13 @@ function HomePageContent() {
     }
   }, [updateStatus.hasNewData]);
 
-  // Load inicial (APENAS CACHE)
+  // Load inicial (Cache Local PRIMEIRO, depois Redis se necessário)
   useEffect(() => {
     const loadInitialCache = () => {
       try {
         setLoading(true);
         
-        // ✅ LIMPAR CACHE LOCAL PARA SEMPRE BUSCAR DADOS FRESCOS
-        localStorage.removeItem('players_cache');
-        localStorage.removeItem('last_update');
-        
+        // ✅ NÃO LIMPAR O CACHE! Deixar funcionar normalmente
         const cache = storageService.getCache();
         
         if (cache && cache.players.length > 0) {
@@ -77,7 +75,8 @@ function HomePageContent() {
           setLastUpdated(new Date(cache.lastUpdated));
           setNextUpdate(new Date(cache.nextUpdate));
         } else {
-          console.log('⚠️ Cache vazio, buscando dados...');
+          // Cache vazio - buscar do Redis (banco)
+          console.log('⚠️ Cache vazio, buscando do Redis...');
           loadFromAPI();
         }
       } catch (err) {
@@ -93,7 +92,7 @@ function HomePageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fallback: buscar da API
+  // Fallback: buscar da API (Redis)
   const loadFromAPI = async () => {
     try {
       // ✅ ADICIONAR TIMESTAMP PARA EVITAR CACHE
@@ -118,97 +117,130 @@ function HomePageContent() {
     }
   };
 
- 
-// SUBSTITUIR a função handleForceUpdate em src/app/page.tsx
-// Por esta versão que processa em batches:
-
-const handleForceUpdate = async () => {
-  if (!isAdmin) return;
-
-  setIsForceUpdating(true);
-  console.log('📦 [ADMIN] Iniciando atualização em batches...');
-
-  try {
-    const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
+  // ✅ NOVO: Função para atualizar dados do Redis
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    setError(null);
     
-    let batchNumber = 0;
-    let hasMore = true;
-    let existingPlayers: any[] = [];
-    let totalBatches = 0;
+    try {
+      console.log('🔄 Buscando dados atualizados do Redis...');
+      
+      const timestamp = Date.now();
+      const response = await fetch(`/api/faceit/hub-stats?t=${timestamp}`);
+      const data: HubStatsResponse = await response.json();
 
-    // Processar batches sequencialmente
-    while (hasMore) {
-      console.log(`📦 Processando batch ${batchNumber + 1}...`);
+      if (data.success && data.data && data.data.length > 0) {
+        setPlayers(data.data);
+        setLastUpdated(new Date(data.cache.lastUpdated));
+        setNextUpdate(new Date(data.cache.nextUpdate));
+        
+        storageService.saveCache({
+          players: data.data,
+          lastUpdated: data.cache.lastUpdated,
+          nextUpdate: data.cache.nextUpdate,
+          version: '1.0.0',
+        });
+        
+        console.log('✅ Dados atualizados com sucesso!');
+      } else {
+        throw new Error('Nenhum dado disponível no banco');
+      }
+    } catch (err) {
+      console.error('❌ Erro ao atualizar:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao buscar dados');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+ 
+  // Admin: Forçar atualização (chama FACEIT API)
+  const handleForceUpdate = async () => {
+    if (!isAdmin) return;
 
-      const response = await fetch('/api/admin/batch-update', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${adminSecret}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          batchNumber,
-          existingPlayers,
-        }),
+    setIsForceUpdating(true);
+    console.log('📦 [ADMIN] Iniciando atualização em batches...');
+
+    try {
+      const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
+      
+      let batchNumber = 0;
+      let hasMore = true;
+      let existingPlayers: any[] = [];
+      let totalBatches = 0;
+
+      // Processar batches sequencialmente
+      while (hasMore) {
+        console.log(`📦 Processando batch ${batchNumber + 1}...`);
+
+        const response = await fetch('/api/admin/batch-update', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${adminSecret}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            batchNumber,
+            existingPlayers,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erro no batch ${batchNumber + 1}: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || `Erro no batch ${batchNumber + 1}`);
+        }
+
+        // Atualizar estado
+        existingPlayers = data.players;
+        hasMore = data.hasMore;
+        totalBatches = data.batch.total;
+
+        console.log(
+          `✅ Batch ${data.batch.current}/${data.batch.total} concluído ` +
+          `(${data.batch.totalPlayers} jogadores processados)`
+        );
+
+        // Atualizar preview no frontend
+        setPlayers(existingPlayers);
+        setLastUpdated(new Date());
+
+        // Próximo batch
+        if (hasMore) {
+          batchNumber = data.nextBatch;
+          
+          // Delay entre batches (opcional, para dar tempo de ver progresso)
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      // CONCLUÍDO!
+      console.log(`🎉 Atualização completa! ${existingPlayers.length} jogadores`);
+      
+      // Salvar no cache local
+      storageService.saveCache({
+        players: existingPlayers,
+        lastUpdated: new Date().toISOString(),
+        nextUpdate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        version: '1.0.0',
       });
 
-      if (!response.ok) {
-        throw new Error(`Erro no batch ${batchNumber + 1}: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || `Erro no batch ${batchNumber + 1}`);
-      }
-
-      // Atualizar estado
-      existingPlayers = data.players;
-      hasMore = data.hasMore;
-      totalBatches = data.batch.total;
-
-      console.log(
-        `✅ Batch ${data.batch.current}/${data.batch.total} concluído ` +
-        `(${data.batch.totalPlayers} jogadores processados)`
+      alert(
+        `✅ Atualização concluída!\n\n` +
+        `${existingPlayers.length} jogadores atualizados em ${totalBatches} batches.\n\n` +
+        `Os dados já estão disponíveis no site!`
       );
 
-      // Atualizar preview no frontend
-      setPlayers(existingPlayers);
-      setLastUpdated(new Date());
-
-      // Próximo batch
-      if (hasMore) {
-        batchNumber = data.nextBatch;
-        
-        // Delay entre batches (opcional, para dar tempo de ver progresso)
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+    } catch (err) {
+      console.error('❌ [ADMIN] Erro:', err);
+      alert('❌ Erro ao atualizar: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
+    } finally {
+      setIsForceUpdating(false);
     }
-
-    // CONCLUÍDO!
-    console.log(`🎉 Atualização completa! ${existingPlayers.length} jogadores`);
-    
-    // Salvar no cache local
-    storageService.saveCache({
-      players: existingPlayers,
-      lastUpdated: new Date().toISOString(),
-      nextUpdate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      version: '1.0.0',
-    });
-
-    alert(
-      `✅ Atualização concluída!\n\n` +
-      `${existingPlayers.length} jogadores atualizados em ${totalBatches} batches.\n\n` +
-      `Os dados já estão disponíveis no site!`
-    );
-
-  } catch (err) {
-    console.error('❌ [ADMIN] Erro:', err);
-    alert('❌ Erro ao atualizar: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
-  } finally {
-    setIsForceUpdating(false);
-  }
-};
+  };
 
   const handleManagePlayers = () => {
     setShowPlayerManagement(true);
@@ -244,79 +276,86 @@ const handleForceUpdate = async () => {
   };
 
   // Render states
-if (loading && players.length === 0) {
-  return <LoadingState />;
-}
+  if (loading && players.length === 0) {
+    return <LoadingState />;
+  }
 
-// ✅ NOVO: Empty state com botão "Buscar Dados"
-if (!loading && players.length === 0 && !error) {
-  return (
-    <div className="min-h-screen bg-faceit-darker flex items-center justify-center p-4">
-      <div className="card max-w-md w-full text-center py-12 px-6">
-        <div className="mb-6">
-          <svg 
-            className="w-20 h-20 mx-auto text-faceit-orange mb-4" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
+  // ✅ Empty state com botão "Buscar do Banco"
+  if (!loading && players.length === 0 && !error) {
+    return (
+      <div className="min-h-screen bg-faceit-darker flex items-center justify-center p-4">
+        <div className="card max-w-md w-full text-center py-12 px-6">
+          <div className="mb-6">
+            <svg 
+              className="w-20 h-20 mx-auto text-faceit-orange mb-4" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" 
+              />
+            </svg>
+            
+            <h2 className="text-2xl font-bold mb-3">Nenhum dado disponível</h2>
+            
+            <p className="text-text-secondary mb-6">
+              Seu cache local está vazio.<br />
+              Clique no botão abaixo para buscar os dados do banco de dados.
+            </p>
+
+            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6">
+              <p className="text-xs text-blue-300">
+                💡 <strong>Nota:</strong> Isso busca os dados que já estão salvos no banco. 
+                Não faz novas requisições para a API da FACEIT.
+              </p>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleRefreshData}
+            disabled={isRefreshing}
+            className="btn-primary mx-auto flex items-center gap-2 px-6 py-3"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" 
-            />
-          </svg>
-          
-          <h2 className="text-2xl font-bold mb-3">Nenhum dado disponível</h2>
-          
-          <p className="text-text-secondary mb-6">
-            Os dados ainda não foram carregados ou seu cache foi limpo.<br />
-            Clique no botão abaixo para buscar os dados mais recentes do banco de dados.
-          </p>
-        </div>
-        
-        <button
-          onClick={async () => {
-            setLoading(true);
-            setError(null);
-            await loadFromAPI();
-            setLoading(false);
-          }}
-          disabled={loading}
-          className="btn-primary mx-auto flex items-center gap-2 px-6 py-3"
-        >
-          {loading ? (
-            <>
-              <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              <span>Buscando dados...</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span>Buscar Dados</span>
-            </>
+            {isRefreshing ? (
+              <>
+                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span>Buscando...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Buscar do Banco</span>
+              </>
+            )}
+          </button>
+
+          {error && (
+            <div className="mt-4 p-3 bg-danger/10 border border-danger/30 rounded-lg">
+              <p className="text-danger text-sm">
+                {error}
+              </p>
+              <p className="text-xs text-text-secondary mt-2">
+                O admin precisa fazer uma atualização primeiro.
+              </p>
+            </div>
           )}
-        </button>
-        
-        <div className="mt-6 p-4 bg-faceit-light-gray/10 rounded-lg">
-          <p className="text-xs text-text-secondary">
-            💡 <strong>Dica:</strong> Os dados são atualizados automaticamente a cada 2 horas
-          </p>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-if (error && players.length === 0) {
-  return <ErrorState error={error} onRetry={loadFromAPI} />;
-}
+  if (error && players.length === 0) {
+    return <ErrorState error={error} onRetry={handleRefreshData} />;
+  }
 
   return (
     <div className="min-h-screen">
@@ -331,6 +370,8 @@ if (error && players.length === 0) {
           nextUpdate={nextUpdate}
           isUpdating={updateStatus.isUpdating}
           updateProgress={updateStatus.progress}
+          onRefreshData={handleRefreshData}
+          isRefreshing={isRefreshing}
         />
         
         {/* <PrizeCards /> */}
