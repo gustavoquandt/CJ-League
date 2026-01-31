@@ -82,12 +82,12 @@ export const PLAYER_POTS: Record<string, number> = {
 
   // POT 2
   'polippera': 2,
+  'rogeriN-xddd': 2,
   'knightziin': 2,
   'meneziis': 2,
   'tohru_sc': 2,
   'Pauletovski': 2,
   'iAgoLas': 2,
-  'rogeriN-xddd': 2,
   'dhigo92': 2,
   'umone1': 2,
   'LBasqueira': 2,
