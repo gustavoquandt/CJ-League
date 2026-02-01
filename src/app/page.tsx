@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, Suspense } from 'react';
-import type { PlayerStats, HubStatsResponse, PlayerFilters } from '@/types/app.types';
+import type { PlayerStats, HubStatsResponse, PlayerFilters, MapStats } from '@/types/app.types';
 import { storageService } from '@/services/storage.service';
 import { useBackgroundUpdate } from '@/hooks/useBackgroundUpdate';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -14,6 +14,7 @@ import ErrorState from '@/components/ErrorState';
 import UpdateToast from '@/components/UpdateToast';
 import AdminPanel from '@/components/AdminPanel';
 import SeasonTabs from '@/components/SeasonTabs';
+import StatsCards from '@/components/StatsCards';
 import { SEASONS, type SeasonId } from '@/config/constants';
 import PlayerManagementPanel from '@/components/PlayerManagementPanel';
 import {
@@ -35,6 +36,9 @@ function HomePageContent() {
   const [showPlayerManagement, setShowPlayerManagement] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false); // ✅ NOVO
   const [activeSeason, setActiveSeason] = useState<SeasonId>('SEASON_1');
+  const [mapStats, setMapStats] = useState<MapStats | null>(null);
+  const [isLoadingMapStats, setIsLoadingMapStats] = useState(false);
+  const [isUpdatingMapStats, setIsUpdatingMapStats] = useState(false); // ✅ NOVO
   
   const [filters, setFilters] = useState<PlayerFilters>({
     searchTerm: '',
@@ -65,7 +69,7 @@ function HomePageContent() {
 
   // Load inicial (Cache Local PRIMEIRO, depois Redis se necessário)
   useEffect(() => {
-    const loadInitialCache = () => {
+    const loadInitialCache = async () => {
       try {
         setLoading(true);
         
@@ -80,11 +84,15 @@ function HomePageContent() {
         } else {
           // Cache vazio - buscar do Redis (banco)
           console.log('⚠️ Cache vazio, buscando do Redis...');
-          loadFromAPI();
+          await loadFromAPI();
         }
+        
+        // ✅ Carregar map stats da season inicial
+        await loadMapStats(activeSeason);
+        
       } catch (err) {
         console.error('Erro ao carregar cache:', err);
-        loadFromAPI();
+        await loadFromAPI();
       } finally {
         setLoading(false);
       }
@@ -153,6 +161,30 @@ function HomePageContent() {
       setError(err instanceof Error ? err.message : 'Erro ao buscar dados');
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // Carregar estatísticas de mapas
+  const loadMapStats = async (seasonId: SeasonId) => {
+    setIsLoadingMapStats(true);
+    try {
+      console.log(`🗺️ Buscando estatísticas de mapas para ${SEASONS[seasonId].name}...`);
+      
+      const response = await fetch(`/api/faceit/map-stats?season=${seasonId}`);
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        setMapStats(data.data);
+        console.log(`✅ Map stats carregadas:`, data.data);
+      } else {
+        console.warn('⚠️ Nenhuma map stat disponível');
+        setMapStats(null);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar map stats:', error);
+      setMapStats(null);
+    } finally {
+      setIsLoadingMapStats(false);
     }
   };
  
@@ -319,6 +351,56 @@ function HomePageContent() {
     setShowPlayerManagement(true);
   };
 
+  // ✅ NOVO: Atualizar map stats
+  const handleUpdateMapStats = async (seasonId: SeasonId) => {
+    if (!isAdmin) return;
+
+    setIsUpdatingMapStats(true);
+    
+    try {
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`🗺️  [ADMIN] ATUALIZANDO MAP STATS`);
+      console.log(`🏆 Season: ${SEASONS[seasonId].name}`);
+      console.log(`⏱️  Tempo estimado: ~10 segundos`);
+      console.log(`${'='.repeat(60)}\n`);
+
+      const startTime = Date.now();
+
+      // Forçar busca da API (sem cache)
+      const response = await fetch(
+        `/api/faceit/map-stats?season=${seasonId}&force=true&t=${Date.now()}`,
+        { cache: 'no-store' }
+      );
+      
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        // Atualizar mapStats no estado
+        setMapStats(data.data);
+        
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+        
+        console.log(`\n${'='.repeat(60)}`);
+        console.log(`🎉 MAP STATS ATUALIZADAS!`);
+        console.log(`⏱️  Duração: ${duration} segundos`);
+        console.log(`📊 Total de partidas: ${data.data.totalMatches}`);
+        if (data.data.mostPlayed) {
+          console.log(`🗺️  Mapa mais jogado: ${data.data.mostPlayed.map} (${data.data.mostPlayed.count}x)`);
+        }
+        console.log(`${'='.repeat(60)}\n`);
+
+        alert(`✅ Map stats atualizadas!\n\nDuração: ${duration}s\nPartidas: ${data.data.totalMatches}`);
+      } else {
+        throw new Error('Falha ao atualizar map stats');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao atualizar map stats:', error);
+      alert('❌ Erro ao atualizar map stats. Verifique o console.');
+    } finally {
+      setIsUpdatingMapStats(false);
+    }
+  };
+
   // ✅ NOVO: Trocar de season
   const handleSeasonChange = async (seasonId: SeasonId) => {
     setActiveSeason(seasonId);
@@ -340,6 +422,10 @@ function HomePageContent() {
         console.log(`⚠️ Cache vazio, buscando ${SEASONS[seasonId].name} do Redis...`);
         await loadFromAPI(seasonId);
       }
+      
+      // ✅ Carregar map stats também
+      await loadMapStats(seasonId);
+      
     } catch (err) {
       console.error('Erro ao trocar season:', err);
       setError(err instanceof Error ? err.message : 'Erro ao trocar season');
@@ -364,7 +450,13 @@ function HomePageContent() {
 
     result.sort((a, b) => comparePlayers(a, b, filters.sortBy, filters.sortOrder));
 
-    return result;
+    // ✅ NOVO: Recalcular posições apenas para jogadores visíveis
+    const playersWithNewPositions = result.map((player, index) => ({
+      ...player,
+      position: index + 1, // Posição relativa aos jogadores visíveis
+    }));
+
+    return playersWithNewPositions;
   }, [players, filters]);
 
   // Handlers
@@ -395,8 +487,9 @@ function HomePageContent() {
           onClose={() => setShowAdminModal(false)}
           onLogout={adminLogout}
           onForceUpdate={handleForceUpdate}
-          onManagePlayers={handleManagePlayers}
+          onUpdateMapStats={handleUpdateMapStats}
           isUpdating={isForceUpdating}
+          isUpdatingMapStats={isUpdatingMapStats}
         />
       </>
     );
@@ -508,8 +601,9 @@ function HomePageContent() {
           onClose={() => setShowAdminModal(false)}
           onLogout={adminLogout}
           onForceUpdate={handleForceUpdate}
-          onManagePlayers={handleManagePlayers}
+          onUpdateMapStats={handleUpdateMapStats}
           isUpdating={isForceUpdating}
+          isUpdatingMapStats={isUpdatingMapStats}
         />
       </div>
     );
@@ -528,8 +622,9 @@ function HomePageContent() {
           onClose={() => setShowAdminModal(false)}
           onLogout={adminLogout}
           onForceUpdate={handleForceUpdate}
-          onManagePlayers={handleManagePlayers}
+          onUpdateMapStats={handleUpdateMapStats}
           isUpdating={isForceUpdating}
+          isUpdatingMapStats={isUpdatingMapStats}
         />
       </>
     );
@@ -557,6 +652,17 @@ function HomePageContent() {
           activeSeason={activeSeason}
           onSeasonChange={handleSeasonChange}
         />
+        
+        {/* ✅ NOVO: Cards de Estatísticas */}
+        {filteredPlayers.length > 0 && (
+          <div className="mt-6">
+            <StatsCards 
+              players={filteredPlayers}
+              seasonName={SEASONS[activeSeason].name}
+              mapStats={mapStats}
+            />
+          </div>
+        )}
         
         {/* <PrizeCards /> */}
 
@@ -651,8 +757,9 @@ function HomePageContent() {
         onClose={() => setShowAdminModal(false)}
         onLogout={adminLogout}
         onForceUpdate={handleForceUpdate}
-        onManagePlayers={handleManagePlayers}
+        onUpdateMapStats={handleUpdateMapStats}
         isUpdating={isForceUpdating}
+        isUpdatingMapStats={isUpdatingMapStats}
       />
 
       {/* Player Management Panel */}

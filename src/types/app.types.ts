@@ -15,20 +15,20 @@ export interface PlayerStats {
   nickname: string;
   avatar: string;
   country: string;
-  
+
   // Pote (classificação interna)
   pot?: number;
-  
+
   // Ranking no Hub
   rankingPoints: number;
   position: number;
-  
+
   // Partidas no Hub
   matchesPlayed: number;
   wins: number;
   losses: number;
   winRate: number; // Percentual (0-100)
-  
+
   // Estatísticas gerais (lifetime)
   kills: number;
   deaths: number;
@@ -41,15 +41,15 @@ export interface PlayerStats {
   totalDeaths?: number;    // Total acumulado
   totalDamage?: number;    // Total acumulado
   totalRounds?: number;    // Total acumulado
-  
+
   // Faceit Info
   faceitElo: number;
   skillLevel: number;
-  
+
   // Streak
   currentStreak: number;
   longestWinStreak: number;
-  
+
   // Meta
   lastMatch?: Date;
 
@@ -124,7 +124,7 @@ export interface PlayerFilters {
   minMatches?: number;
 }
 
-export type SortOption = 
+export type SortOption =
   | 'rankingPoints'
   | 'position'
   | 'winRate'
@@ -210,4 +210,19 @@ export interface HubAnalytics {
     kd: number;
   };
   distributionByPot: Record<number, number>;
+}
+
+export interface MapStats {
+  mostPlayed: {
+    map: string;
+    count: number;
+    percentage: number;
+  } | null;
+  leastPlayed: {
+    map: string;
+    count: number;
+    percentage: number;
+  } | null;
+  totalMatches: number;
+  mapDistribution: Record<string, number>;
 }
