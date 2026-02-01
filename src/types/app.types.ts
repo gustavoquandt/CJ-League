@@ -37,6 +37,10 @@ export interface PlayerStats {
   kr: number; // K/R Ratio
   adr: number; // Average Damage per Round
   headshotPercentage: number;
+  totalKills?: number;     // Total acumulado
+  totalDeaths?: number;    // Total acumulado
+  totalDamage?: number;    // Total acumulado
+  totalRounds?: number;    // Total acumulado
   
   // Faceit Info
   faceitElo: number;

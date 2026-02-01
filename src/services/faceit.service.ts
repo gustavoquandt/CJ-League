@@ -342,12 +342,14 @@ class FaceitService {
   /**
    * ✅ NOVO: Buscar jogador com suas partidas (até 200)
    * Suporta busca incremental a partir do lastMatchId
+   * Aceita previousStats para acumular estatísticas
    */
   async fetchPlayerWithMatches(
     nickname: string,
     maxMatches: number = 200,
     lastMatchId?: string | null,
-    queueId?: string // ✅ Queue ID opcional (para seasons)
+    queueId?: string, // ✅ Queue ID opcional (para seasons)
+    previousStats?: PlayerStats | null // ✅ NOVO: Stats anteriores para acumular
   ): Promise<(PlayerStats & { lastMatchId?: string }) | null> {
     try {
       const playerInfo = await this.getPlayerByNickname(nickname);
@@ -388,11 +390,51 @@ class FaceitService {
         }
       }
 
-      console.log(`   Buscou ${allMatches.length} partidas para ${nickname}`);
-      const stats = await this.calculateStatsFromMatches(allMatches, playerInfo, nickname);
+      console.log(`   Buscou ${allMatches.length} partidas NOVAS para ${nickname}`);
+      
+      // ✅ Se tem stats anteriores e não há partidas novas, retornar as antigas
+      if (allMatches.length === 0 && previousStats) {
+        console.log(`   ⚡ Sem partidas novas - Mantendo stats antigas (${previousStats.matchesPlayed} partidas)`);
+        return {
+          ...previousStats,
+          lastMatchId: previousStats.lastMatchId,
+        };
+      }
+      
+      const newStats = await this.calculateStatsFromMatches(allMatches, playerInfo, nickname);
 
+      // ✅ Se tem stats anteriores, ACUMULAR com as novas
+      if (previousStats && allMatches.length > 0) {
+        console.log(`   📊 Acumulando: ${previousStats.matchesPlayed} antigas + ${allMatches.length} novas`);
+        
+        // Acumular totais
+        const totalKills = (previousStats.totalKills || previousStats.kills || 0) + (newStats.totalKills || newStats.kills || 0);
+        const totalDeaths = (previousStats.totalDeaths || previousStats.deaths || 0) + (newStats.totalDeaths || newStats.deaths || 0);
+        const totalDamage = (previousStats.totalDamage || 0) + (newStats.totalDamage || 0);
+        const totalRounds = (previousStats.totalRounds || 0) + (newStats.totalRounds || 0);
+        const totalMatches = previousStats.matchesPlayed + newStats.matchesPlayed;
+        
+        return {
+          ...newStats,
+          matchesPlayed: totalMatches,
+          wins: previousStats.wins + newStats.wins,
+          losses: previousStats.losses + newStats.losses,
+          totalKills,
+          totalDeaths,
+          totalDamage,
+          totalRounds,
+          // Recalcular médias com totais acumulados
+          kd: totalDeaths > 0 ? parseFloat((totalKills / totalDeaths).toFixed(2)) : totalKills,
+          adr: totalRounds > 0 ? parseFloat((totalDamage / totalRounds).toFixed(1)) : 0,
+          winRate: totalMatches > 0 ? parseFloat(((previousStats.wins + newStats.wins) / totalMatches * 100).toFixed(1)) : 0,
+          rankingPoints: previousStats.rankingPoints + newStats.rankingPoints,
+          lastMatchId: allMatches.length > 0 ? allMatches[0].match_id : previousStats.lastMatchId,
+        };
+      }
+
+      // ✅ Se não tem stats anteriores, retornar as novas normalmente
       return {
-        ...stats,
+        ...newStats,
         lastMatchId: allMatches.length > 0 ? allMatches[0].match_id : undefined,
       };
     } catch (error) {
