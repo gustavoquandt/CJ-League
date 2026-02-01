@@ -161,8 +161,17 @@ function HomePageContent() {
     if (!isAdmin) return;
 
     setIsForceUpdating(true);
-    const seasonToUpdate = activeSeason; // Sempre atualiza a season visualizada
-    console.log(`🎯 [ADMIN] Iniciando atualização (${SEASONS[seasonToUpdate].name})...`);
+    const seasonToUpdate = activeSeason;
+    const updateStartTime = Date.now();
+    const startDateTime = new Date().toLocaleString('pt-BR');
+    
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`🎯 [ADMIN] INICIANDO ATUALIZAÇÃO`);
+    console.log(`📅 Início: ${startDateTime}`);
+    console.log(`🏆 Season: ${SEASONS[seasonToUpdate].name}`);
+    console.log(`👥 Total de jogadores: 49`);
+    console.log(`⏱️ Tempo estimado: ~98 minutos (primeira vez) ou ~25 min (atualização)`);
+    console.log(`${'='.repeat(60)}\n`);
 
     try {
       const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
@@ -210,17 +219,25 @@ function HomePageContent() {
 
           const currentPlayer = data.batch.currentPlayer || '?';
           const progress = Math.round((data.batch.totalPlayers / 49) * 100);
+          const timeElapsed = ((Date.now() - updateStartTime) / 1000 / 60).toFixed(1);
+          
+          // Barra de progresso visual
+          const barLength = 30;
+          const filled = Math.round((progress / 100) * barLength);
+          const empty = barLength - filled;
+          const progressBar = '█'.repeat(filled) + '░'.repeat(empty);
 
           console.log(
-            `✅ ${currentPlayer} processado ` +
-            `(${data.batch.totalPlayers}/49 - ${progress}%)`
+            `✅ [${data.batch.current}/${data.batch.total}] ${currentPlayer.padEnd(15)} ` +
+            `| ${progressBar} ${progress}% ` +
+            `| ⏱️ ${timeElapsed}min`
           );
 
           // Atualizar preview a cada 5 jogadores
           if (data.batch.totalPlayers % 5 === 0) {
             setPlayers(existingPlayers);
             setLastUpdated(new Date());
-            console.log('📊 Preview atualizado');
+            console.log(`📊 Preview atualizado - ${existingPlayers.length} jogadores no ranking`);
           }
 
           // Próximo batch
@@ -258,21 +275,40 @@ function HomePageContent() {
         }, seasonToUpdate);
       }
 
-      console.log(`\n🎉 Atualização concluída!`);
-      console.log(`   ✅ Sucesso: ${successCount}`);
-      console.log(`   ⚠️ Erros: ${errorCount}`);
-      console.log(`   📊 Total: ${successCount + errorCount}/49`);
+      const totalDuration = Date.now() - updateStartTime;
+      const durationMinutes = (totalDuration / 1000 / 60).toFixed(1);
+      const endDateTime = new Date().toLocaleString('pt-BR');
+      const playersWithMatches = existingPlayers.filter(p => p.matchesPlayed > 0).length;
+
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`🎉 ATUALIZAÇÃO CONCLUÍDA!`);
+      console.log(`📅 Término: ${endDateTime}`);
+      console.log(`⏱️ Duração total: ${durationMinutes} minutos`);
+      console.log(`✅ Processados com sucesso: ${successCount}`);
+      console.log(`⚠️ Erros: ${errorCount}`);
+      console.log(`📊 Total processado: ${successCount + errorCount}/49`);
+      console.log(`🎮 Jogadores com partidas: ${playersWithMatches}`);
+      console.log(`${'='.repeat(60)}\n`);
 
       alert(
         `✅ Atualização concluída!\n\n` +
-        `${successCount} jogadores processados com sucesso\n` +
-        `${errorCount} jogadores com erro\n` +
-        `Total: ${successCount + errorCount}/49\n\n` +
+        `⏱️ Tempo: ${durationMinutes} minutos\n` +
+        `✅ Sucesso: ${successCount} jogadores\n` +
+        `⚠️ Erros: ${errorCount}\n` +
+        `🎮 Com partidas: ${playersWithMatches}\n\n` +
         `Os dados já estão disponíveis no site!`
       );
 
     } catch (err) {
-      console.error('❌ [ADMIN] Erro fatal:', err);
+      const errorDuration = Date.now() - updateStartTime;
+      const errorMinutes = (errorDuration / 1000 / 60).toFixed(1);
+      
+      console.error(`\n${'='.repeat(60)}`);
+      console.error(`❌ ERRO FATAL NA ATUALIZAÇÃO`);
+      console.error(`⏱️ Tempo até erro: ${errorMinutes} minutos`);
+      console.error(`📝 Detalhes:`, err);
+      console.error(`${'='.repeat(60)}\n`);
+      
       alert('❌ Erro fatal: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
     } finally {
       setIsForceUpdating(false);
@@ -316,6 +352,9 @@ function HomePageContent() {
   // Filtered and sorted players
   const filteredPlayers = useMemo(() => {
     let result = [...players];
+
+    // ✅ NOVO: Filtrar jogadores com 0 partidas
+    result = result.filter(player => player.matchesPlayed > 0);
 
     result = filterBySearch(result, filters.searchTerm);
     
