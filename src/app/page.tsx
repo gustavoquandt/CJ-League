@@ -157,11 +157,11 @@ function HomePageContent() {
   };
  
   // Admin: Forçar atualização (1 jogador por batch - < 300s)
-  const handleForceUpdate = async () => {
+  const handleForceUpdate = async (seasonId: SeasonId) => {
     if (!isAdmin) return;
 
     setIsForceUpdating(true);
-    const seasonToUpdate = activeSeason;
+    const seasonToUpdate = seasonId; // ✅ Usa a season passada como parâmetro
     const updateStartTime = Date.now();
     const startDateTime = new Date().toLocaleString('pt-BR');
     
