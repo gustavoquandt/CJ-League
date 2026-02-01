@@ -340,6 +340,138 @@ class FaceitService {
   }
 
   /**
+   * ✅ NOVO: Buscar jogador com suas partidas (até 200)
+   * Suporta busca incremental a partir do lastMatchId
+   */
+  async fetchPlayerWithMatches(
+    nickname: string,
+    maxMatches: number = 200,
+    lastMatchId?: string | null
+  ): Promise<(PlayerStats & { lastMatchId?: string }) | null> {
+    try {
+      const playerInfo = await this.getPlayerByNickname(nickname);
+      if (!playerInfo) return null;
+
+      const allMatches: any[] = [];
+      let offset = 0;
+      const limit = 100;
+      let foundLastMatch = false;
+
+      while (allMatches.length < maxMatches && !foundLastMatch) {
+        const endpoint = `/players/${playerInfo.player_id}/history?game=cs2&offset=${offset}&limit=${limit}`;
+        const matchesResponse: any = await this.request(endpoint);
+
+        if (!matchesResponse?.items || matchesResponse.items.length === 0) break;
+
+        const queueMatches = matchesResponse.items.filter(
+          (match: any) => match.competition_id === QUEUE_ID
+        );
+
+        for (const match of queueMatches) {
+          if (lastMatchId && match.match_id === lastMatchId) {
+            foundLastMatch = true;
+            break;
+          }
+          allMatches.push(match);
+          if (allMatches.length >= maxMatches) break;
+        }
+
+        offset += limit;
+        if (matchesResponse.items.length < limit) break;
+        if (!foundLastMatch && allMatches.length < maxMatches) {
+          await this.delay(800);
+        }
+      }
+
+      console.log(`   Buscou ${allMatches.length} partidas para ${nickname}`);
+      const stats = await this.calculateStatsFromMatches(allMatches, playerInfo, nickname);
+
+      return {
+        ...stats,
+        lastMatchId: allMatches.length > 0 ? allMatches[0].match_id : undefined,
+      };
+    } catch (error) {
+      console.error(`Erro ao buscar ${nickname}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * ✅ NOVO: Calcular estatísticas a partir das partidas
+   */
+  private async calculateStatsFromMatches(
+    matches: any[],
+    playerInfo: FaceitPlayer,
+    nickname: string
+  ): Promise<PlayerStats> {
+    let totalKills = 0, totalDeaths = 0, totalDamage = 0, totalRounds = 0, wins = 0, losses = 0;
+
+    if (matches.length === 0) {
+      return this.buildPlayerStats(nickname, playerInfo, {
+        wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
+        totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
+      }, null);
+    }
+
+    const chunks = [];
+    for (let i = 0; i < matches.length; i += PARALLEL_MATCHES) {
+      chunks.push(matches.slice(i, i + PARALLEL_MATCHES));
+    }
+
+    for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+      const chunk = chunks[chunkIndex];
+      const matchStatsPromises = chunk.map(async (match: any) => {
+        try {
+          const matchStats: any = await this.request(`/matches/${match.match_id}/stats`);
+          let matchKills = 0, matchDeaths = 0, matchDamage = 0;
+          const rounds = matchStats.rounds || [];
+          const matchRounds = rounds.length;
+          
+          for (const round of rounds) {
+            const allPlayers = [
+              ...(round.teams?.[0]?.players || []),
+              ...(round.teams?.[1]?.players || [])
+            ];
+            const playerStats = allPlayers.find((p: any) => p.player_id === playerInfo.player_id);
+            if (playerStats) {
+              matchKills += parseInt(playerStats.player_stats?.Kills || '0');
+              matchDeaths += parseInt(playerStats.player_stats?.Deaths || '0');
+              matchDamage += parseInt(playerStats.player_stats?.Damage || '0');
+            }
+          }
+          
+          const playerTeam = match.teams?.faction1?.players?.some((p: any) => p.player_id === playerInfo.player_id)
+            ? 'faction1' : 'faction2';
+          const won = match.results?.winner === playerTeam;
+          
+          return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, won };
+        } catch (error) {
+          return null;
+        }
+      });
+
+      const chunkResults = await Promise.all(matchStatsPromises);
+      for (const result of chunkResults) {
+        if (result) {
+          totalKills += result.kills;
+          totalDeaths += result.deaths;
+          totalDamage += result.damage;
+          totalRounds += result.rounds;
+          if (result.won) wins++; else losses++;
+        }
+      }
+      if (chunkIndex < chunks.length - 1) await this.delay(DELAY_BETWEEN_CHUNKS);
+    }
+
+    const matchesPlayed = wins + losses;
+    const points = RANKING_CONFIG.INITIAL_POINTS + (wins * 3) - (losses * 3);
+
+    return this.buildPlayerStats(nickname, playerInfo, {
+      wins, losses, matchesPlayed, points, totalKills, totalDeaths, totalDamage, totalRounds,
+    }, null);
+  }
+
+  /**
    * PROCESSAR UM BATCH DE JOGADORES
    * Retorna os jogadores processados
    */

@@ -153,12 +153,12 @@ function HomePageContent() {
     }
   };
  
-  // Admin: Forçar atualização (chama FACEIT API)
+  // Admin: Forçar atualização (1 jogador por batch - < 300s)
   const handleForceUpdate = async () => {
     if (!isAdmin) return;
 
     setIsForceUpdating(true);
-    console.log('📦 [ADMIN] Iniciando atualização em batches...');
+    console.log('🎯 [ADMIN] Iniciando atualização jogador por jogador...');
 
     try {
       const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
@@ -167,76 +167,108 @@ function HomePageContent() {
       let hasMore = true;
       let existingPlayers: any[] = [];
       let totalBatches = 0;
+      let successCount = 0;
+      let errorCount = 0;
 
-      // Processar batches sequencialmente
+      // Processar 1 jogador por batch
       while (hasMore) {
-        console.log(`📦 Processando batch ${batchNumber + 1}...`);
+        console.log(`\n📦 Processando batch ${batchNumber + 1}...`);
 
-        const response = await fetch('/api/admin/batch-update', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${adminSecret}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            batchNumber,
-            existingPlayers,
-          }),
-        });
+        try {
+          const response = await fetch('/api/admin/batch-update', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${adminSecret}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              batchNumber,
+              existingPlayers,
+            }),
+          });
 
-        if (!response.ok) {
-          throw new Error(`Erro no batch ${batchNumber + 1}: ${response.status}`);
-        }
+          if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+          }
 
-        const data = await response.json();
+          const data = await response.json();
 
-        if (!data.success) {
-          throw new Error(data.error || `Erro no batch ${batchNumber + 1}`);
-        }
+          if (!data.success) {
+            throw new Error(data.error || `Erro no batch ${batchNumber + 1}`);
+          }
 
-        // Atualizar estado
-        existingPlayers = data.players;
-        hasMore = data.hasMore;
-        totalBatches = data.batch.total;
+          // Atualizar estado
+          existingPlayers = data.players;
+          hasMore = data.hasMore;
+          totalBatches = data.batch.total;
+          successCount++;
 
-        console.log(
-          `✅ Batch ${data.batch.current}/${data.batch.total} concluído ` +
-          `(${data.batch.totalPlayers} jogadores processados)`
-        );
+          const currentPlayer = data.batch.currentPlayer || '?';
+          const progress = Math.round((data.batch.totalPlayers / 49) * 100);
 
-        // Atualizar preview no frontend
-        setPlayers(existingPlayers);
-        setLastUpdated(new Date());
+          console.log(
+            `✅ ${currentPlayer} processado ` +
+            `(${data.batch.totalPlayers}/49 - ${progress}%)`
+          );
 
-        // Próximo batch
-        if (hasMore) {
-          batchNumber = data.nextBatch;
+          // Atualizar preview a cada 5 jogadores
+          if (data.batch.totalPlayers % 5 === 0) {
+            setPlayers(existingPlayers);
+            setLastUpdated(new Date());
+            console.log('📊 Preview atualizado');
+          }
+
+          // Próximo batch
+          if (hasMore) {
+            batchNumber = data.nextBatch;
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+
+        } catch (err) {
+          console.error(`❌ Erro no batch ${batchNumber + 1}:`, err);
+          errorCount++;
           
-          // Delay entre batches (opcional, para dar tempo de ver progresso)
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Continuar mesmo com erro
+          batchNumber++;
+          if (batchNumber >= 49) {
+            hasMore = false;
+          }
         }
       }
 
-      // CONCLUÍDO!
-      console.log(`🎉 Atualização completa! ${existingPlayers.length} jogadores`);
-      
-      // Salvar no cache local
-      storageService.saveCache({
-        players: existingPlayers,
-        lastUpdated: new Date().toISOString(),
-        nextUpdate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        version: '1.0.0',
-      });
+      // Buscar dados finais
+      console.log('\n📊 Buscando ranking final...');
+      const finalResponse = await fetch(`/api/faceit/hub-stats?t=${Date.now()}`);
+      const finalData = await finalResponse.json();
+
+      if (finalData.success && finalData.data) {
+        setPlayers(finalData.data);
+        setLastUpdated(new Date());
+        
+        storageService.saveCache({
+          players: finalData.data,
+          lastUpdated: new Date().toISOString(),
+          nextUpdate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          version: '1.0.0',
+        });
+      }
+
+      console.log(`\n🎉 Atualização concluída!`);
+      console.log(`   ✅ Sucesso: ${successCount}`);
+      console.log(`   ⚠️ Erros: ${errorCount}`);
+      console.log(`   📊 Total: ${successCount + errorCount}/49`);
 
       alert(
         `✅ Atualização concluída!\n\n` +
-        `${existingPlayers.length} jogadores atualizados em ${totalBatches} batches.\n\n` +
+        `${successCount} jogadores processados com sucesso\n` +
+        `${errorCount} jogadores com erro\n` +
+        `Total: ${successCount + errorCount}/49\n\n` +
         `Os dados já estão disponíveis no site!`
       );
 
     } catch (err) {
-      console.error('❌ [ADMIN] Erro:', err);
-      alert('❌ Erro ao atualizar: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
+      console.error('❌ [ADMIN] Erro fatal:', err);
+      alert('❌ Erro fatal: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
     } finally {
       setIsForceUpdating(false);
     }
