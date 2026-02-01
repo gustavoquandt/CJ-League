@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     // Tentar salvar no cache (1 dia)
     const cacheKey = `cj-stats:mapstats:${seasonId}`;
     try {
-      await redis.set(cacheKey, JSON.stringify(mapStats), { ex: 86400 });
+      await redis.set(cacheKey, mapStats, { ex: 86400 });
       console.log(`✅ [MAP STATS] ${totalMatches} partidas analisadas e salvas no cache`);
     } catch (redisError) {
       console.warn('⚠️ Erro ao salvar no Redis:', redisError);
