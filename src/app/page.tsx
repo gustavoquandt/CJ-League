@@ -347,74 +347,102 @@ function HomePageContent() {
     return <LoadingState />;
   }
 
-  // ✅ Empty state com botão "Buscar do Banco"
+  // ✅ Empty state com botão "Buscar do Banco" + Abas de Season
   if (!loading && players.length === 0 && !error) {
     return (
-      <div className="min-h-screen bg-faceit-darker flex items-center justify-center p-4">
-        <div className="card max-w-md w-full text-center py-12 px-6">
+      <div className="min-h-screen bg-faceit-darker">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          {/* ✅ Header básico */}
           <div className="mb-6">
-            <svg 
-              className="w-20 h-20 mx-auto text-faceit-orange mb-4" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" 
-              />
-            </svg>
-            
-            <h2 className="text-2xl font-bold mb-3">Nenhum dado disponível</h2>
-            
-            <p className="text-text-secondary mb-6">
-              Seu cache local está vazio.<br />
-              Clique no botão abaixo para buscar os dados do banco de dados.
-            </p>
+            <h1 className="text-4xl font-bold text-center mb-2">🏆 CJ League</h1>
+            <p className="text-center text-text-secondary">Counter-Strike 2 Rankings</p>
+          </div>
 
-            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6">
-              <p className="text-xs text-blue-300">
-                💡 <strong>Nota:</strong> Isso busca os dados que já estão salvos no banco. 
-                Não faz novas requisições para a API da FACEIT.
-              </p>
+          {/* ✅ Abas de Seasons */}
+          <SeasonTabs 
+            activeSeason={activeSeason}
+            onSeasonChange={handleSeasonChange}
+          />
+
+          {/* Empty State */}
+          <div className="flex items-center justify-center p-4 mt-12">
+            <div className="card max-w-md w-full text-center py-12 px-6">
+              <div className="mb-6">
+                <svg 
+                  className="w-20 h-20 mx-auto text-faceit-orange mb-4" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" 
+                  />
+                </svg>
+                
+                <h2 className="text-2xl font-bold mb-3">Nenhum dado disponível para {SEASONS[activeSeason].name}</h2>
+                
+                <p className="text-text-secondary mb-6">
+                  {activeSeason === 'SEASON_1' ? (
+                    <>
+                      A Season 1 ainda não foi atualizada.<br />
+                      O admin precisa fazer a primeira atualização.
+                    </>
+                  ) : (
+                    <>
+                      Clique no botão abaixo para buscar os dados do banco de dados.
+                    </>
+                  )}
+                </p>
+
+                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6">
+                  <p className="text-xs text-blue-300">
+                    💡 <strong>Nota:</strong> Isso busca os dados que já estão salvos no banco. 
+                    Não faz novas requisições para a API da FACEIT.
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                onClick={handleRefreshData}
+                disabled={isRefreshing}
+                className="btn-primary mx-auto flex items-center gap-2 px-6 py-3"
+              >
+                {isRefreshing ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Buscando...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Buscar do Banco</span>
+                  </>
+                )}
+              </button>
+
+              {error && (
+                <div className="mt-4 p-3 bg-danger/10 border border-danger/30 rounded-lg">
+                  <p className="text-danger text-sm">
+                    {error}
+                  </p>
+                  <p className="text-xs text-text-secondary mt-2">
+                    {activeSeason === 'SEASON_1' 
+                      ? 'A Season 1 precisa ser atualizada pelo admin primeiro.'
+                      : 'Tente trocar para outra season ou aguarde.'
+                    }
+                  </p>
+                </div>
+              )}
             </div>
           </div>
-          
-          <button
-            onClick={handleRefreshData}
-            disabled={isRefreshing}
-            className="btn-primary mx-auto flex items-center gap-2 px-6 py-3"
-          >
-            {isRefreshing ? (
-              <>
-                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                <span>Buscando...</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span>Buscar do Banco</span>
-              </>
-            )}
-          </button>
-
-          {error && (
-            <div className="mt-4 p-3 bg-danger/10 border border-danger/30 rounded-lg">
-              <p className="text-danger text-sm">
-                {error}
-              </p>
-              <p className="text-xs text-text-secondary mt-2">
-                O admin precisa fazer uma atualização primeiro.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     );
