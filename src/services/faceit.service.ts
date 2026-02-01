@@ -189,7 +189,8 @@ class FaceitService {
       if (allMatches.length === 0) {
         return {
           wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
-          totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0
+          totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
+          totalHeadshots: 0, matchADRs: [], matchResults: []  // ✅ NOVO
         };
       }
 
@@ -198,7 +199,8 @@ class FaceitService {
       if (queueMatches.length === 0) {
         return {
           wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
-          totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0
+          totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
+          totalHeadshots: 0, matchADRs: [], matchResults: []  // ✅ NOVO
         };
       }
 
@@ -293,7 +295,8 @@ class FaceitService {
       console.error(`   ❌ ${nickname}: Erro`);
       return { 
         wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
-        totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0
+        totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
+        totalHeadshots: 0, matchADRs: [], matchResults: []  // ✅ NOVO
       };
     }
   }
@@ -492,11 +495,15 @@ class FaceitService {
     nickname: string
   ): Promise<PlayerStats> {
     let totalKills = 0, totalDeaths = 0, totalDamage = 0, totalRounds = 0, wins = 0, losses = 0;
+    let totalHeadshots = 0;  // ✅ NOVO
+    let matchADRs: number[] = [];  // ✅ NOVO
+    let matchResults: boolean[] = [];  // ✅ NOVO
 
     if (matches.length === 0) {
       return this.buildPlayerStats(nickname, playerInfo, {
         wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
         totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
+        totalHeadshots: 0, matchADRs: [], matchResults: [],  // ✅ NOVO
       }, null);
     }
 
@@ -510,7 +517,7 @@ class FaceitService {
       const matchStatsPromises = chunk.map(async (match: any) => {
         try {
           const matchStats: any = await this.request(`/matches/${match.match_id}/stats`);
-          let matchKills = 0, matchDeaths = 0, matchDamage = 0;
+          let matchKills = 0, matchDeaths = 0, matchDamage = 0, matchHeadshots = 0;  // ✅ NOVO
           const rounds = matchStats.rounds || [];
           const matchRounds = rounds.length;
           
@@ -524,12 +531,16 @@ class FaceitService {
               matchKills += parseInt(playerStats.player_stats?.Kills || '0');
               matchDeaths += parseInt(playerStats.player_stats?.Deaths || '0');
               matchDamage += parseInt(playerStats.player_stats?.Damage || '0');
+              matchHeadshots += parseInt(playerStats.player_stats?.Headshots || '0');  // ✅ NOVO
             }
           }
           
           const playerTeam = match.teams?.faction1?.players?.some((p: any) => p.player_id === playerInfo.player_id)
             ? 'faction1' : 'faction2';
           const won = match.results?.winner === playerTeam;
+
+          // ✅ NOVO: Calcular ADR da partida
+          const matchADR = matchRounds > 0 ? matchDamage / matchRounds : 0;
           
           return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, adr: matchADR, won };  // ✅ MODIFICADO
         } catch (error) {
@@ -544,6 +555,9 @@ class FaceitService {
           totalDeaths += result.deaths;
           totalDamage += result.damage;
           totalRounds += result.rounds;
+          totalHeadshots += result.headshots;  // ✅ NOVO
+          matchADRs.push(result.adr);  // ✅ NOVO
+          matchResults.push(result.won);  // ✅ NOVO
           if (result.won) wins++; else losses++;
         }
       }
@@ -555,6 +569,7 @@ class FaceitService {
 
     return this.buildPlayerStats(nickname, playerInfo, {
       wins, losses, matchesPlayed, points, totalKills, totalDeaths, totalDamage, totalRounds,
+      totalHeadshots, matchADRs, matchResults,  // ✅ NOVO
     }, null);
   }
 
