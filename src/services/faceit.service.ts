@@ -53,6 +53,9 @@ interface QueuePlayerStats {
   totalDeaths: number;
   totalDamage: number;
   totalRounds: number;
+  totalHeadshots: number;      // ✅ NOVO
+  matchADRs: number[];          // ✅ NOVO
+  matchResults: boolean[];      // ✅ NOVO
 }
 
 class FaceitService {
@@ -165,6 +168,9 @@ class FaceitService {
     let totalDamage = 0;
     let totalRounds = 0;
     let lastMatchId: string | undefined = undefined;
+    let totalHeadshots = 0;  // ✅ NOVO
+    let matchADRs: number[] = [];  // ✅ NOVO
+    let matchResults: boolean[] = [];  // ✅ NOVO
     
     try {
       // Buscar páginas SEQUENCIALMENTE
@@ -214,6 +220,7 @@ class FaceitService {
             let matchKills = 0;
             let matchDeaths = 0;
             let matchDamage = 0;
+            let matchHeadshots = 0;  // ✅ NOVO
             
             const rounds = matchStats.rounds || [];
             const matchRounds = rounds.length;
@@ -230,6 +237,7 @@ class FaceitService {
                 matchKills += parseInt(playerStats.player_stats?.Kills || '0');
                 matchDeaths += parseInt(playerStats.player_stats?.Deaths || '0');
                 matchDamage += parseInt(playerStats.player_stats?.Damage || '0');
+                matchHeadshots += parseInt(playerStats.player_stats?.Headshots || '0');  // ✅ NOVO
               }
             }
             
@@ -238,8 +246,11 @@ class FaceitService {
               : 'faction2';
             
             const won = match.results?.winner === playerTeam;
+
+            // ✅ NOVO: Calcular ADR da partida
+            const matchADR = matchRounds > 0 ? matchDamage / matchRounds : 0;
             
-            return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, won };
+            return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, adr: matchADR, won };  // ✅ MODIFICADO
             
           } catch (error) {
             return null;
@@ -254,6 +265,9 @@ class FaceitService {
             totalDeaths += result.deaths;
             totalDamage += result.damage;
             totalRounds += result.rounds;
+            totalHeadshots += result.headshots;  // ✅ NOVO
+            matchADRs.push(result.adr);  // ✅ NOVO
+            matchResults.push(result.won);  // ✅ NOVO
             if (result.won) wins++;
             else losses++;
           }
@@ -271,7 +285,8 @@ class FaceitService {
 
       return { 
         wins, losses, matchesPlayed, points, lastMatchId,
-        totalKills, totalDeaths, totalDamage, totalRounds
+        totalKills, totalDeaths, totalDamage, totalRounds,
+        totalHeadshots, matchADRs, matchResults  // ✅ NOVO
       };
       
     } catch (error) {
@@ -309,18 +324,43 @@ class FaceitService {
     const faceitElo = player.faceit_elo || 0;
     const skillLevel = player.skill_level || 0;
 
-    const { wins, losses, matchesPlayed, points, lastMatchId, totalKills, totalDeaths, totalDamage, totalRounds } = queueStats;
+    const { 
+      wins, losses, matchesPlayed, points, lastMatchId, 
+      totalKills, totalDeaths, totalDamage, totalRounds,
+      totalHeadshots, matchADRs, matchResults  // ✅ NOVO
+    } = queueStats;
     
     const kd = totalDeaths > 0 ? parseFloat((totalKills / totalDeaths).toFixed(2)) : 0;
-    const adr = totalRounds > 0 ? parseFloat((totalDamage / totalRounds).toFixed(1)) : 0;
+    
+    // ✅ NOVO: ADR correto (média dos ADRs individuais)
+    const adr = matchADRs.length > 0 
+      ? parseFloat((matchADRs.reduce((sum, adr) => sum + adr, 0) / matchADRs.length).toFixed(1))
+      : 0;
+    
     const kills = matchesPlayed > 0 ? parseFloat((totalKills / matchesPlayed).toFixed(1)) : 0;
     const deaths = matchesPlayed > 0 ? parseFloat((totalDeaths / matchesPlayed).toFixed(1)) : 0;
+
+    // ✅ NOVO: HS% calculado das partidas
+    const headshotPercentage = totalKills > 0 
+      ? parseFloat(((totalHeadshots / totalKills) * 100).toFixed(1))
+      : 0;
+
+    // ✅ NOVO: WinStreak calculado da sequência de vitórias
+    let currentStreakCalc = 0;
+    let longestStreak = 0;
+    for (const won of matchResults) {
+      if (won) {
+        currentStreakCalc++;
+        longestStreak = Math.max(longestStreak, currentStreakCalc);
+      } else {
+        currentStreakCalc = 0;
+      }
+    }
+    const longestWinStreak = longestStreak;
 
     const lifetime = stats?.lifetime as any;
     const assists = parseStatValue(lifetime?.['Average Assists']) || 0;
     const kr = parseStatValue(lifetime?.['K/R Ratio']) || 0;
-    const headshotPercentage = parsePercentage(lifetime?.['Average Headshots %']) || 0;
-    const longestWinStreak = parseStatValue(lifetime?.['Longest Win Streak']) || 0;
     const currentStreak = parseStatValue(lifetime?.['Current Win Streak']) || 0;
 
     const winRate = matchesPlayed > 0 
@@ -491,7 +531,7 @@ class FaceitService {
             ? 'faction1' : 'faction2';
           const won = match.results?.winner === playerTeam;
           
-          return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, won };
+          return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, adr: matchADR, won };  // ✅ MODIFICADO
         } catch (error) {
           return null;
         }

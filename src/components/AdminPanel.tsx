@@ -12,6 +12,8 @@ interface AdminPanelProps {
   onUpdateMapStats: (seasonId: 'SEASON_0' | 'SEASON_1') => void;
   isUpdating: boolean;
   isUpdatingMapStats?: boolean;
+  minGamesFilterSeason1: boolean; // ✅ NOVO
+  onToggleMinGamesFilter: () => void; // ✅ NOVO
 }
 
 export default function AdminPanel({
@@ -22,6 +24,8 @@ export default function AdminPanel({
   onLogout,
   onForceUpdate,
   onUpdateMapStats,
+  minGamesFilterSeason1, // ✅ NOVO
+  onToggleMinGamesFilter, // ✅ NOVO
   isUpdating,
   isUpdatingMapStats = false,
 }: AdminPanelProps) {
@@ -221,6 +225,29 @@ export default function AdminPanel({
               </div>
 
               {/* Logout */}
+
+              {/* ✅ NOVO: Toggle filtro cards Season 1 */}
+              <div className="pt-2 border-t border-faceit-light-gray">
+                <label className="flex items-center gap-3 px-3 py-2 bg-faceit-darker rounded-lg cursor-pointer hover:bg-faceit-light-gray/10 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={minGamesFilterSeason1}
+                    onChange={onToggleMinGamesFilter}
+                    className="w-4 h-4 rounded border-faceit-light-gray bg-faceit-dark text-faceit-orange focus:ring-2 focus:ring-faceit-orange"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium">Filtrar Cards: 10+ jogos</span>
+                    <p className="text-xs text-text-secondary mt-0.5">
+                      {minGamesFilterSeason1 
+                        ? "✅ Mostrando apenas jogadores com 10+ partidas" 
+                        : "📊 Mostrando todos os jogadores"}
+                    </p>
+                    <p className="text-xs text-text-secondary/70 mt-0.5">
+                      (Aplica-se apenas à Season 1)
+                    </p>
+                  </div>
+                </label>
+              </div>
               <div className="pt-2 border-t border-faceit-light-gray">
                 <button
                   onClick={onLogout}

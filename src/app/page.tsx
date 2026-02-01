@@ -39,6 +39,7 @@ function HomePageContent() {
   const [mapStats, setMapStats] = useState<MapStats | null>(null);
   const [isLoadingMapStats, setIsLoadingMapStats] = useState(false);
   const [isUpdatingMapStats, setIsUpdatingMapStats] = useState(false); // ✅ NOVO
+  const [minGamesFilterSeason1, setMinGamesFilterSeason1] = useState(false); // ✅ NOVO: Filtro cards
   
   const [filters, setFilters] = useState<PlayerFilters>({
     searchTerm: '',
@@ -101,6 +102,14 @@ function HomePageContent() {
     loadInitialCache();
     storageService.saveLastVisit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ NOVO: Carregar filtro do localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('minGamesFilterSeason1');
+    if (saved !== null) {
+      setMinGamesFilterSeason1(saved === 'true');
+    }
   }, []);
 
   // Fallback: buscar da API (Redis) com suporte a seasons
@@ -351,6 +360,14 @@ function HomePageContent() {
     setShowPlayerManagement(true);
   };
 
+  // ✅ NOVO: Toggle filtro de jogos mínimos Season 1
+  const handleToggleMinGamesFilter = () => {
+    const newValue = !minGamesFilterSeason1;
+    setMinGamesFilterSeason1(newValue);
+    localStorage.setItem('minGamesFilterSeason1', String(newValue));
+    console.log(`🎯 Filtro cards Season 1: ${newValue ? '10+ jogos' : 'Todos'}`);
+  };
+
   // ✅ NOVO: Atualizar map stats
   const handleUpdateMapStats = async (seasonId: SeasonId) => {
     if (!isAdmin) return;
@@ -490,6 +507,8 @@ function HomePageContent() {
           onUpdateMapStats={handleUpdateMapStats}
           isUpdating={isForceUpdating}
           isUpdatingMapStats={isUpdatingMapStats}
+          minGamesFilterSeason1={minGamesFilterSeason1}
+          onToggleMinGamesFilter={handleToggleMinGamesFilter}
         />
       </>
     );
@@ -604,6 +623,8 @@ function HomePageContent() {
           onUpdateMapStats={handleUpdateMapStats}
           isUpdating={isForceUpdating}
           isUpdatingMapStats={isUpdatingMapStats}
+          minGamesFilterSeason1={minGamesFilterSeason1}
+          onToggleMinGamesFilter={handleToggleMinGamesFilter}
         />
       </div>
     );
@@ -625,6 +646,8 @@ function HomePageContent() {
           onUpdateMapStats={handleUpdateMapStats}
           isUpdating={isForceUpdating}
           isUpdatingMapStats={isUpdatingMapStats}
+          minGamesFilterSeason1={minGamesFilterSeason1}
+          onToggleMinGamesFilter={handleToggleMinGamesFilter}
         />
       </>
     );
@@ -660,6 +683,7 @@ function HomePageContent() {
               players={filteredPlayers}
               seasonName={SEASONS[activeSeason].name}
               mapStats={mapStats}
+              minGamesFilter={activeSeason === 'SEASON_0' ? 10 : (minGamesFilterSeason1 ? 10 : 0)}
             />
           </div>
         )}
@@ -760,6 +784,8 @@ function HomePageContent() {
         onUpdateMapStats={handleUpdateMapStats}
         isUpdating={isForceUpdating}
         isUpdatingMapStats={isUpdatingMapStats}
+          minGamesFilterSeason1={minGamesFilterSeason1}
+          onToggleMinGamesFilter={handleToggleMinGamesFilter}
       />
 
       {/* Player Management Panel */}

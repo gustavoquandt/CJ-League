@@ -8,6 +8,7 @@ interface StatsCardsProps {
   players: PlayerStats[];
   seasonName: string;
   mapStats?: MapStats | null;
+  minGamesFilter?: number; // ✅ NOVO: Filtro mínimo de jogos
 }
 
 interface StatLeader {
@@ -21,11 +22,13 @@ const formatMapName = (mapName: string): string => {
   return mapName.replace('de_', '').replace('cs_', '').toUpperCase();
 };
 
-export default function StatsCards({ players, seasonName, mapStats }: StatsCardsProps) {
+export default function StatsCards({ players, seasonName, mapStats, minGamesFilter = 0 }: StatsCardsProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Filtrar apenas jogadores com partidas
-  const activePlayers = players.filter(p => p.matchesPlayed > 0);
+  // ✅ NOVO: Filtrar jogadores pelo mínimo de jogos
+  const activePlayers = players.filter(p => 
+    p.matchesPlayed > 0 && p.matchesPlayed >= minGamesFilter
+  );
 
   if (activePlayers.length === 0 && !mapStats) {
     return null;
