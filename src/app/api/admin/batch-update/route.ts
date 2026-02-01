@@ -43,13 +43,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const seasonId: SeasonId = body.seasonId || 'SEASON_1';
     const queueId = SEASONS[seasonId].id; // ✅ Queue da season
 
-    console.log(`📊 [BATCH] Season: ${SEASONS[seasonId].name} (${queueId})`);
+    // 🔍 LOG CRÍTICO: Quantos jogadores estão chegando?
+    console.log(`\n📦 [BATCH ${batchNumber}] RECEBENDO REQUEST`);
+    console.log(`   🔍 existingPlayers recebido: ${existingPlayers.length} jogadores`);
+    console.log(`   🔍 Season: ${SEASONS[seasonId].name} (${queueId})`);
+    console.log(`   🔍 Batch number: ${batchNumber}`);
 
     const totalBatches = Math.ceil(PLAYER_NICKNAMES.length / BATCH_SIZE);
     const playerIndex = batchNumber; // 1 jogador = 1 batch
     
     // Verificar se já processou todos
     if (playerIndex >= PLAYER_NICKNAMES.length) {
+      console.log(`✅ Todos os ${PLAYER_NICKNAMES.length} jogadores processados!`);
       return NextResponse.json({
         success: true,
         message: 'Todos os jogadores já foram processados',
@@ -81,6 +86,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         console.log(`   Último match: ${lastMatchId.substring(0, 8)}...`);
       }
 
+      // 🔍 DEBUG: Log antes de buscar
+      console.log(`   🔍 Buscando dados para ${nickname}...`);
+      console.log(`   🔍 Queue ID: ${queueId}`);
+      console.log(`   🔍 Max matches: ${MAX_MATCHES_PER_PLAYER}`);
+
       // ✅ Buscar dados atualizados (passando queueId)
       const playerData = await faceitService.fetchPlayerWithMatches(
         nickname,
@@ -88,6 +98,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         lastMatchId,
         queueId // ✅ Usar queue da season
       );
+
+      // 🔍 DEBUG: Log resultado
+      console.log(`   🔍 Resultado: ${playerData ? 'SUCESSO' : 'NULL'}`);
+      if (playerData) {
+        console.log(`   🔍 Partidas encontradas: ${playerData.matchesPlayed}`);
+        console.log(`   🔍 Último match retornado: ${playerData.lastMatchId?.substring(0, 8) || 'nenhum'}`);
+      }
 
       if (playerData) {
         // ✅ Salvar cache individual do jogador (com season)
@@ -98,22 +115,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           (p: any) => p.nickname.toLowerCase() === nickname.toLowerCase()
         );
 
+        // 🔍 DEBUG: Log antes de adicionar
+        console.log(`   🔍 Jogadores no array ANTES: ${existingPlayers.length}`);
+        console.log(`   🔍 Índice existente: ${existingIndex}`);
+
         if (existingIndex >= 0) {
           existingPlayers[existingIndex] = playerData;
+          console.log(`   🔄 Atualizado jogador existente`);
         } else {
           existingPlayers.push(playerData);
+          console.log(`   ➕ Adicionado novo jogador`);
         }
 
+        console.log(`   🔍 Jogadores no array DEPOIS: ${existingPlayers.length}`);
         console.log(`   ✅ ${nickname}: ${playerData.matchesPlayed} partidas`);
       } else {
-        console.log(`   ⚠️ Sem dados para ${nickname}`);
+        console.log(`   ⚠️ Sem dados para ${nickname} - playerData é NULL`);
       }
 
     } catch (error) {
       console.error(`   ❌ Erro ao processar ${nickname}:`, error);
+      console.error(`   ❌ Stack:`, error instanceof Error ? error.stack : 'N/A');
     }
 
     // Ordenar e posicionar
+    console.log(`\n   🔍 ANTES DE ORDENAR: ${existingPlayers.length} jogadores`);
     existingPlayers.sort((a: any, b: any) => {
       if (a.rankingPoints !== b.rankingPoints) return b.rankingPoints - a.rankingPoints;
       if (a.wins !== b.wins) return b.wins - a.wins;
@@ -123,8 +149,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     existingPlayers.forEach((player: any, index: number) => {
       player.position = index + 1;
     });
+    console.log(`   🔍 DEPOIS DE ORDENAR: ${existingPlayers.length} jogadores`);
 
     // ✅ Salvar ranking geral no Redis (com season)
+    console.log(`   💾 Salvando ${existingPlayers.length} jogadores no Redis...`);
     await kvCacheService.saveCache(existingPlayers, seasonId);
     
     const duration = Date.now() - startTime;
@@ -132,6 +160,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     console.log(`⏱️ [BATCH ${batchNumber + 1}] Concluído em ${(duration / 1000).toFixed(1)}s`);
     console.log(`📊 Progresso: ${existingPlayers.length}/${PLAYER_NICKNAMES.length} jogadores`);
+    console.log(`📊 hasMore: ${hasMore}, nextBatch: ${hasMore ? batchNumber + 1 : null}\n`);
 
     return NextResponse.json({
       success: true,
