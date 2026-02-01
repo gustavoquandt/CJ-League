@@ -344,7 +344,23 @@ function HomePageContent() {
 
   // Render states
   if (loading && players.length === 0) {
-    return <LoadingState />;
+    return (
+      <>
+        <LoadingState />
+        
+        {/* Admin Panel - Disponível em todos os estados */}
+        <AdminPanel
+          isAdmin={isAdmin}
+          showModal={showAdminModal}
+          onLogin={adminLogin}
+          onClose={() => setShowAdminModal(false)}
+          onLogout={adminLogout}
+          onForceUpdate={handleForceUpdate}
+          onManagePlayers={handleManagePlayers}
+          isUpdating={isForceUpdating}
+        />
+      </>
+    );
   }
 
   // ✅ Empty state com botão "Buscar do Banco" + Abas de Season
@@ -444,12 +460,40 @@ function HomePageContent() {
             </div>
           </div>
         </div>
+
+        {/* Admin Panel - Disponível no empty state */}
+        <AdminPanel
+          isAdmin={isAdmin}
+          showModal={showAdminModal}
+          onLogin={adminLogin}
+          onClose={() => setShowAdminModal(false)}
+          onLogout={adminLogout}
+          onForceUpdate={handleForceUpdate}
+          onManagePlayers={handleManagePlayers}
+          isUpdating={isForceUpdating}
+        />
       </div>
     );
   }
 
   if (error && players.length === 0) {
-    return <ErrorState error={error} onRetry={handleRefreshData} />;
+    return (
+      <>
+        <ErrorState error={error} onRetry={handleRefreshData} />
+        
+        {/* Admin Panel - Disponível no error state */}
+        <AdminPanel
+          isAdmin={isAdmin}
+          showModal={showAdminModal}
+          onLogin={adminLogin}
+          onClose={() => setShowAdminModal(false)}
+          onLogout={adminLogout}
+          onForceUpdate={handleForceUpdate}
+          onManagePlayers={handleManagePlayers}
+          isUpdating={isForceUpdating}
+        />
+      </>
+    );
   }
 
   return (
