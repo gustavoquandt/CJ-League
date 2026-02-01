@@ -18,7 +18,15 @@ export async function GET(request: NextRequest) {
     
     console.log(`📊 [MAP STATS] Buscando stats de mapas para ${SEASONS[seasonId].name}`);
     if (force) {
-      console.log(`⚡ [MAP STATS] Modo FORCE - Ignorando cache`);
+      console.log(`⚡ [MAP STATS] Modo FORCE - Deletando cache e buscando fresh`);
+      // ✅ DELETAR cache quando force=true
+      const cacheKey = `cj-stats:mapstats:${seasonId}`;
+      try {
+        await redis.del(cacheKey);
+        console.log(`🗑️ Cache deletado`);
+      } catch (e) {
+        console.warn('⚠️ Erro ao deletar cache:', e);
+      }
     }
 
     // Tentar cache primeiro (só se não for force)
