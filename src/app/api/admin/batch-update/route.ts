@@ -106,9 +106,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         console.log(`   🔍 Último match retornado: ${playerData.lastMatchId?.substring(0, 8) || 'nenhum'}`);
       }
 
-      if (playerData) {
+      // ✅ CORREÇÃO: Se não há partidas novas E tem cache, usar o cache!
+      let finalPlayerData = playerData;
+      
+      if (playerData && playerData.matchesPlayed === 0 && cachedPlayer) {
+        console.log(`   ⚡ Sem partidas novas - Usando cache anterior`);
+        console.log(`   📦 Cache tem ${cachedPlayer.matchesPlayed} partidas`);
+        finalPlayerData = cachedPlayer; // Manter dados antigos
+      }
+
+      if (finalPlayerData) {
         // ✅ Salvar cache individual do jogador (com season)
-        await kvCacheService.savePlayerCache(nickname, playerData, seasonId);
+        // Só salva se realmente tem dados novos OU é primeira vez
+        if (playerData && playerData.matchesPlayed > 0) {
+          await kvCacheService.savePlayerCache(nickname, playerData, seasonId);
+          console.log(`   💾 Cache atualizado com dados novos`);
+        } else if (!cachedPlayer) {
+          // Primeira vez, salva mesmo com 0 partidas
+          await kvCacheService.savePlayerCache(nickname, finalPlayerData, seasonId);
+          console.log(`   💾 Cache criado (primeira vez)`);
+        } else {
+          console.log(`   ⏭️ Cache mantido (sem mudanças)`);
+        }
         
         // Atualizar ou adicionar no ranking geral
         const existingIndex = existingPlayers.findIndex(
@@ -120,17 +139,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         console.log(`   🔍 Índice existente: ${existingIndex}`);
 
         if (existingIndex >= 0) {
-          existingPlayers[existingIndex] = playerData;
+          existingPlayers[existingIndex] = finalPlayerData;
           console.log(`   🔄 Atualizado jogador existente`);
         } else {
-          existingPlayers.push(playerData);
+          existingPlayers.push(finalPlayerData);
           console.log(`   ➕ Adicionado novo jogador`);
         }
 
         console.log(`   🔍 Jogadores no array DEPOIS: ${existingPlayers.length}`);
-        console.log(`   ✅ ${nickname}: ${playerData.matchesPlayed} partidas`);
+        console.log(`   ✅ ${nickname}: ${finalPlayerData.matchesPlayed} partidas`);
       } else {
-        console.log(`   ⚠️ Sem dados para ${nickname} - playerData é NULL`);
+        console.log(`   ⚠️ Sem dados para ${nickname} - playerData é NULL e sem cache`);
       }
 
     } catch (error) {
