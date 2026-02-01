@@ -470,7 +470,8 @@ class FaceitService {
           kd: totalDeaths > 0 ? parseFloat((totalKills / totalDeaths).toFixed(2)) : totalKills,
           adr: totalRounds > 0 ? parseFloat((totalDamage / totalRounds).toFixed(1)) : 0,
           winRate: totalMatches > 0 ? parseFloat(((previousStats.wins + newStats.wins) / totalMatches * 100).toFixed(1)) : 0,
-          rankingPoints: previousStats.rankingPoints + newStats.rankingPoints,
+          // ✅ CORRIGIDO: Adicionar apenas a DIFERENÇA de pontos, não o total
+          rankingPoints: previousStats.rankingPoints + (newStats.rankingPoints - RANKING_CONFIG.INITIAL_POINTS),
           lastMatchId: allMatches.length > 0 ? allMatches[0].match_id : previousStats.lastMatchId,
         };
       }

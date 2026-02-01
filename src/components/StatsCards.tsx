@@ -8,7 +8,8 @@ interface StatsCardsProps {
   players: PlayerStats[];
   seasonName: string;
   mapStats?: MapStats | null;
-  minGamesFilter?: number; // ✅ NOVO: Filtro mínimo de jogos
+  minGamesFilter?: number;
+  isVisible?: boolean;
 }
 
 interface StatLeader {
@@ -17,15 +18,19 @@ interface StatLeader {
   label: string;
 }
 
-// Função para formatar nome do mapa
 const formatMapName = (mapName: string): string => {
   return mapName.replace('de_', '').replace('cs_', '').toUpperCase();
 };
 
-export default function StatsCards({ players, seasonName, mapStats, minGamesFilter = 0 }: StatsCardsProps) {
+export default function StatsCards({ players, seasonName, mapStats, minGamesFilter = 0, isVisible = true }: StatsCardsProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // ✅ NOVO: Filtrar jogadores pelo mínimo de jogos
+  // ✅ Se não for visível, não renderizar nada
+  if (!isVisible) {
+    return null;
+  }
+
+  // ✅ Filtrar jogadores pelo mínimo de jogos
   const activePlayers = players.filter(p => 
     p.matchesPlayed > 0 && p.matchesPlayed >= minGamesFilter
   );
@@ -34,7 +39,6 @@ export default function StatsCards({ players, seasonName, mapStats, minGamesFilt
     return null;
   }
 
-  // Encontrar líderes de cada stat
   const getLeader = (stat: keyof PlayerStats): StatLeader | null => {
     if (activePlayers.length === 0) return null;
     
@@ -92,7 +96,6 @@ export default function StatsCards({ players, seasonName, mapStats, minGamesFilt
 
   return (
     <div className="mb-8">
-      {/* Header com botão de expandir/colapsar */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between mb-4 hover:opacity-80 transition-opacity"
@@ -124,10 +127,8 @@ export default function StatsCards({ players, seasonName, mapStats, minGamesFilt
         </div>
       </button>
       
-      {/* Container colapsável */}
       {isExpanded && (
         <div className="space-y-4 animate-fadeIn">
-          {/* Stats de Jogadores */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {stats.map((stat, index) => {
               if (!stat.leader) return null;
@@ -137,7 +138,6 @@ export default function StatsCards({ players, seasonName, mapStats, minGamesFilt
                   key={index}
                   className="bg-faceit-dark border border-faceit-light-gray rounded-lg p-4 hover:border-faceit-orange transition-all"
                 >
-                  {/* Header */}
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-2xl">{stat.icon}</span>
                     <h3 className="text-sm font-semibold text-text-secondary">
@@ -145,9 +145,7 @@ export default function StatsCards({ players, seasonName, mapStats, minGamesFilt
                     </h3>
                   </div>
 
-                  {/* Player Info */}
                   <div className="flex items-center gap-3">
-                    {/* Avatar */}
                     <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-faceit-orange flex-shrink-0">
                       <Image
                         src={stat.leader.player.avatar || '/default-avatar.png'}
@@ -157,7 +155,6 @@ export default function StatsCards({ players, seasonName, mapStats, minGamesFilt
                       />
                     </div>
 
-                    {/* Stats */}
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-white truncate">
                         {stat.leader.player.nickname}
@@ -172,10 +169,8 @@ export default function StatsCards({ players, seasonName, mapStats, minGamesFilt
             })}
           </div>
 
-          {/* Stats de Mapas */}
           {mapStats && (mapStats.mostPlayed || mapStats.leastPlayed) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Mapa Mais Jogado */}
               {mapStats.mostPlayed && (
                 <div className="bg-faceit-dark border border-faceit-light-gray rounded-lg p-4 hover:border-faceit-orange transition-all">
                   <div className="flex items-center gap-2 mb-3">
@@ -198,7 +193,6 @@ export default function StatsCards({ players, seasonName, mapStats, minGamesFilt
                 </div>
               )}
 
-              {/* Mapa Menos Jogado */}
               {mapStats.leastPlayed && (
                 <div className="bg-faceit-dark border border-faceit-light-gray rounded-lg p-4 hover:border-faceit-orange transition-all">
                   <div className="flex items-center gap-2 mb-3">

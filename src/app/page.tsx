@@ -40,6 +40,7 @@ function HomePageContent() {
   const [isLoadingMapStats, setIsLoadingMapStats] = useState(false);
   const [isUpdatingMapStats, setIsUpdatingMapStats] = useState(false); // ✅ NOVO
   const [minGamesFilterSeason1, setMinGamesFilterSeason1] = useState(false); // ✅ NOVO: Filtro cards
+  const [showStatsCards, setShowStatsCards] = useState(true); // ✅ NOVO: Mostrar/Ocultar Stats Cards
   
   const [filters, setFilters] = useState<PlayerFilters>({
     searchTerm: '',
@@ -109,6 +110,14 @@ function HomePageContent() {
     const saved = localStorage.getItem('minGamesFilterSeason1');
     if (saved !== null) {
       setMinGamesFilterSeason1(saved === 'true');
+    }
+  }, []);
+
+  // ✅ NOVO: Carregar visibilidade Stats Cards do localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('showStatsCards');
+    if (saved !== null) {
+      setShowStatsCards(saved === 'true');
     }
   }, []);
 
@@ -368,6 +377,14 @@ function HomePageContent() {
     console.log(`🎯 Filtro cards Season 1: ${newValue ? '10+ jogos' : 'Todos'}`);
   };
 
+
+  // ✅ NOVO: Toggle visibilidade Stats Cards
+  const handleToggleStatsCardsVisibility = () => {
+    const newValue = !showStatsCards;
+    setShowStatsCards(newValue);
+    localStorage.setItem('showStatsCards', String(newValue));
+    console.log(`👁️ Stats Cards: ${newValue ? 'Visível' : 'Oculto'} para todos`);
+  };
   // ✅ NOVO: Atualizar map stats
   const handleUpdateMapStats = async (seasonId: SeasonId) => {
     if (!isAdmin) return;
@@ -509,6 +526,8 @@ function HomePageContent() {
           isUpdatingMapStats={isUpdatingMapStats}
           minGamesFilterSeason1={minGamesFilterSeason1}
           onToggleMinGamesFilter={handleToggleMinGamesFilter}
+          showStatsCards={showStatsCards}
+          onToggleStatsCardsVisibility={handleToggleStatsCardsVisibility}
         />
       </>
     );
@@ -625,6 +644,8 @@ function HomePageContent() {
           isUpdatingMapStats={isUpdatingMapStats}
           minGamesFilterSeason1={minGamesFilterSeason1}
           onToggleMinGamesFilter={handleToggleMinGamesFilter}
+          showStatsCards={showStatsCards}
+          onToggleStatsCardsVisibility={handleToggleStatsCardsVisibility}
         />
       </div>
     );
@@ -648,6 +669,8 @@ function HomePageContent() {
           isUpdatingMapStats={isUpdatingMapStats}
           minGamesFilterSeason1={minGamesFilterSeason1}
           onToggleMinGamesFilter={handleToggleMinGamesFilter}
+          showStatsCards={showStatsCards}
+          onToggleStatsCardsVisibility={handleToggleStatsCardsVisibility}
         />
       </>
     );
@@ -684,6 +707,7 @@ function HomePageContent() {
               seasonName={SEASONS[activeSeason].name}
               mapStats={mapStats}
               minGamesFilter={activeSeason === 'SEASON_0' ? 10 : (minGamesFilterSeason1 ? 10 : 0)}
+              isVisible={showStatsCards}
             />
           </div>
         )}
@@ -784,8 +808,10 @@ function HomePageContent() {
         onUpdateMapStats={handleUpdateMapStats}
         isUpdating={isForceUpdating}
         isUpdatingMapStats={isUpdatingMapStats}
-          minGamesFilterSeason1={minGamesFilterSeason1}
-          onToggleMinGamesFilter={handleToggleMinGamesFilter}
+        minGamesFilterSeason1={minGamesFilterSeason1}
+        onToggleMinGamesFilter={handleToggleMinGamesFilter}
+        showStatsCards={showStatsCards}
+        onToggleStatsCardsVisibility={handleToggleStatsCardsVisibility}
       />
 
       {/* Player Management Panel */}

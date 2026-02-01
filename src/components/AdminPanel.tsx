@@ -14,6 +14,8 @@ interface AdminPanelProps {
   isUpdatingMapStats?: boolean;
   minGamesFilterSeason1: boolean; // ✅ NOVO
   onToggleMinGamesFilter: () => void; // ✅ NOVO
+  showStatsCards: boolean; // ✅ NOVO: Mostrar/Ocultar Stats Cards globalmente
+  onToggleStatsCardsVisibility: () => void; // ✅ NOVO
 }
 
 export default function AdminPanel({
@@ -24,6 +26,8 @@ export default function AdminPanel({
   onLogout,
   onForceUpdate,
   onUpdateMapStats,
+  showStatsCards, // ✅ NOVO
+  onToggleStatsCardsVisibility, // ✅ NOVO
   minGamesFilterSeason1, // ✅ NOVO
   onToggleMinGamesFilter, // ✅ NOVO
   isUpdating,
@@ -226,6 +230,29 @@ export default function AdminPanel({
 
               {/* Logout */}
 
+
+              {/* ✅ NOVO: Toggle visibilidade global Stats Cards */}
+              <div className="pt-2 border-t border-faceit-light-gray">
+                <label className="flex items-center gap-3 px-3 py-2 bg-faceit-darker rounded-lg cursor-pointer hover:bg-faceit-light-gray/10 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={showStatsCards}
+                    onChange={onToggleStatsCardsVisibility}
+                    className="w-4 h-4 rounded border-faceit-light-gray bg-faceit-dark text-faceit-orange focus:ring-2 focus:ring-faceit-orange"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium">👁️ Mostrar Stats Cards</span>
+                    <p className="text-xs text-text-secondary mt-0.5">
+                      {showStatsCards 
+                        ? "✅ Visível para TODOS os usuários" 
+                        : "🔒 Oculto para TODOS os usuários"}
+                    </p>
+                    <p className="text-xs text-text-secondary/70 mt-0.5">
+                      (Use durante testes de deploy)
+                    </p>
+                  </div>
+                </label>
+              </div>
               {/* ✅ NOVO: Toggle filtro cards Season 1 */}
               <div className="pt-2 border-t border-faceit-light-gray">
                 <label className="flex items-center gap-3 px-3 py-2 bg-faceit-darker rounded-lg cursor-pointer hover:bg-faceit-light-gray/10 transition-colors">
