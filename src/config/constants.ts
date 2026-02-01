@@ -71,53 +71,56 @@ export const PLAYER_POTS: Record<string, number> = {
   // POT 1
   'LEON1D4S': 1,
   'MESS1ASf': 1,
-  'PiMPauMMMM': 1,
+  'dreco': 1,
+  'nollan9': 1,
   'Roxu__': 1,
   'bobz1k4hs': 1,
+  'polippera': 1,
   'JapaMarley': 1,
   'caiobafk': 1,
-  'dreco': 1,
-  'Snoop-D0gg': 1,
-  'nollan9': 1,
+  'PiMPauMMMM': 1,
+  'Pauletovski': 1,
 
   // POT 2
-  'polippera': 2,
+  'Snoop-D0gg': 2,
+  'umone1': 2,
+  'meneziis': 2,
+  'imb4': 2,
+  'iAgoLas': 2,
+  'LBasqueira': 2,
+  'daftzera': 2,
+  'ViniDrMM': 2,
   'rogeriN-xddd': 2,
   'knightziin': 2,
-  'meneziis': 2,
   'tohru_sc': 2,
-  'Pauletovski': 2,
-  'iAgoLas': 2,
-  'dhigo92': 2,
-  'umone1': 2,
-  'LBasqueira': 2,
-  'imb4': 2,
+  'malkava': 2,
+  'R1tzx': 2,
 
   // POT 3
-  'caiosergioo': 3,
+  'dhigo92': 3,
   '_hoTz': 3,
-  'pedr0bear': 3,
-  'daftzera': 3,
-  'malkava': 3,
-  'GriloTJ': 3,
-  'ViniDrMM': 3,
-  'gboorges': 3,
-  'widmann': 3,
   'Mromanino': 3,
+  'jungee-': 3,
+  'gboorges': 3,
+  'caiosergioo': 3,
+  'pedr0bear': 3,
+  'GriloTJ': 3,
+
+
 
   // POT 4
-  'Cissuu': 4,
-  'Leo1800': 4,
   'Jubale': 4,
-  'R1tzx': 4,
-  'nansch': 4,
-  'BReaC': 4,
-  'jungee-': 4,
-  'zzorkkk': 4,
-  'MedzR': 4,
-  'Matheusgsr1': 4,
-  'P0K4B4L4': 4,
+  'Cissuu': 4,
   'QGZERA': 4,
+  'zzorkkk': 4,
+  'Leo1800': 4,
+  'BReaC': 4,
+  'MedzR': 4,
+  'nansch': 4,
+  'widmann': 4,
+  'Matheusgsr1': 4,
+
+
 
   // POT 5
   'cunh4': 5,
@@ -128,6 +131,7 @@ export const PLAYER_POTS: Record<string, number> = {
   'BITENCOURT95': 5,
   'VeKasss': 5,
   'NegaoReinert': 5,
+  'P0K4B4L4': 5,
 };
 
 
@@ -151,11 +155,37 @@ export const RANKING_CONFIG = {
    * Fórmula: 1000 + (wins × 3) - (losses × 3)
    */
   calculatePoints: (wins: number, losses: number): number => {
-    return RANKING_CONFIG.INITIAL_POINTS + 
-           (wins * RANKING_CONFIG.POINTS_PER_WIN) - 
-           (losses * RANKING_CONFIG.POINTS_PER_LOSS);
+    return RANKING_CONFIG.INITIAL_POINTS +
+      (wins * RANKING_CONFIG.POINTS_PER_WIN) -
+      (losses * RANKING_CONFIG.POINTS_PER_LOSS);
   },
 } as const;
+
+
+export const SEASONS = {
+  SEASON_0: {
+    id: 'f2dec63c-b3c1-4df6-8193-0b83fc6640ef',
+    name: 'Season 0',
+    description: 'Temporada de Teste',
+    startDate: '2024-12-15',
+    endDate: '2025-01-31',
+    status: 'finished' as const,
+  },
+  SEASON_1: {
+    id: 'bcbe03eb-3ed0-49d7-a4e0-7959c7e27728',
+    name: 'Season 1',
+    description: 'Primeira temporada da CJ League',
+    startDate: '2025-02-01',
+    endDate: null,
+    status: 'active' as const,
+  },
+} as const;
+
+export const ACTIVE_SEASON = SEASONS.SEASON_1;
+export const QUEUE_ID = ACTIVE_SEASON.id; // Mantém compatibilidade
+
+export type SeasonId = keyof typeof SEASONS;
+export type Season = typeof SEASONS[SeasonId];
 
 // ==================== UI CONFIGURATION ====================
 

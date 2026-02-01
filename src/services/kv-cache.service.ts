@@ -1,11 +1,12 @@
 /**
  * Serviço de Cache com Upstash Redis
  * Armazena dados dos jogadores de forma persistente
- * ✅ NOVO: Cache individual por jogador
+ * ✅ Cache individual por jogador + Suporte a múltiplas seasons
  */
 
 import { Redis } from '@upstash/redis';
 import type { PlayerStats } from '@/types/app.types';
+import type { SeasonId } from '@/config/constants';
 
 // Criar instância do Redis
 const redis = new Redis({
@@ -13,33 +14,39 @@ const redis = new Redis({
   token: process.env.KV_REST_API_TOKEN!,
 });
 
-const CACHE_KEY = 'cj-stats:players';
-const PLAYER_CACHE_PREFIX = 'cj-stats:player:'; // ✅ NOVO
+// ✅ ATUALIZADO: Cache keys com season
+const getCacheKey = (seasonId: SeasonId = 'SEASON_1') => `cj-stats:players:${seasonId}`;
+const getPlayerCacheKey = (nickname: string, seasonId: SeasonId = 'SEASON_1') => 
+  `cj-stats:player:${seasonId}:${nickname.toLowerCase()}`;
 
 interface CacheData {
   players: PlayerStats[];
   lastUpdated: string;
+  seasonId?: SeasonId;
 }
 
 interface PlayerCacheData extends PlayerStats {
-  lastMatchId?: string; // ✅ ID da última partida processada
+  lastMatchId?: string;
   lastFetchedAt: string;
+  seasonId?: SeasonId;
 }
 
 export const kvCacheService = {
   /**
-   * Salvar jogadores no Redis (SEM EXPIRAÇÃO)
+   * Salvar jogadores no Redis (SEM EXPIRAÇÃO) com season
    */
-  async saveCache(players: PlayerStats[]): Promise<void> {
+  async saveCache(players: PlayerStats[], seasonId: SeasonId = 'SEASON_1'): Promise<void> {
     try {
+      const cacheKey = getCacheKey(seasonId);
       const data: CacheData = {
         players,
         lastUpdated: new Date().toISOString(),
+        seasonId,
       };
 
-      await redis.set(CACHE_KEY, JSON.stringify(data));
+      await redis.set(cacheKey, JSON.stringify(data));
       
-      console.log(`✅ [REDIS] Cache salvo: ${players.length} jogadores (SEM EXPIRAÇÃO)`);
+      console.log(`✅ [REDIS] Cache salvo (${seasonId}): ${players.length} jogadores`);
     } catch (error) {
       console.error('❌ [REDIS] Erro ao salvar cache:', error);
       throw error;
@@ -47,14 +54,15 @@ export const kvCacheService = {
   },
 
   /**
-   * Ler jogadores do Redis
+   * Ler jogadores do Redis (com season)
    */
-  async getCache(): Promise<CacheData | null> {
+  async getCache(seasonId: SeasonId = 'SEASON_1'): Promise<CacheData | null> {
     try {
-      const cached = await redis.get(CACHE_KEY);
+      const cacheKey = getCacheKey(seasonId);
+      const cached = await redis.get(cacheKey);
       
       if (!cached) {
-        console.log('⚠️ [REDIS] Cache vazio');
+        console.log(`⚠️ [REDIS] Cache vazio (${seasonId})`);
         return null;
       }
 
@@ -62,7 +70,7 @@ export const kvCacheService = {
         ? JSON.parse(cached) 
         : cached as CacheData;
       
-      console.log(`✅ [REDIS] Cache lido: ${data.players?.length || 0} jogadores`);
+      console.log(`✅ [REDIS] Cache lido (${seasonId}): ${data.players?.length || 0} jogadores`);
       
       return data;
     } catch (error) {
@@ -71,28 +79,40 @@ export const kvCacheService = {
     }
   },
 
-  // ✅ NOVO: Salvar cache individual de um jogador
-  async savePlayerCache(nickname: string, playerData: PlayerStats & { lastMatchId?: string }): Promise<void> {
+  /**
+   * Salvar cache individual de um jogador (com season)
+   */
+  async savePlayerCache(
+    nickname: string, 
+    playerData: PlayerStats & { lastMatchId?: string },
+    seasonId: SeasonId = 'SEASON_1'
+  ): Promise<void> {
     try {
-      const key = `${PLAYER_CACHE_PREFIX}${nickname.toLowerCase()}`;
+      const key = getPlayerCacheKey(nickname, seasonId);
       const data: PlayerCacheData = {
         ...playerData,
         lastFetchedAt: new Date().toISOString(),
+        seasonId,
       };
 
       await redis.set(key, JSON.stringify(data));
       
-      console.log(`✅ [REDIS] Cache do jogador salvo: ${nickname}`);
+      console.log(`✅ [REDIS] Cache do jogador salvo (${seasonId}): ${nickname}`);
     } catch (error) {
       console.error(`❌ [REDIS] Erro ao salvar cache do jogador ${nickname}:`, error);
       throw error;
     }
   },
 
-  // ✅ NOVO: Buscar cache individual de um jogador
-  async getPlayerCache(nickname: string): Promise<PlayerCacheData | null> {
+  /**
+   * Buscar cache individual de um jogador (com season)
+   */
+  async getPlayerCache(
+    nickname: string,
+    seasonId: SeasonId = 'SEASON_1'
+  ): Promise<PlayerCacheData | null> {
     try {
-      const key = `${PLAYER_CACHE_PREFIX}${nickname.toLowerCase()}`;
+      const key = getPlayerCacheKey(nickname, seasonId);
       const cached = await redis.get(key);
       
       if (!cached) {
@@ -110,12 +130,14 @@ export const kvCacheService = {
     }
   },
 
-  // ✅ NOVO: Limpar cache de um jogador específico
-  async clearPlayerCache(nickname: string): Promise<void> {
+  /**
+   * Limpar cache de um jogador específico (com season)
+   */
+  async clearPlayerCache(nickname: string, seasonId: SeasonId = 'SEASON_1'): Promise<void> {
     try {
-      const key = `${PLAYER_CACHE_PREFIX}${nickname.toLowerCase()}`;
+      const key = getPlayerCacheKey(nickname, seasonId);
       await redis.del(key);
-      console.log(`✅ [REDIS] Cache do jogador limpo: ${nickname}`);
+      console.log(`✅ [REDIS] Cache do jogador limpo (${seasonId}): ${nickname}`);
     } catch (error) {
       console.error(`❌ [REDIS] Erro ao limpar cache do jogador ${nickname}:`, error);
       throw error;
@@ -123,11 +145,12 @@ export const kvCacheService = {
   },
 
   /**
-   * Verificar se cache existe
+   * Verificar se cache existe (com season)
    */
-  async hasCache(): Promise<boolean> {
+  async hasCache(seasonId: SeasonId = 'SEASON_1'): Promise<boolean> {
     try {
-      const exists = await redis.exists(CACHE_KEY);
+      const cacheKey = getCacheKey(seasonId);
+      const exists = await redis.exists(cacheKey);
       return exists === 1;
     } catch (error) {
       console.error('❌ [REDIS] Erro ao verificar cache:', error);
@@ -136,27 +159,46 @@ export const kvCacheService = {
   },
 
   /**
-   * Limpar cache (útil para debug)
+   * Limpar cache (com season)
    */
-  async clearCache(): Promise<void> {
+  async clearCache(seasonId?: SeasonId): Promise<void> {
     try {
-      await redis.del(CACHE_KEY);
-      console.log('✅ [REDIS] Cache limpo');
+      if (seasonId) {
+        const cacheKey = getCacheKey(seasonId);
+        await redis.del(cacheKey);
+        console.log(`✅ [REDIS] Cache limpo (${seasonId})`);
+      } else {
+        // Limpar todas as seasons
+        await redis.del(getCacheKey('SEASON_0'));
+        await redis.del(getCacheKey('SEASON_1'));
+        console.log('✅ [REDIS] Todos os caches limpos');
+      }
     } catch (error) {
       console.error('❌ [REDIS] Erro ao limpar cache:', error);
       throw error;
     }
   },
 
-  // ✅ NOVO: Limpar todos os caches de jogadores
-  async clearAllPlayerCaches(): Promise<void> {
+  /**
+   * Limpar todos os caches de jogadores (com season)
+   */
+  async clearAllPlayerCaches(seasonId?: SeasonId): Promise<void> {
     try {
-      // Buscar todas as keys de jogadores
-      const keys = await redis.keys(`${PLAYER_CACHE_PREFIX}*`);
-      
-      if (keys.length > 0) {
-        await redis.del(...keys);
-        console.log(`✅ [REDIS] ${keys.length} caches de jogadores limpos`);
+      if (seasonId) {
+        // Limpar apenas uma season
+        const pattern = `cj-stats:player:${seasonId}:*`;
+        const keys = await redis.keys(pattern);
+        if (keys.length > 0) {
+          await redis.del(...keys);
+          console.log(`✅ [REDIS] ${keys.length} caches de jogadores limpos (${seasonId})`);
+        }
+      } else {
+        // Limpar todas as seasons
+        const keys = await redis.keys('cj-stats:player:*');
+        if (keys.length > 0) {
+          await redis.del(...keys);
+          console.log(`✅ [REDIS] ${keys.length} caches de jogadores limpos (todas seasons)`);
+        }
       }
     } catch (error) {
       console.error('❌ [REDIS] Erro ao limpar caches de jogadores:', error);

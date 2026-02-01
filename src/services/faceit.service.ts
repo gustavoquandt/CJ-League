@@ -346,11 +346,15 @@ class FaceitService {
   async fetchPlayerWithMatches(
     nickname: string,
     maxMatches: number = 200,
-    lastMatchId?: string | null
+    lastMatchId?: string | null,
+    queueId?: string // ✅ Queue ID opcional (para seasons)
   ): Promise<(PlayerStats & { lastMatchId?: string }) | null> {
     try {
       const playerInfo = await this.getPlayerByNickname(nickname);
       if (!playerInfo) return null;
+
+      // ✅ Usar queue passada ou padrão
+      const QUEUE_TO_USE = queueId || QUEUE_ID;
 
       const allMatches: any[] = [];
       let offset = 0;
@@ -363,8 +367,9 @@ class FaceitService {
 
         if (!matchesResponse?.items || matchesResponse.items.length === 0) break;
 
+        // ✅ Filtrar pela queue correta
         const queueMatches = matchesResponse.items.filter(
-          (match: any) => match.competition_id === QUEUE_ID
+          (match: any) => match.competition_id === QUEUE_TO_USE
         );
 
         for (const match of queueMatches) {

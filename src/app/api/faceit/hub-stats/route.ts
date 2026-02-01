@@ -1,23 +1,29 @@
 /**
  * API Route: /api/faceit/hub-stats
  * 
- * VERSÃO COM VERCEL KV
+ * VERSÃO COM VERCEL KV + Suporte a múltiplas seasons
  * Lê APENAS do Redis - Zero chamadas à API FACEIT
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { kvCacheService } from '@/services/kv-cache.service';
 import type { HubStatsResponse } from '@/types/app.types';
+import type { SeasonId } from '@/config/constants';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   console.log('📥 [API] Requisição de usuário recebida');
 
   try {
-    // LER APENAS DO REDIS (não chama API FACEIT)
-    const cached = await kvCacheService.getCache();
+    // ✅ Ler seasonId da query
+    const seasonId = (request.nextUrl.searchParams.get('season') as SeasonId) || 'SEASON_1';
+    
+    console.log(`📊 [API] Season solicitada: ${seasonId}`);
+
+    // ✅ LER APENAS DO REDIS (com season)
+    const cached = await kvCacheService.getCache(seasonId);
 
     if (!cached || !cached.players || cached.players.length === 0) {
-      console.log('⚠️ [API] Cache vazio ou inexistente');
+      console.log(`⚠️ [API] Cache vazio ou inexistente (${seasonId})`);
       
       return NextResponse.json({
         success: false,
@@ -31,7 +37,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       } as HubStatsResponse, { status: 503 });
     }
 
-    console.log(`✅ [API] Retornando ${cached.players.length} jogadores do cache`);
+    console.log(`✅ [API] Retornando ${cached.players.length} jogadores do cache (${seasonId})`);
 
     const response: HubStatsResponse = {
       success: true,

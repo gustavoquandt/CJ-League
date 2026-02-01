@@ -5,6 +5,7 @@
 
 import type { CacheData, UserPreferences } from '@/types/app.types';
 import { StorageKeys } from '@/types/app.types';
+import type { SeasonId } from '@/config/constants';
 
 // ==================== STORAGE CLASS ====================
 
@@ -110,31 +111,53 @@ class StorageService {
   // ==================== CACHE METHODS ====================
 
   /**
-   * Salva cache de dados
+   * Gera cache key baseado na season
    */
-  saveCache(data: CacheData): boolean {
-    return this.setItem(StorageKeys.CACHE_DATA, data);
+  private getCacheKey(seasonId: SeasonId = 'SEASON_1'): string {
+    return `${StorageKeys.CACHE_DATA}_${seasonId}`;
   }
 
   /**
-   * Recupera cache de dados
+   * Salva cache de dados (com season)
    */
-  getCache(): CacheData | null {
-    return this.getItem<CacheData>(StorageKeys.CACHE_DATA);
+  saveCache(data: CacheData, seasonId: SeasonId = 'SEASON_1'): boolean {
+    const cacheKey = this.getCacheKey(seasonId);
+    const cacheData = {
+      ...data,
+      seasonId,
+    };
+    return this.setItem(cacheKey, cacheData);
   }
 
   /**
-   * Remove cache de dados
+   * Recupera cache de dados (com season)
    */
-  clearCache(): boolean {
-    return this.removeItem(StorageKeys.CACHE_DATA);
+  getCache(seasonId: SeasonId = 'SEASON_1'): CacheData | null {
+    const cacheKey = this.getCacheKey(seasonId);
+    return this.getItem<CacheData>(cacheKey);
   }
 
   /**
-   * Verifica se existe cache válido
+   * Remove cache de dados (com season)
    */
-  hasValidCache(): boolean {
-    const cache = this.getCache();
+  clearCache(seasonId?: SeasonId): boolean {
+    if (seasonId) {
+      // Limpar season específica
+      const cacheKey = this.getCacheKey(seasonId);
+      return this.removeItem(cacheKey);
+    } else {
+      // Limpar todas as seasons
+      this.removeItem(this.getCacheKey('SEASON_0'));
+      this.removeItem(this.getCacheKey('SEASON_1'));
+      return true;
+    }
+  }
+
+  /**
+   * Verifica se existe cache válido (com season)
+   */
+  hasValidCache(seasonId: SeasonId = 'SEASON_1'): boolean {
+    const cache = this.getCache(seasonId);
     if (!cache) return false;
 
     // Valida estrutura básica

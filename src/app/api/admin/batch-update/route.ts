@@ -1,13 +1,13 @@
 /**
  * Rota: /api/admin/batch-update
  * 1 JOGADOR POR BATCH (evita timeout de 300s)
- * Sistema otimizado com cache incremental
+ * Sistema otimizado com cache incremental + Suporte a seasons
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getFaceitService } from '@/services/faceit.service';
 import { kvCacheService } from '@/services/kv-cache.service';
-import { PLAYER_NICKNAMES } from '@/config/constants';
+import { PLAYER_NICKNAMES, SEASONS, type SeasonId } from '@/config/constants';
 
 const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'default_admin_secret_change_me';
@@ -36,10 +36,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 500 });
     }
 
-    // Ler parâmetros do batch
+    // ✅ Ler parâmetros do batch + season
     const body = await request.json();
     const batchNumber = body.batchNumber || 0;
     const existingPlayers = body.existingPlayers || [];
+    const seasonId: SeasonId = body.seasonId || 'SEASON_1';
+    const queueId = SEASONS[seasonId].id; // ✅ Queue da season
+
+    console.log(`📊 [BATCH] Season: ${SEASONS[seasonId].name} (${queueId})`);
 
     const totalBatches = Math.ceil(PLAYER_NICKNAMES.length / BATCH_SIZE);
     const playerIndex = batchNumber; // 1 jogador = 1 batch
@@ -68,8 +72,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const startTime = Date.now();
 
     try {
-      // Verificar cache do jogador
-      const cachedPlayer = await kvCacheService.getPlayerCache(nickname);
+      // ✅ Verificar cache do jogador (com season)
+      const cachedPlayer = await kvCacheService.getPlayerCache(nickname, seasonId);
       const lastMatchId = cachedPlayer?.lastMatchId || null;
 
       console.log(`   Cache: ${cachedPlayer ? '✅ Encontrado' : '⚠️ Não encontrado'}`);
@@ -77,16 +81,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         console.log(`   Último match: ${lastMatchId.substring(0, 8)}...`);
       }
 
-      // Buscar dados atualizados
+      // ✅ Buscar dados atualizados (passando queueId)
       const playerData = await faceitService.fetchPlayerWithMatches(
         nickname,
         MAX_MATCHES_PER_PLAYER,
-        lastMatchId
+        lastMatchId,
+        queueId // ✅ Usar queue da season
       );
 
       if (playerData) {
-        // Salvar cache individual do jogador
-        await kvCacheService.savePlayerCache(nickname, playerData);
+        // ✅ Salvar cache individual do jogador (com season)
+        await kvCacheService.savePlayerCache(nickname, playerData, seasonId);
         
         // Atualizar ou adicionar no ranking geral
         const existingIndex = existingPlayers.findIndex(
@@ -119,8 +124,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       player.position = index + 1;
     });
 
-    // Salvar ranking geral no Redis
-    await kvCacheService.saveCache(existingPlayers);
+    // ✅ Salvar ranking geral no Redis (com season)
+    await kvCacheService.saveCache(existingPlayers, seasonId);
     
     const duration = Date.now() - startTime;
     const hasMore = playerIndex + 1 < PLAYER_NICKNAMES.length;

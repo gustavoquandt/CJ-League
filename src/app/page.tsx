@@ -13,6 +13,8 @@ import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 import UpdateToast from '@/components/UpdateToast';
 import AdminPanel from '@/components/AdminPanel';
+import SeasonTabs from '@/components/SeasonTabs';
+import { SEASONS, type SeasonId } from '@/config/constants';
 import PlayerManagementPanel from '@/components/PlayerManagementPanel';
 import {
   filterBySearch,
@@ -32,6 +34,7 @@ function HomePageContent() {
   const [isForceUpdating, setIsForceUpdating] = useState(false);
   const [showPlayerManagement, setShowPlayerManagement] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false); // ✅ NOVO
+  const [activeSeason, setActiveSeason] = useState<SeasonId>('SEASON_1');
   
   const [filters, setFilters] = useState<PlayerFilters>({
     searchTerm: '',
@@ -92,12 +95,12 @@ function HomePageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fallback: buscar da API (Redis)
-  const loadFromAPI = async () => {
+  // Fallback: buscar da API (Redis) com suporte a seasons
+  const loadFromAPI = async (seasonId?: SeasonId) => {
     try {
-      // ✅ ADICIONAR TIMESTAMP PARA EVITAR CACHE
+      const season = seasonId || activeSeason;
       const timestamp = Date.now();
-      const response = await fetch(`/api/faceit/hub-stats?t=${timestamp}`);
+      const response = await fetch(`/api/faceit/hub-stats?season=${season}&t=${timestamp}`);
       const data: HubStatsResponse = await response.json();
 
       if (data.success && data.data) {
@@ -110,23 +113,23 @@ function HomePageContent() {
           lastUpdated: data.cache.lastUpdated,
           nextUpdate: data.cache.nextUpdate,
           version: '1.0.0',
-        });
+        }, season);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     }
   };
 
-  // ✅ NOVO: Função para atualizar dados do Redis
+  // ✅ NOVO: Função para atualizar dados do Redis (com season)
   const handleRefreshData = async () => {
     setIsRefreshing(true);
     setError(null);
     
     try {
-      console.log('🔄 Buscando dados atualizados do Redis...');
+      console.log(`🔄 Buscando dados atualizados do Redis (${SEASONS[activeSeason].name})...`);
       
       const timestamp = Date.now();
-      const response = await fetch(`/api/faceit/hub-stats?t=${timestamp}`);
+      const response = await fetch(`/api/faceit/hub-stats?season=${activeSeason}&t=${timestamp}`);
       const data: HubStatsResponse = await response.json();
 
       if (data.success && data.data && data.data.length > 0) {
@@ -139,7 +142,7 @@ function HomePageContent() {
           lastUpdated: data.cache.lastUpdated,
           nextUpdate: data.cache.nextUpdate,
           version: '1.0.0',
-        });
+        }, activeSeason);
         
         console.log('✅ Dados atualizados com sucesso!');
       } else {
@@ -158,7 +161,8 @@ function HomePageContent() {
     if (!isAdmin) return;
 
     setIsForceUpdating(true);
-    console.log('🎯 [ADMIN] Iniciando atualização jogador por jogador...');
+    const seasonToUpdate = activeSeason; // Sempre atualiza a season visualizada
+    console.log(`🎯 [ADMIN] Iniciando atualização (${SEASONS[seasonToUpdate].name})...`);
 
     try {
       const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
@@ -184,6 +188,7 @@ function HomePageContent() {
             body: JSON.stringify({
               batchNumber,
               existingPlayers,
+              seasonId: seasonToUpdate, // ✅ ADICIONAR season
             }),
           });
 
@@ -238,7 +243,7 @@ function HomePageContent() {
 
       // Buscar dados finais
       console.log('\n📊 Buscando ranking final...');
-      const finalResponse = await fetch(`/api/faceit/hub-stats?t=${Date.now()}`);
+      const finalResponse = await fetch(`/api/faceit/hub-stats?season=${seasonToUpdate}&t=${Date.now()}`);
       const finalData = await finalResponse.json();
 
       if (finalData.success && finalData.data) {
@@ -250,7 +255,7 @@ function HomePageContent() {
           lastUpdated: new Date().toISOString(),
           nextUpdate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           version: '1.0.0',
-        });
+        }, seasonToUpdate);
       }
 
       console.log(`\n🎉 Atualização concluída!`);
@@ -276,6 +281,36 @@ function HomePageContent() {
 
   const handleManagePlayers = () => {
     setShowPlayerManagement(true);
+  };
+
+  // ✅ NOVO: Trocar de season
+  const handleSeasonChange = async (seasonId: SeasonId) => {
+    setActiveSeason(seasonId);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log(`🔄 Trocando para ${SEASONS[seasonId].name}...`);
+      
+      // Tentar carregar do cache local primeiro
+      const cache = storageService.getCache(seasonId);
+      
+      if (cache && cache.players.length > 0) {
+        console.log(`✅ Carregando ${SEASONS[seasonId].name} do cache local`);
+        setPlayers(cache.players);
+        setLastUpdated(new Date(cache.lastUpdated));
+        setNextUpdate(new Date(cache.nextUpdate));
+      } else {
+        console.log(`⚠️ Cache vazio, buscando ${SEASONS[seasonId].name} do Redis...`);
+        await loadFromAPI(seasonId);
+      }
+    } catch (err) {
+      console.error('Erro ao trocar season:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao trocar season');
+      await loadFromAPI(seasonId);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Filtered and sorted players
@@ -404,6 +439,12 @@ function HomePageContent() {
           updateProgress={updateStatus.progress}
           onRefreshData={handleRefreshData}
           isRefreshing={isRefreshing}
+        />
+        
+        {/* ✅ NOVO: Abas de Seasons */}
+        <SeasonTabs 
+          activeSeason={activeSeason}
+          onSeasonChange={handleSeasonChange}
         />
         
         {/* <PrizeCards /> */}
