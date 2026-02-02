@@ -88,11 +88,12 @@ export async function GET(request: NextRequest) {
       console.log(`   📊 Processando ${data.items.length} matches...`);
 
       for (const match of data.items) {
-        if (match.status !== 'finished') continue;
+        if (match.status !== 'finished' && match.status !== 'FINISHED') continue;
         
         // Tentar pegar o mapa de diferentes lugares
-        const mapName = match.voting?.map?.name || 
-                       match.voting?.map?.pick?.[0] ||
+        // ✅ CORRIGIDO: Pegar mapa de voting.map.pick[0]
+        const mapName = match.voting?.map?.pick?.[0] ||
+                       match.voting?.map?.name ||
                        match.game_mode;
         
         if (mapName && typeof mapName === 'string') {

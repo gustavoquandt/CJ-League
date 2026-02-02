@@ -379,6 +379,7 @@ class FaceitService {
       kills, deaths, assists, kd, kr, adr,
       headshotPercentage, faceitElo, skillLevel,
       currentStreak, longestWinStreak, lastMatchId,
+      totalKills, totalDeaths, totalDamage, totalRounds,  // ✅ ADICIONADO para salvar no Redis
     });
   }
 
