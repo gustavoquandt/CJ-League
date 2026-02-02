@@ -115,7 +115,7 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
 
                         {/* Ícone do mapa no canto superior direito */}
                         {map.icon && (
-                            <div className="absolute top-2 right-2 z-10 w-12 h-12">
+                            <div className="absolute top-2 right-2 z-10 w-12 h-12 flex items-center justify-center">
                                 <Image
                                     src={map.icon}
                                     alt={`${formatMapName(map.name)} icon`}
