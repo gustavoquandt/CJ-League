@@ -700,26 +700,28 @@ function HomePageContent() {
           onSeasonChange={handleSeasonChange}
         />
         
-        {/* ✅ Cards de Estatísticas - APENAS SEASON 1 */}
-        {filteredPlayers.length > 0 && activeSeason === 'SEASON_1' && (
-          <div className="mt-6">
-            <StatsCards 
-              players={filteredPlayers}
-              seasonName={SEASONS[activeSeason].name}
-              mapStats={null}
-              minGamesFilter={minGamesFilterSeason1 ? 10 : 0}
-              isVisible={showStatsCards}
-            />
-          </div>
-        )}
-        
-        {/* ✅ Mapas - APENAS SEASON 1 */}
+        {/* ✅ Destaques e Mapas - APENAS SEASON 1 */}
         {activeSeason === 'SEASON_1' && (
           <div className="mt-6">
-            <MapStatsCards 
-              mapStats={mapStats}
-              isLoading={isLoadingMapStats}
-            />
+            {/* Cards de Estatísticas */}
+            {filteredPlayers.length > 0 && (
+              <StatsCards 
+                players={filteredPlayers}
+                seasonName={SEASONS[activeSeason].name}
+                mapStats={null}
+                minGamesFilter={minGamesFilterSeason1 ? 10 : 0}
+                isVisible={showStatsCards}
+              />
+            )}
+            
+            {/* Mapas */}
+            <div className={filteredPlayers.length > 0 ? "mt-6" : ""}>
+              <MapStatsCards 
+                mapStats={mapStats}
+                isLoading={isLoadingMapStats}
+                isVisible={showStatsCards}
+              />
+            </div>
           </div>
         )}
         

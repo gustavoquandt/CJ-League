@@ -6,6 +6,7 @@ import Image from 'next/image';
 interface MapStatsCardsProps {
   mapStats: MapStats | null;
   isLoading?: boolean;
+  isVisible?: boolean;
 }
 
 // Pool de mapas CS2 competitivo
@@ -36,17 +37,22 @@ const formatMapName = (mapName: string): string => {
   return mapName.replace('de_', '').replace('cs_', '').toUpperCase();
 };
 
-export default function MapStatsCards({ mapStats, isLoading = false }: MapStatsCardsProps) {
+export default function MapStatsCards({ mapStats, isLoading = false, isVisible = true }: MapStatsCardsProps) {
+  // Se não for visível, não renderizar
+  if (!isVisible) {
+    return null;
+  }
+
   // Se está carregando
   if (isLoading) {
     return (
       <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-4">Mapas</h2>
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <h2 className="text-2xl font-bold mb-4">Ranking de mapas</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {CS2_MAP_POOL.map((mapName) => (
             <div
               key={mapName}
-              className="flex-shrink-0 w-32 h-40 bg-faceit-dark border border-faceit-light-gray rounded-lg overflow-hidden animate-pulse"
+              className="h-40 bg-faceit-dark border border-faceit-light-gray rounded-lg overflow-hidden animate-pulse"
             />
           ))}
         </div>
@@ -71,14 +77,14 @@ export default function MapStatsCards({ mapStats, isLoading = false }: MapStatsC
 
   return (
     <div className="mb-8">
-      <h2 className="text-2xl font-bold mb-4">Mapas</h2>
+      <h2 className="text-2xl font-bold mb-4">Ranking de mapas</h2>
       
-      {/* Container com scroll horizontal */}
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+      {/* Container com toda a largura */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         {sortedMaps.map((map) => (
           <div
             key={map.name}
-            className="relative flex-shrink-0 w-32 h-40 bg-faceit-dark border border-faceit-light-gray rounded-lg overflow-hidden hover:border-faceit-orange transition-all group cursor-pointer"
+            className="relative h-40 bg-faceit-dark border border-faceit-light-gray rounded-lg overflow-hidden hover:border-faceit-orange transition-all group cursor-pointer"
           >
             {/* Imagem de fundo */}
             {map.image && (
@@ -109,17 +115,6 @@ export default function MapStatsCards({ mapStats, isLoading = false }: MapStatsC
           </div>
         ))}
       </div>
-      
-      {/* CSS para esconder scrollbar */}
-      <style jsx global>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   );
 }
