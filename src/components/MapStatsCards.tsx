@@ -35,14 +35,14 @@ const MAP_IMAGES: Record<string, string> = {
 
 // Ícones oficiais da Valve (https://developer.valvesoftware.com/wiki/)
 const MAP_ICONS: Record<string, string> = {
-  'de_dust2': 'https://developer.valvesoftware.com/w/images/6/6e/De_dust2.png',
-  'de_mirage': 'https://developer.valvesoftware.com/w/images/3/3e/De_mirage.png',
-  'de_inferno': 'https://developer.valvesoftware.com/w/images/2/2b/De_inferno.png',
-  'de_nuke': 'https://developer.valvesoftware.com/w/images/0/0b/De_nuke.png',
-  'de_overpass': 'https://developer.valvesoftware.com/w/images/e/e9/De_overpass.png',
+  'de_dust2': 'https://developer.valvesoftware.com/w/images/f/f4/De_dust2.png?20220405152933',
+  'de_mirage': 'https://developer.valvesoftware.com/w/images/6/68/De_mirage.png?20220405153133',
+  'de_inferno': 'https://developer.valvesoftware.com/w/images/b/be/De_inferno.png',
+  'de_nuke': 'https://developer.valvesoftware.com/w/images/5/57/De_nuke.png?20220405153156',
+  'de_overpass': 'https://developer.valvesoftware.com/w/images/d/dc/De_overpass.png',
   'de_ancient': 'https://developer.valvesoftware.com/w/images/9/94/De_ancient.png',
-  'de_anubis': 'https://developer.valvesoftware.com/w/images/8/8a/De_anubis.png',
-  'de_cache': 'https://developer.valvesoftware.com/w/images/d/db/De_cache.png',
+  'de_anubis': 'https://developer.valvesoftware.com/w/images/5/54/De_anubis.png?20221119084421',
+  'de_cache': 'https://developer.valvesoftware.com/w/images/5/5b/De_cache.png',
 };
 
 const formatMapName = (mapName: string): string => {
