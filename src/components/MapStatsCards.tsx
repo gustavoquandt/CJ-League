@@ -121,7 +121,7 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
                                     alt={`${formatMapName(map.name)} icon`}
                                     width={60}
                                     height={60}
-                                    className="w-full h-full object-contain"
+                                    className="object-contain"
                                     unoptimized
                                 />
                             </div>
