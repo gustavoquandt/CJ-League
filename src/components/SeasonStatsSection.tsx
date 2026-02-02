@@ -141,7 +141,7 @@ export default function SeasonStatsSection({
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-2xl">{stat.icon}</span>
-                    <h3 className="text-sm font-semibold text-faceit-light-gray">
+                    <h3 className="text-sm font-semibold text-faceit-white">
                       {stat.title}
                     </h3>
                   </div>
