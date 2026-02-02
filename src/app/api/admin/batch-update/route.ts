@@ -94,13 +94,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         console.log(`   🔍 Cache anterior: ${cachedPlayer.matchesPlayed} partidas`);
       }
 
-      // ✅ Buscar dados atualizados (passando queueId E previousStats)
+      // ✅ Buscar dados atualizados
+      // 🚨 CORRIGIDO: Para Season 1, NUNCA passar previousStats (forçar recalculo do zero)
+      const shouldUseCache = seasonId === 'SEASON_0'; // Apenas Season 0 usa cache incremental
+      
+      console.log(`   🔧 Modo: ${shouldUseCache ? 'INCREMENTAL (Season 0)' : 'FULL REFRESH (Season 1)'}`);
+      
       const playerData = await faceitService.fetchPlayerWithMatches(
         nickname,
         MAX_MATCHES_PER_PLAYER,
-        lastMatchId,
-        queueId, // ✅ Usar queue da season
-        cachedPlayer // ✅ NOVO: Passar stats anteriores para acumular
+        shouldUseCache ? lastMatchId : null, // Season 1 = sempre null
+        queueId,
+        shouldUseCache ? cachedPlayer : null // Season 1 = sempre null (força recalculo)
       );
 
       // 🔍 DEBUG: Log resultado
