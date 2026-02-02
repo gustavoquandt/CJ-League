@@ -39,7 +39,7 @@ const MAP_ICONS: Record<string, string> = {
   'de_mirage': 'https://developer.valvesoftware.com/w/images/6/68/De_mirage.png?20220405153133',
   'de_inferno': 'https://developer.valvesoftware.com/w/images/b/be/De_inferno.png',
   'de_nuke': 'https://developer.valvesoftware.com/w/images/5/57/De_nuke.png?20220405153156',
-  'de_overpass': 'https://developer.valvesoftware.com/w/images/d/dc/De_overpass.png',
+  'de_overpass': 'https://developer.valvesoftware.com/w/images/e/e9/De_overpass.png',
   'de_ancient': 'https://developer.valvesoftware.com/w/images/9/94/De_ancient.png',
   'de_anubis': 'https://developer.valvesoftware.com/w/images/5/54/De_anubis.png?20221119084421',
   'de_cache': 'https://developer.valvesoftware.com/w/images/5/5b/De_cache.png',
@@ -147,13 +147,3 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
     </div>
   );
 }
-
- {/* Tag pequena abaixo dos cards */}
-          <div className="flex justify-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-faceit-dark border border-faceit-light-gray/50 rounded-full">
-              <span className="text-faceit-orange text-xs">ℹ️</span>
-              <p className="text-xs text-faceit-white">
-                Estatísticas referentes a toda a season (todas as partidas disputadas)
-              </p>
-            </div>
-          </div>
