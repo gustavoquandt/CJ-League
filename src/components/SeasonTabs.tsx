@@ -25,7 +25,7 @@ export default function SeasonTabs({ activeSeason, onSeasonChange }: SeasonTabsP
               }
             `}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex item s-center gap-2">
               <span>{season.name}</span>
               
               {season.status === 'active' && (

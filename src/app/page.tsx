@@ -15,6 +15,7 @@ import UpdateToast from '@/components/UpdateToast';
 import AdminPanel from '@/components/AdminPanel';
 import SeasonTabs from '@/components/SeasonTabs';
 import StatsCards from '@/components/StatsCards';
+import MapStatsCards from '@/components/MapStatsCards';
 import { SEASONS, type SeasonId } from '@/config/constants';
 import PlayerManagementPanel from '@/components/PlayerManagementPanel';
 import {
@@ -699,15 +700,25 @@ function HomePageContent() {
           onSeasonChange={handleSeasonChange}
         />
         
-        {/* ✅ NOVO: Cards de Estatísticas */}
-        {filteredPlayers.length > 0 && (
+        {/* ✅ Cards de Estatísticas - APENAS SEASON 1 */}
+        {filteredPlayers.length > 0 && activeSeason === 'SEASON_1' && (
           <div className="mt-6">
             <StatsCards 
               players={filteredPlayers}
               seasonName={SEASONS[activeSeason].name}
-              mapStats={mapStats}
-              minGamesFilter={activeSeason === 'SEASON_0' ? 10 : (minGamesFilterSeason1 ? 10 : 0)}
+              mapStats={null}
+              minGamesFilter={minGamesFilterSeason1 ? 10 : 0}
               isVisible={showStatsCards}
+            />
+          </div>
+        )}
+        
+        {/* ✅ Mapas - APENAS SEASON 1 */}
+        {activeSeason === 'SEASON_1' && (
+          <div className="mt-6">
+            <MapStatsCards 
+              mapStats={mapStats}
+              isLoading={isLoadingMapStats}
             />
           </div>
         )}

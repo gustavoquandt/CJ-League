@@ -94,7 +94,7 @@ export const PLAYER_POTS: Record<string, number> = {
   'knightziin': 2,
   'tohru_sc': 2,
   'malkava': 2,
-  'R1tzx': 2,
+
 
   // POT 3
   'dhigo92': 3,
@@ -105,7 +105,7 @@ export const PLAYER_POTS: Record<string, number> = {
   'caiosergioo': 3,
   'pedr0bear': 3,
   'GriloTJ': 3,
-
+  'R1tzx': 3,
 
 
   // POT 4
