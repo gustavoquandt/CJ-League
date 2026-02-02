@@ -33,6 +33,18 @@ const MAP_IMAGES: Record<string, string> = {
   'de_cache': 'https://assets.faceit-cdn.net/third_party/games/ce652bd4-0abb-4c90-9936-1133965ca38b/assets/votables/84fdec54-0c4b-424b-860d-7477495ea026_1741030140483.jpeg',
 };
 
+// Ícones oficiais da Valve (https://developer.valvesoftware.com/wiki/)
+const MAP_ICONS: Record<string, string> = {
+  'de_dust2': 'https://developer.valvesoftware.com/w/images/6/6e/De_dust2.png',
+  'de_mirage': 'https://developer.valvesoftware.com/w/images/3/3e/De_mirage.png',
+  'de_inferno': 'https://developer.valvesoftware.com/w/images/2/2b/De_inferno.png',
+  'de_nuke': 'https://developer.valvesoftware.com/w/images/0/0b/De_nuke.png',
+  'de_overpass': 'https://developer.valvesoftware.com/w/images/e/e9/De_overpass.png',
+  'de_ancient': 'https://developer.valvesoftware.com/w/images/9/94/De_ancient.png',
+  'de_anubis': 'https://developer.valvesoftware.com/w/images/8/8a/De_anubis.png',
+  'de_cache': 'https://developer.valvesoftware.com/w/images/d/db/De_cache.png',
+};
+
 const formatMapName = (mapName: string): string => {
   return mapName.replace('de_', '').replace('cs_', '').toUpperCase();
 };
@@ -70,6 +82,7 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
     name: mapName,
     count: mapStats.mapDistribution[mapName] || 0,
     image: MAP_IMAGES[mapName],
+    icon: MAP_ICONS[mapName],
   }));
 
   // Ordenar por contagem (maior para menor)
@@ -99,6 +112,22 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
             
             {/* Overlay escuro gradiente */}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
+            
+            {/* Ícone do mapa no canto superior direito */}
+            {map.icon && (
+              <div className="absolute top-2 right-2 z-10">
+                <div className="w-12 h-12 bg-black/60 backdrop-blur-sm rounded-lg p-1.5 border border-faceit-orange/30">
+                  <Image
+                    src={map.icon}
+                    alt={`${formatMapName(map.name)} icon`}
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-contain"
+                    unoptimized
+                  />
+                </div>
+              </div>
+            )}
             
             {/* Conteúdo */}
             <div className="relative h-full flex flex-col items-center justify-end p-3 pb-4">
