@@ -141,7 +141,7 @@ export default function SeasonStatsSection({
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-2xl">{stat.icon}</span>
-                    <h3 className="text-sm font-semibold text-faceit-white">
+                    <h3 className="text-sm font-semibold text-white">
                       {stat.title}
                     </h3>
                   </div>
@@ -171,16 +171,6 @@ export default function SeasonStatsSection({
             })}
           </div>
 
-          {/* Tag pequena abaixo dos cards */}
-          <div className="flex justify-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-faceit-dark border border-faceit-light-gray/50 rounded-full">
-              <span className="text-faceit-orange text-xs">ℹ️</span>
-              <p className="text-xs text-faceit-white">
-                Estatísticas referentes a toda a season (todas as partidas disputadas)
-              </p>
-            </div>
-          </div>
-
           {/* Mapas */}
           <div className="mt-6">
             <MapStatsCards
@@ -188,6 +178,16 @@ export default function SeasonStatsSection({
               isLoading={isLoadingMapStats}
               isVisible={true}
             />
+            
+            {/* Tag pequena ABAIXO dos mapas */}
+            <div className="flex justify-center mt-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-faceit-dark border border-faceit-light-gray/50 rounded-full">
+                <span className="text-faceit-orange text-xs">ℹ️</span>
+                <p className="text-xs text-faceit-light-gray">
+                  Estatísticas referentes a toda a season (todas as partidas disputadas)
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}

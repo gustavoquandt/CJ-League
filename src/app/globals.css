@@ -3,10 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --faceit-orange: #ff5500;
-  --faceit-dark: #020b3f;
+  /* Nova paleta */
+  --primary-pink: #ff0145;
+  --primary-purple: #5c05ff;
+  --primary-white: #ffffff;
+  --bg-dark-blue: #010320;
+  --bg-medium-blue: #080e66;
+  
+  /* Manter compatibilidade com código existente */
+  --faceit-orange: #ff0145;
+  --faceit-dark: #010320;
   --faceit-darker: #000000;
-  --faceit-gray: #1e2126;
+  --faceit-gray: #080e66;
   --faceit-light-gray: #2d3137;
   --text-primary: #a7a7a7;
   --text-secondary: #b0b3b8;
@@ -22,7 +30,7 @@
 }
 
 body {
-  background: linear-gradient(135deg, var(--faceit-darker) 0%, var(--faceit-dark) 100%);
+  background: linear-gradient(135deg, var(--faceit-darker) 0%, var(--bg-dark-blue) 50%, var(--bg-medium-blue) 100%);
   color: var(--text-primary);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   min-height: 100vh;

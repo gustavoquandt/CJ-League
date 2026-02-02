@@ -63,12 +63,14 @@ export function parsePercentage(value: string | undefined): number {
 
 /**
  * Compara dois jogadores para ordenação
+ * Season 1: Se pontos iguais, desempate por vitórias > número de partidas
  */
 export function comparePlayers(
   a: PlayerStats,
   b: PlayerStats,
   sortBy: keyof PlayerStats,
-  order: 'asc' | 'desc' = 'desc'
+  order: 'asc' | 'desc' = 'desc',
+  season?: 'SEASON_0' | 'SEASON_1'
 ): number {
   const aValue = a[sortBy];
   const bValue = b[sortBy];
@@ -81,6 +83,17 @@ export function comparePlayers(
   let result = 0;
   if (typeof aValue === 'number' && typeof bValue === 'number') {
     result = aValue - bValue;
+    
+    // ✅ SEASON 1: Critérios de desempate quando sortBy é rankingPoints
+    if (season === 'SEASON_1' && sortBy === 'rankingPoints' && result === 0) {
+      // 1º critério: Vitórias (mais vitórias = melhor)
+      const winsResult = b.wins - a.wins;
+      if (winsResult !== 0) return winsResult;
+      
+      // 2º critério: Número de partidas (MENOS partidas = melhor)
+      const matchesResult = a.matchesPlayed - b.matchesPlayed;
+      return matchesResult;
+    }
   } else if (typeof aValue === 'string' && typeof bValue === 'string') {
     result = aValue.localeCompare(bValue);
   }

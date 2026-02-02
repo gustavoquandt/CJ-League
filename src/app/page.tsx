@@ -484,7 +484,14 @@ function HomePageContent() {
     const potFilter = pot === 'all' ? 'all' : Number(pot);
     result = filterByPot(result, potFilter);
 
-    result.sort((a, b) => comparePlayers(a, b, filters.sortBy, filters.sortOrder));
+    // ✅ Ordenar com critérios de desempate específicos da Season 1
+    result.sort((a, b) => comparePlayers(
+      a, 
+      b, 
+      filters.sortBy, 
+      filters.sortOrder,
+      activeSeason // ✅ Passa a season ativa para aplicar critérios de desempate
+    ));
 
     // ✅ NOVO: Recalcular posições apenas para jogadores visíveis
     const playersWithNewPositions = result.map((player, index) => ({
@@ -682,7 +689,13 @@ function HomePageContent() {
     <div className="min-h-screen">
       {/* Container */}
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
+        {/* ✅ Abas de Seasons - MOVIDO PARA CIMA */}
+        <SeasonTabs 
+          activeSeason={activeSeason}
+          onSeasonChange={handleSeasonChange}
+        />
+        
+        {/* Header com título e última atualização */}
         <StatsHeader
           filters={filters}
           onFiltersChange={handleFiltersChange}
@@ -693,12 +706,6 @@ function HomePageContent() {
           updateProgress={updateStatus.progress}
           onRefreshData={handleRefreshData}
           isRefreshing={isRefreshing}
-        />
-        
-        {/* ✅ NOVO: Abas de Seasons */}
-        <SeasonTabs 
-          activeSeason={activeSeason}
-          onSeasonChange={handleSeasonChange}
         />
         
         {/* ✅ Destaques e Mapas - APENAS SEASON 1 */}

@@ -43,8 +43,8 @@ export default function StatsHeader({
       {/* Header com Logo e Badge */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-faceit-orange to-orange-400 bg-clip-text text-transparent">
-            🏆 CJ League - Season 0
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-pink to-primary-purple bg-clip-text text-transparent">
+            🏆 CJ League
           </h1>
           
         </div>
