@@ -88,7 +88,7 @@ export default function StatsCards({ players, seasonName, mapStats, minGamesFilt
     },
     {
       icon: '⭐',
-      title: 'Maior Pontuação',
+      title: 'Maior Pontuação Atingida',
       leader: pointsLeader,
       formatter: (val: number) => `${val} pts`,
     },
@@ -125,6 +125,12 @@ export default function StatsCards({ players, seasonName, mapStats, minGamesFilt
             />
           </svg>
         </div>
+          {/* Legenda informativa */}
+          <div className="bg-faceit-darker border border-faceit-light-gray/50 rounded-lg px-4 py-2">
+            <p className="text-xs text-text-secondary text-center">
+              ℹ️ Estatísticas referentes a toda a season (todas as partidas disputadas)
+            </p>
+          </div>
       </button>
       
       {isExpanded && (
