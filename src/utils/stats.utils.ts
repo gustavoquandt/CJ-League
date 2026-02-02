@@ -225,6 +225,10 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     currentStreak: player.currentStreak || 0,
     longestWinStreak: player.longestWinStreak || 0,
     lastMatch: player.lastMatch,
+    totalKills: player.totalKills,      // ✅ ADICIONADO
+    totalDeaths: player.totalDeaths,    // ✅ ADICIONADO
+    totalDamage: player.totalDamage,    // ✅ ADICIONADO
+    totalRounds: player.totalRounds,    // ✅ ADICIONADO
   };
 }
 
