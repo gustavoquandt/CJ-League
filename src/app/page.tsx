@@ -16,6 +16,7 @@ import AdminPanel from '@/components/AdminPanel';
 import SeasonTabs from '@/components/SeasonTabs';
 import StatsCards from '@/components/StatsCards';
 import MapStatsCards from '@/components/MapStatsCards';
+import SeasonStatsSection from '@/components/SeasonStatsSection';
 import { SEASONS, type SeasonId } from '@/config/constants';
 import PlayerManagementPanel from '@/components/PlayerManagementPanel';
 import {
@@ -701,28 +702,14 @@ function HomePageContent() {
         />
         
         {/* ✅ Destaques e Mapas - APENAS SEASON 1 */}
-        {activeSeason === 'SEASON_1' && (
-          <div className="mt-6">
-            {/* Cards de Estatísticas */}
-            {filteredPlayers.length > 0 && (
-              <StatsCards 
-                players={filteredPlayers}
-                seasonName={SEASONS[activeSeason].name}
-                mapStats={null}
-                minGamesFilter={minGamesFilterSeason1 ? 10 : 0}
-                isVisible={showStatsCards}
-              />
-            )}
-            
-            {/* Mapas */}
-            <div className={filteredPlayers.length > 0 ? "mt-6" : ""}>
-              <MapStatsCards 
-                mapStats={mapStats}
-                isLoading={isLoadingMapStats}
-                isVisible={showStatsCards}
-              />
-            </div>
-          </div>
+        {activeSeason === 'SEASON_1' && filteredPlayers.length > 0 && (
+          <SeasonStatsSection
+            players={filteredPlayers}
+            seasonName={SEASONS[activeSeason].name}
+            mapStats={mapStats}
+            isLoadingMapStats={isLoadingMapStats}
+            minGamesFilter={minGamesFilterSeason1 ? 10 : 0}
+          />
         )}
         
         {/* <PrizeCards /> */}
