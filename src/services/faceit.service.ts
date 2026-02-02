@@ -446,37 +446,11 @@ class FaceitService {
       
       const newStats = await this.calculateStatsFromMatches(allMatches, playerInfo, nickname);
 
-      // ✅ Se tem stats anteriores, ACUMULAR com as novas
-      if (previousStats && allMatches.length > 0) {
-        console.log(`   📊 Acumulando: ${previousStats.matchesPlayed} antigas + ${allMatches.length} novas`);
-        
-        // Acumular totais
-        const totalKills = (previousStats.totalKills || previousStats.kills || 0) + (newStats.totalKills || newStats.kills || 0);
-        const totalDeaths = (previousStats.totalDeaths || previousStats.deaths || 0) + (newStats.totalDeaths || newStats.deaths || 0);
-        const totalDamage = (previousStats.totalDamage || 0) + (newStats.totalDamage || 0);
-        const totalRounds = (previousStats.totalRounds || 0) + (newStats.totalRounds || 0);
-        const totalMatches = previousStats.matchesPlayed + newStats.matchesPlayed;
-        
-        return {
-          ...newStats,
-          matchesPlayed: totalMatches,
-          wins: previousStats.wins + newStats.wins,
-          losses: previousStats.losses + newStats.losses,
-          totalKills,
-          totalDeaths,
-          totalDamage,
-          totalRounds,
-          // Recalcular médias com totais acumulados
-          kd: totalDeaths > 0 ? parseFloat((totalKills / totalDeaths).toFixed(2)) : totalKills,
-          adr: totalRounds > 0 ? parseFloat((totalDamage / totalRounds).toFixed(1)) : 0,
-          winRate: totalMatches > 0 ? parseFloat(((previousStats.wins + newStats.wins) / totalMatches * 100).toFixed(1)) : 0,
-          // ✅ CORRIGIDO: Adicionar apenas a DIFERENÇA de pontos, não o total
-          rankingPoints: previousStats.rankingPoints + (newStats.rankingPoints - RANKING_CONFIG.INITIAL_POINTS),
-          lastMatchId: allMatches.length > 0 ? allMatches[0].match_id : previousStats.lastMatchId,
-        };
-      }
 
-      // ✅ Se não tem stats anteriores, retornar as novas normalmente
+      // 🚨 FORÇANDO RECALCULO TOTAL - SEM ACUMULAÇÃO
+      console.log(`   ✅ ${nickname}: Calculando do ZERO (${allMatches.length} partidas)`);
+
+      // ✅ Sempre retornar newStats SEM acumular
       return {
         ...newStats,
         lastMatchId: allMatches.length > 0 ? allMatches[0].match_id : undefined,
