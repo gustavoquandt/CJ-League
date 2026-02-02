@@ -225,7 +225,10 @@ class FaceitService {
             let matchHeadshots = 0;  // ✅ NOVO
             
             const rounds = matchStats.rounds || [];
-            const matchRounds = rounds.length;
+            const firstRound = rounds[0];
+            const matchRounds = firstRound?.round_stats?.Rounds 
+              ? parseInt(firstRound.round_stats.Rounds) 
+              : rounds.length;
             
             for (const round of rounds) {
               const allPlayers = [
@@ -495,7 +498,10 @@ class FaceitService {
           const matchStats: any = await this.request(`/matches/${match.match_id}/stats`);
           let matchKills = 0, matchDeaths = 0, matchDamage = 0, matchHeadshots = 0;  // ✅ NOVO
           const rounds = matchStats.rounds || [];
-          const matchRounds = rounds.length;
+          const firstRound = rounds[0];
+          const matchRounds = firstRound?.round_stats?.Rounds 
+            ? parseInt(firstRound.round_stats.Rounds) 
+            : rounds.length;
           
           for (const round of rounds) {
             const allPlayers = [
