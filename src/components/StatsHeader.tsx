@@ -58,7 +58,7 @@ export default function StatsHeader({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Search */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold mb-2 text-[var(--text-primary)]">
               🔍 Buscar Jogador
             </label>
             <input
@@ -72,7 +72,7 @@ export default function StatsHeader({
 
           {/* Pot Filter */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold mb-2 text-[var(--text-primary)]">
               🎯 Filtrar por Pote
             </label>
             <select
@@ -96,7 +96,7 @@ export default function StatsHeader({
 
           {/* Sort */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold mb-2 text-[var(--text-primary)]">
               📊 Ordenar por
             </label>
             <div className="flex gap-2">
@@ -116,7 +116,7 @@ export default function StatsHeader({
                   ...filters,
                   sortOrder: filters.sortOrder === 'desc' ? 'asc' : 'desc'
                 })}
-                className="px-4 bg-faceit-gray hover:bg-faceit-light-gray rounded-lg border border-faceit-light-gray transition-all"
+                className="px-4 py-2 bg-[var(--bg-dark)] hover:bg-[var(--bg-medium)] rounded-lg border border-[var(--primary-purple)] text-[var(--primary-purple)] hover:text-[var(--primary-purple-light)] transition-all font-bold text-lg"
                 title={filters.sortOrder === 'desc' ? 'Ordem Decrescente' : 'Ordem Crescente'}
               >
                 {filters.sortOrder === 'desc' ? '↓' : '↑'}

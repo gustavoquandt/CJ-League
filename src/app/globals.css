@@ -98,6 +98,27 @@ body {
     @apply transition-all hover:border-[var(--primary-purple)] hover:shadow-[0_0_20px_rgba(139,92,246,0.3)];
   }
   
+  /* Inputs e Selects */
+  .input {
+    @apply w-full px-4 py-2.5 bg-[var(--bg-dark)] border border-[var(--border-default)] rounded-lg 
+           text-[var(--text-primary)] placeholder-[var(--text-muted)]
+           focus:outline-none focus:border-[var(--primary-purple)] focus:ring-2 focus:ring-[var(--primary-purple)]/20
+           transition-all;
+  }
+  
+  .input:hover {
+    @apply border-[var(--border-light)];
+  }
+  
+  select.input {
+    @apply cursor-pointer appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjOEI1Q0Y2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] 
+           bg-[length:12px_8px] bg-[right_1rem_center] bg-no-repeat pr-10;
+  }
+  
+  select.input option {
+    @apply bg-[var(--bg-dark)] text-[var(--text-primary)];
+  }
+  
   .btn-primary {
     @apply bg-[var(--primary-purple)] hover:bg-[var(--primary-purple-dark)] text-white font-semibold px-4 py-2 rounded-lg transition-all;
   }
