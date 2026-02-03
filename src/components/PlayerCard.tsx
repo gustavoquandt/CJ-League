@@ -71,31 +71,34 @@ export default function PlayerCard({ player }: PlayerCardProps) {
           </p>
         </div>
 
-        {/* Win Rate */}
-        <div className="bg-faceit-darker rounded-lg p-3">
-          <p className="text-xs text-text-secondary mb-1">Win Rate</p>
-          <p className={`text-xl font-bold ${getWinRateColor(player.winRate)}`}>
-            {formatPercentage(player.winRate)}
-          </p>
-          <p className="text-xs text-text-secondary">
-            {player.wins}W / {player.losses}L
-          </p>
-        </div>
-
         {/* K/D */}
         <div className="bg-faceit-darker rounded-lg p-3">
           <p className="text-xs text-text-secondary mb-1">K/D Ratio</p>
-          <p className={`text-xl font-bold ${getKDColor(player.kd)}`}>
+          <p className={`text-2xl font-bold ${getKDColor(player.kd)}`}>
             {formatStat(player.kd)}
+          </p>
+        </div>
+
+        {/* HS% */}
+        <div className="bg-faceit-darker rounded-lg p-3">
+          <p className="text-xs text-text-secondary mb-1">HS%</p>
+          <p className="text-2xl font-bold text-white">
+            {formatStat(player.headshotPercentage, 1)}%
           </p>
         </div>
       </div>
 
-      {/* Subtexto com Partidas e HS% */}
+      {/* Subtexto com Win Rate e Partidas */}
       <div className="pt-3 border-t border-faceit-light-gray">
-        <div className="flex items-center justify-between text-xs text-text-secondary">
-          <span>{player.matchesPlayed} partidas</span>
-          <span>HS%: {formatStat(player.headshotPercentage, 1)}%</span>
+        <div className="flex items-center justify-between text-xs">
+          <div>
+            <span className="text-text-secondary">Win Rate: </span>
+            <span className={`font-semibold ${getWinRateColor(player.winRate)}`}>
+              {formatPercentage(player.winRate)}
+            </span>
+            <span className="text-text-secondary"> ({player.wins}W / {player.losses}L)</span>
+          </div>
+          <span className="text-text-secondary">{player.matchesPlayed} partidas</span>
         </div>
       </div>
     </div>

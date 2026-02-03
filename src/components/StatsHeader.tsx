@@ -43,7 +43,7 @@ export default function StatsHeader({
       {/* Header com Logo e Badge */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-pink to-primary-purple bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-faceit-orange to-orange-400 bg-clip-text text-transparent">
             🏆 CJ League
           </h1>
           
@@ -51,54 +51,6 @@ export default function StatsHeader({
 
         {/* Update Badge (substitui o botão de atualizar) */}
         <UpdateBadge isUpdating={isUpdating} progress={updateProgress} />
-      </div>
-
-      {/* Última Atualização */}
-      <div className="card">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-faceit-orange/20 rounded-lg">
-              <svg className="w-6 h-6 text-faceit-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm text-text-secondary">Última vez atualizado em</p>
-              <p className="text-lg font-semibold">
-                {lastUpdated ? formatRelativeTime(lastUpdated) : 'Nunca'}
-              </p>
-            </div>
-          </div>
-          
-          {/* Botão Atualizar */}
-          {onRefreshData && (
-            <button
-              onClick={onRefreshData}
-              disabled={isRefreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-faceit-orange hover:bg-faceit-orange/80 
-                         disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg 
-                         transition-colors text-sm font-semibold"
-              title="Buscar dados mais recentes do banco"
-            >
-              {isRefreshing ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  <span>Atualizando...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>Atualizar Dados</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Filters */}

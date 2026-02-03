@@ -13,7 +13,7 @@ import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 import UpdateToast from '@/components/UpdateToast';
 import AdminPanel from '@/components/AdminPanel';
-import SeasonTabs from '@/components/SeasonTabs';
+import SeasonHeader from '@/components/SeasonHeader';
 import StatsCards from '@/components/StatsCards';
 import MapStatsCards from '@/components/MapStatsCards';
 import SeasonStatsSection from '@/components/SeasonStatsSection';
@@ -554,9 +554,12 @@ function HomePageContent() {
           </div>
 
           {/* ✅ Abas de Seasons */}
-          <SeasonTabs 
+          <SeasonHeader 
             activeSeason={activeSeason}
             onSeasonChange={handleSeasonChange}
+            lastUpdated={lastUpdated}
+            onRefreshData={handleRefreshData}
+            isRefreshing={isRefreshing}
           />
 
           {/* Empty State */}
@@ -689,13 +692,16 @@ function HomePageContent() {
     <div className="min-h-screen">
       {/* Container */}
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* ✅ Abas de Seasons - MOVIDO PARA CIMA */}
-        <SeasonTabs 
+        {/* ✅ Season Header (Tabs + Última atualização na mesma linha) */}
+        <SeasonHeader
           activeSeason={activeSeason}
           onSeasonChange={handleSeasonChange}
+          lastUpdated={lastUpdated}
+          onRefreshData={handleRefreshData}
+          isRefreshing={isRefreshing}
         />
         
-        {/* Header com título e última atualização */}
+        {/* Header com título e filtros */}
         <StatsHeader
           filters={filters}
           onFiltersChange={handleFiltersChange}
