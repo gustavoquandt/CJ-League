@@ -156,7 +156,7 @@ export default function SeasonStatsSection({
                 <div key={index} className="card card-hover">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-2xl">{stat.icon}</span>
-                    <h3 className="font-semibold text-faceit-light-gray">{stat.label}</h3>
+                    <h3 className="text-white">{stat.label}</h3>
                   </div>
 
                   <div className="flex items-center gap-3">
