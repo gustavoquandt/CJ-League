@@ -3,50 +3,143 @@
 @tailwind utilities;
 
 :root {
-  --faceit-orange: #ff5500;
-  --faceit-dark: #020b3f;
-  --faceit-darker: #000000;
-  --faceit-gray: #1e2126;
-  --faceit-light-gray: #2d3137;
-  --text-primary: #a7a7a7;
-  --text-secondary: #b0b3b8;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  /* Paleta inspirada em Copa Junge - Gaming/Esports */
+  
+  /* Primárias - Roxo/Violeta */
+  --primary-purple: #8B5CF6;        /* Roxo vibrante principal */
+  --primary-purple-dark: #7C3AED;   /* Roxo escuro */
+  --primary-purple-light: #A78BFA;  /* Roxo claro */
+  
+  /* Secundária - Cyan/Azul elétrico */
+  --secondary-cyan: #06B6D4;        /* Cyan vibrante */
+  --secondary-cyan-dark: #0891B2;   /* Cyan escuro */
+  --secondary-cyan-light: #22D3EE;  /* Cyan claro */
+  
+  /* Accent - Rosa/Magenta */
+  --accent-pink: #EC4899;           /* Rosa accent */
+  --accent-pink-dark: #DB2777;      /* Rosa escuro */
+  
+  /* Backgrounds - Tons escuros */
+  --bg-darker: #0A0A0F;             /* Preto azulado muito escuro */
+  --bg-dark: #13131A;               /* Preto azulado escuro */
+  --bg-medium: #1A1A24;             /* Cinza azulado médio */
+  --bg-card: #1F1F2E;               /* Fundo de cards */
+  
+  /* Texto */
+  --text-primary: #E5E7EB;          /* Texto principal (branco suave) */
+  --text-secondary: #9CA3AF;        /* Texto secundário (cinza) */
+  --text-muted: #6B7280;            /* Texto discreto */
+  
+  /* Borders */
+  --border-default: #2D2D3D;        /* Borda padrão */
+  --border-light: #3D3D4D;          /* Borda clara */
+  
+  /* Status */
+  --success: #10B981;               /* Verde sucesso */
+  --warning: #F59E0B;               /* Laranja aviso */
+  --danger: #EF4444;                /* Vermelho erro */
+  --info: #3B82F6;                  /* Azul informação */
+  
+  /* Compatibilidade FACEIT (para não quebrar código existente) */
+  --faceit-orange: #8B5CF6;         /* Usa roxo no lugar */
+  --faceit-dark: #13131A;
+  --faceit-darker: #0A0A0F;
+  --faceit-gray: #1A1A24;
+  --faceit-light-gray: #2D2D3D;
 }
 
+/* Dark theme global */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: linear-gradient(135deg, var(--faceit-darker) 0%, var(--faceit-dark) 100%);
+  background: linear-gradient(135deg, 
+    var(--bg-darker) 0%, 
+    var(--bg-dark) 50%, 
+    var(--bg-medium) 100%);
   color: var(--text-primary);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Custom Scrollbar */
+/* Scrollbar personalizada */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--faceit-gray);
+  background: var(--bg-dark);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--faceit-orange);
-  border-radius: 5px;
+  background: var(--primary-purple);
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #ff6b2b;
+  background: var(--primary-purple-dark);
 }
 
-/* Animations */
+/* Componentes base */
+@layer components {
+  .card {
+    @apply bg-[var(--bg-card)] border border-[var(--border-default)] rounded-lg p-4 shadow-lg;
+  }
+  
+  .card-hover {
+    @apply transition-all hover:border-[var(--primary-purple)] hover:shadow-[0_0_20px_rgba(139,92,246,0.3)];
+  }
+  
+  .btn-primary {
+    @apply bg-[var(--primary-purple)] hover:bg-[var(--primary-purple-dark)] text-white font-semibold px-4 py-2 rounded-lg transition-all;
+  }
+  
+  .btn-secondary {
+    @apply bg-[var(--secondary-cyan)] hover:bg-[var(--secondary-cyan-dark)] text-white font-semibold px-4 py-2 rounded-lg transition-all;
+  }
+  
+  .badge {
+    @apply px-3 py-1 rounded-full text-xs font-semibold;
+  }
+  
+  .badge-pot-1 {
+    @apply bg-purple-500/20 text-purple-400 border border-purple-500/30;
+  }
+  
+  .badge-pot-2 {
+    @apply bg-blue-500/20 text-blue-400 border border-blue-500/30;
+  }
+  
+  .badge-pot-3 {
+    @apply bg-cyan-500/20 text-cyan-400 border border-cyan-500/30;
+  }
+  
+  .badge-pot-4 {
+    @apply bg-pink-500/20 text-pink-400 border border-pink-500/30;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-[var(--primary-purple)] to-[var(--secondary-cyan)] bg-clip-text text-transparent;
+  }
+  
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  }
+  
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+  }
+}
+
+/* Animações */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -58,364 +151,53 @@ body {
   }
 }
 
-@keyframes pulse {
+@keyframes pulse-glow {
   0%, 100% {
-    opacity: 1;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
   }
   50% {
-    opacity: 0.5;
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Custom Components */
-.card {
-  background: var(--faceit-gray);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid var(--faceit-light-gray);
-  transition: all 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(255, 85, 0, 0.2);
-  border-color: var(--faceit-orange);
-}
-
-.btn-primary {
-  background: var(--faceit-orange);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-  background: #ff6b2b;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 85, 0, 0.4);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.input {
-  background: var(--faceit-darker);
-  border: 1px solid var(--faceit-light-gray);
-  color: var(--text-primary);
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  width: 100%;
-  transition: all 0.3s ease;
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--faceit-orange);
-  box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.1);
-}
-
-.badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-/* Pote 1 - Dourado com fundo mais escuro */
-.badge-pot-1 { 
-  background: linear-gradient(135deg, #B8860B, #8B6914); 
-  color: #FFF8DC;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* Pote 2 - Prata com fundo mais escuro */
-.badge-pot-2 { 
-  background: linear-gradient(135deg, #71706E, #4A4A4A); 
-  color: #E8E8E8;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* Pote 3 - Bronze */
-.badge-pot-3 { 
-  background: linear-gradient(135deg, #8B4513, #5C2E0A); 
-  color: #FFE4C4;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* Pote 4 - Azul */
-.badge-pot-4 { 
-  background: linear-gradient(135deg, #2E5C8A, #1A3A5C); 
-  color: #D4E6F1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* Pote 5 - Cinza */
-.badge-pot-5 { 
-  background: linear-gradient(135deg, #5D6D7E, #34495E); 
-  color: #D5DBDB;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.stat-positive { color: var(--success); }
-.stat-neutral { color: var(--warning); }
-.stat-negative { color: var(--danger); }
-
-/* Loading Skeleton */
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--faceit-gray) 0%,
-    var(--faceit-light-gray) 50%,
-    var(--faceit-gray) 100%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
-}
-
-@keyframes skeleton-loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-/* Table Styles */
-.table-container {
-  overflow-x: auto;
-  border-radius: 12px;
-  background: var(--faceit-gray);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table thead {
-  background: var(--faceit-darker);
-}
-
-.table th {
-  padding: 1rem;
-  text-align: left;
-  font-weight: 600;
-  color: var(--faceit-orange);
-  border-bottom: 2px solid var(--faceit-orange);
-}
-
-.table td {
-  padding: 1rem;
-  border-bottom: 1px solid var(--faceit-light-gray);
-}
-
-.table tbody tr {
-  transition: background-color 0.2s;
-}
-
-.table tbody tr:hover {
-  background: var(--faceit-light-gray);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .card {
-    padding: 1rem;
-  }
-  
-  .table th,
-  .table td {
-    padding: 0.5rem;
-    font-size: 0.875rem;
-  }
-}
-
-/* ========================================
-   ESTILOS PARA CARDS DE PREMIAÇÃO
-   Adicione ao final do globals.css
-   ======================================== */
-
-/* Container da seção de prêmios */
-.prizes-section {
-  margin: 2rem 0;
-  padding: 1.5rem;
-  background: rgba(255, 85, 0, 0.05);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 85, 0, 0.2);
-}
-
-/* Título da seção */
-.prizes-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  color: var(--faceit-orange);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* Grid dos prêmios */
-.prizes-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-
-/* Card individual de prêmio */
-.prize-card {
-  position: relative;
-  background: var(--faceit-gray);
-  border-radius: 12px;
-  padding: 1.25rem;
-  border: 2px solid var(--faceit-light-gray);
-  transition: all 0.3s ease;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  min-height: 140px;
-}
-
-.prize-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--faceit-orange);
-  box-shadow: 0 8px 24px rgba(255, 85, 0, 0.3);
-}
-
-/* Medalha de posição */
-.prize-medal {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.prize-position {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #1a1a1a;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
-}
-
-/* Conteúdo do prêmio */
-.prize-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.prize-weapon {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--faceit-orange);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.prize-skin {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.2;
-}
-
-.prize-condition {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-style: italic;
-}
-
-/* Ícone decorativo */
-.prize-icon {
-  position: absolute;
-  bottom: 0.5rem;
-  right: 0.5rem;
-  color: var(--faceit-orange);
-}
-
-/* Responsivo */
-@media (max-width: 768px) {
-  .prizes-grid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-  
-  .prize-card {
-    min-height: 120px;
-  }
-  
-  .prizes-section {
-    margin: 1.5rem 0;
-    padding: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .prizes-title {
-    font-size: 1.25rem;
-  }
-  
-  .prize-medal {
-    width: 40px;
-    height: 40px;
-  }
-  
-  .prize-position {
-    font-size: 1rem;
-  }
-}
-
-/* Animação do toast */
-@keyframes slide-up {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
   }
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Efeitos hover gaming */
+.gaming-card {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.gaming-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--primary-purple), var(--secondary-cyan));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gaming-card:hover::before {
+  opacity: 1;
+}
+
+/* Grid responsivo melhorado */
+@media (max-width: 768px) {
+  .card {
+    @apply p-3;
+  }
 }
