@@ -269,20 +269,20 @@ body {
 }
 
 /* Coluna sticky de posição */
-.table th.sticky,
-.table td.sticky {
+.table th.sticky-col,
+.table td.sticky-col {
   position: sticky;
   left: 0;
   z-index: 10;
   background: var(--bg-card);
 }
 
-.table thead th.sticky {
+.table thead th.sticky-col {
   z-index: 30;
   background: var(--bg-dark);
 }
 
-.table tbody tr:hover td.sticky {
+.table tbody tr:hover td.sticky-col {
   background: var(--bg-dark);
 }
 

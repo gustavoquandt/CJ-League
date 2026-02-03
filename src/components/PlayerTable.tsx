@@ -86,7 +86,7 @@ export default function PlayerTable({ players }: PlayerTableProps) {
       <table className="table">
         <thead>
           <tr>
-            <th className="sticky left-0 bg-faceit-darker z-10">
+            <th className="sticky-col left-0 bg-faceit-darker z-10">
               <SortableHeader column="position" label="Pos" />
             </th>
             <th>Jogador</th>
@@ -104,7 +104,7 @@ export default function PlayerTable({ players }: PlayerTableProps) {
             return (
               <tr key={player.playerId}>
                 {/* Position */}
-                <td className="sticky left-0 bg-faceit-gray z-10">
+                <td className="sticky-col left-0 bg-faceit-gray z-10">
                   <div className="flex items-center gap-2">
                     {index < 3 ? (
                       <div 
