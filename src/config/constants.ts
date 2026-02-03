@@ -19,54 +19,61 @@ export const FACEIT_API = {
   },
   RATE_LIMIT: {
     REQUESTS_PER_MINUTE: 60,
-    DELAY_MS: 1000, // Delay entre requisições (para evitar rate limit)
+    DELAY_MS: 1000,
   },
 } as const;
 
 // ==================== HUB CONFIGURATION ====================
 
-/**
- * Configuração do HUB da FACEIT
- * IMPORTANTE: Substitua pelo ID real do seu hub
- */
 export const HUB_CONFIG = {
   HUB_ID: process.env.NEXT_PUBLIC_HUB_ID || 'SEU_HUB_ID_AQUI',
   HUB_NAME: 'Mix Dez 2025',
   GAME: 'cs2',
-  REGION: 'SA', // South America
+  REGION: 'SA',
 } as const;
 
 // ==================== CACHE CONFIGURATION ====================
 
-/**
- * Configuração do sistema de cache
- * Atualização diária às 02:00
- */
 export const CACHE_CONFIG: CacheConfig = {
-  updateHour: 2, // 02:00 AM
+  updateHour: 2,
   updateMinute: 0,
-  ttl: 24 * 60 * 60 * 1000, // 24 horas em ms
-  version: '1.0.0', // Incrementar para invalidar cache
+  ttl: 24 * 60 * 60 * 1000,
+  version: '1.0.0',
 };
 
 // ==================== POT SYSTEM ====================
 
-/**
- * Sistema de potes (classificação interna)
- * Baseado no arquivo players.json do projeto original
- */
 export const POT_CONFIG: PotConfig[] = [
-  { pot: 1, label: 'Pote 1', color: '#FFD700' }, // Dourado
-  { pot: 2, label: 'Pote 2', color: '#C0C0C0' }, // Prata
-  { pot: 3, label: 'Pote 3', color: '#CD7F32' }, // Bronze
-  { pot: 4, label: 'Pote 4', color: '#4A90E2' }, // Azul
-  { pot: 5, label: 'Pote 5', color: '#95A5A6' }, // Cinza
+  { pot: 1, label: 'Pote 1', color: '#C0392B' },
+  { pot: 2, label: 'Pote 2', color: '#9A58B5' },
+  { pot: 3, label: 'Pote 3', color: '#2ECC71' },
+  { pot: 4, label: 'Pote 4', color: '#3498DB' },
+  { pot: 5, label: 'Pote 5', color: '#F0C30F' },
 ];
 
+// ==================== FREE PLAYERS ====================
+
 /**
- * Mapeamento de potes dos jogadores
- * Em produção, isso virá do banco de dados ou arquivo de configuração
+ * ✅ NOVO: Jogadores marcados como "Free"
+ * Não aparecem no site (nem cards, nem destaques, nem tabela)
  */
+export const FREE_PLAYERS = [
+  'cunh4',
+  'pablitanus',
+  'Matheusgsr1',
+  'nansch',
+  'NegaoReinert',
+] as const;
+
+/**
+ * Helper para verificar se jogador é Free
+ */
+export function isPlayerFree(nickname: string): boolean {
+  return FREE_PLAYERS.includes(nickname as any);
+}
+
+// ==================== PLAYER POTS ====================
+
 export const PLAYER_POTS: Record<string, number> = {
   // POT 1
   'LEON1D4S': 1,
@@ -95,7 +102,6 @@ export const PLAYER_POTS: Record<string, number> = {
   'tohru_sc': 2,
   'malkava': 2,
 
-
   // POT 3
   'dhigo92': 3,
   '_hoTz': 3,
@@ -107,7 +113,6 @@ export const PLAYER_POTS: Record<string, number> = {
   'GriloTJ': 3,
   'R1tzx': 3,
 
-
   // POT 4
   'Jubale': 4,
   'Cissuu': 4,
@@ -116,44 +121,39 @@ export const PLAYER_POTS: Record<string, number> = {
   'Leo1800': 4,
   'BReaC': 4,
   'MedzR': 4,
-  'nansch': 4,
   'widmann': 4,
-  'Matheusgsr1': 4,
-
-
+  
+  // ⚠️ REMOVIDOS DO POT 4 (agora são FREE):
+  // 'Matheusgsr1': 4,
+  // 'nansch': 4,
 
   // POT 5
-  'cunh4': 5,
-  'pablitanus': 5,
   'VTB': 5,
   'Caopiroto': 5,
   'mateustoto': 5,
   'BITENCOURT95': 5,
   'VeKasss': 5,
-  'NegaoReinert': 5,
   'P0K4B4L4': 5,
+  
+  // ⚠️ REMOVIDOS DO POT 5 (agora são FREE):
+  // 'cunh4': 5,
+  // 'pablitanus': 5,
+  // 'NegaoReinert': 5,
 };
 
-
-
 /**
- * Lista de nicknames dos jogadores do hub
+ * ✅ MODIFICADO: Lista de nicknames EXCLUINDO jogadores Free
  */
-export const PLAYER_NICKNAMES = Object.keys(PLAYER_POTS);
+export const PLAYER_NICKNAMES = Object.keys(PLAYER_POTS).filter(
+  nickname => !isPlayerFree(nickname)
+);
 
 // ==================== RANKING SYSTEM ====================
 
-/**
- * Sistema de pontuação do ranking
- */
 export const RANKING_CONFIG = {
   INITIAL_POINTS: 1000,
   POINTS_PER_WIN: 3,
   POINTS_PER_LOSS: 3,
-  /**
-   * Calcula pontos do ranking
-   * Fórmula: 1000 + (wins × 3) - (losses × 3)
-   */
   calculatePoints: (wins: number, losses: number): number => {
     return RANKING_CONFIG.INITIAL_POINTS +
       (wins * RANKING_CONFIG.POINTS_PER_WIN) -
@@ -161,6 +161,7 @@ export const RANKING_CONFIG = {
   },
 } as const;
 
+// ==================== SEASONS ====================
 
 export const SEASONS = {
   SEASON_0: {
@@ -182,7 +183,7 @@ export const SEASONS = {
 } as const;
 
 export const ACTIVE_SEASON = SEASONS.SEASON_1;
-export const QUEUE_ID = ACTIVE_SEASON.id; // Mantém compatibilidade
+export const QUEUE_ID = ACTIVE_SEASON.id;
 
 export type SeasonId = keyof typeof SEASONS;
 export type Season = typeof SEASONS[SeasonId];
@@ -191,9 +192,9 @@ export type Season = typeof SEASONS[SeasonId];
 
 export const UI_CONFIG = {
   ITEMS_PER_PAGE: 20,
-  DEBOUNCE_DELAY: 300, // ms para filtros de busca
-  ANIMATION_DURATION: 200, // ms
-  TOAST_DURATION: 5000, // ms
+  DEBOUNCE_DELAY: 300,
+  ANIMATION_DURATION: 200,
+  TOAST_DURATION: 5000,
 } as const;
 
 // ==================== ERROR MESSAGES ====================
@@ -238,4 +239,6 @@ export const CONFIG = {
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
   APP_METADATA,
+  FREE_PLAYERS,
+  isPlayerFree,
 } as const;

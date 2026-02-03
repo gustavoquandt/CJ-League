@@ -17,7 +17,7 @@ import SeasonHeader from '@/components/SeasonHeader';
 import StatsCards from '@/components/StatsCards';
 import MapStatsCards from '@/components/MapStatsCards';
 import SeasonStatsSection from '@/components/SeasonStatsSection';
-import { SEASONS, type SeasonId } from '@/config/constants';
+import { SEASONS, type SeasonId, isPlayerFree } from '@/config/constants';
 import PlayerManagementPanel from '@/components/PlayerManagementPanel';
 import {
   filterBySearch,
@@ -475,7 +475,10 @@ function HomePageContent() {
   const filteredPlayers = useMemo(() => {
     let result = [...players];
 
-    // ✅ NOVO: Filtrar jogadores com 0 partidas
+    // ✅ PRIMEIRO: Remover jogadores "Free" (não aparecem no site)
+    result = result.filter(player => !isPlayerFree(player.nickname));
+
+    // ✅ Filtrar jogadores com 0 partidas
     result = result.filter(player => player.matchesPlayed > 0);
 
     result = filterBySearch(result, filters.searchTerm);
