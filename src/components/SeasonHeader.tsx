@@ -22,16 +22,16 @@ export default function SeasonHeader({
 
   return (
     <div className="mb-6">
-      {/* Container flex: Tabs à esquerda + Update à direita */}
-      <div className="flex items-end justify-between border-b border-faceit-light-gray">
+      {/* Desktop: tudo na mesma linha | Mobile: tabs em cima, update embaixo */}
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between border-b border-faceit-light-gray gap-4 lg:gap-0">
         {/* Tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-3 lg:pb-0">
           {seasons.map(([key, season]) => (
             <button
               key={key}
               onClick={() => onSeasonChange(key)}
               className={`
-                px-6 py-3 font-semibold transition-all relative
+                px-4 lg:px-6 py-3 font-semibold transition-all relative whitespace-nowrap
                 ${activeSeason === key
                   ? 'text-faceit-orange border-b-2 border-faceit-orange'
                   : 'text-text-secondary hover:text-white'
@@ -39,7 +39,7 @@ export default function SeasonHeader({
               `}
             >
               <div className="flex items-center gap-2">
-                <span>{season.name}</span>
+                <span className="text-sm lg:text-base">{season.name}</span>
                 
                 {season.status === 'active' && (
                   <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
@@ -48,14 +48,14 @@ export default function SeasonHeader({
                 )}
                 
                 {season.status === 'finished' && (
-                  <span className="px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full border border-gray-500/30">
+                  <span className="hidden lg:inline-flex px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full border border-gray-500/30">
                     Finalizada
                   </span>
                 )}
               </div>
               
               {season.description && (
-                <p className="text-xs text-text-secondary mt-0.5">
+                <p className="hidden lg:block text-xs text-text-secondary mt-0.5">
                   {season.description}
                 </p>
               )}
@@ -64,7 +64,7 @@ export default function SeasonHeader({
         </div>
 
         {/* Última atualização + Botão */}
-        <div className="flex items-center gap-4 pb-3">
+        <div className="flex items-center justify-between lg:justify-end gap-4 pb-3">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-faceit-orange/20 rounded-lg">
               <svg className="w-4 h-4 text-faceit-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,7 +72,7 @@ export default function SeasonHeader({
               </svg>
             </div>
             <div>
-              <p className="text-xs text-text-secondary">Última vez atualizado em</p>
+              <p className="text-xs text-text-secondary">Última atualização</p>
               <p className="text-sm font-semibold text-white">
                 {lastUpdated ? formatRelativeTime(lastUpdated) : 'Nunca'}
               </p>

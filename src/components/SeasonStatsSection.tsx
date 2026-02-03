@@ -97,29 +97,51 @@ export default function SeasonStatsSection({
       {/* Header com botão de toggle */}
       <button
         onClick={() => setIsVisible(!isVisible)}
-        className="w-full flex items-center justify-between mb-4 hover:opacity-80 transition-opacity"
+        className="w-full flex items-center justify-between mb-4 hover:opacity-80 transition-opacity gap-2"
       >
-        <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
+        <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
+          <h2 className="text-lg lg:text-2xl font-bold flex items-center gap-2">
             <span className="text-faceit-orange">📈</span>
-            Destaques - {seasonName}
+            <span className="truncate">Destaques - {seasonName}</span>
           </h2>
           
-          {/* Tag ao lado do título */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-faceit-dark border border-faceit-light-gray/50 rounded-full">
+          {/* Tag ao lado do título - esconde no mobile */}
+          <div className="hidden lg:inline-flex items-center gap-2 px-3 py-1.5 bg-faceit-dark border border-faceit-light-gray/50 rounded-full">
             <span className="text-faceit-orange text-xs">ℹ️</span>
-            <p className="text-xs text-white">
+            <p className="text-xs text-white whitespace-nowrap">
               Estatísticas referentes a toda a season
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-faceit-light-gray">
+        {/* Botão toggle - Desktop: texto + ícone | Mobile: apenas ícone com fundo */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="hidden lg:inline text-sm text-faceit-light-gray">
             {isVisible ? 'Ocultar' : 'Mostrar'}
           </span>
+          
+          {/* Mobile: ícone com fundo redondo */}
+          <div className="lg:hidden w-10 h-10 flex items-center justify-center bg-faceit-orange/20 rounded-full border border-faceit-orange/30">
+            <svg
+              className={`w-5 h-5 text-faceit-orange transition-transform ${
+                isVisible ? 'rotate-180' : ''
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </div>
+          
+          {/* Desktop: apenas ícone sem fundo */}
           <svg
-            className={`w-6 h-6 text-faceit-orange transition-transform ${
+            className={`hidden lg:block w-6 h-6 text-faceit-orange transition-transform ${
               isVisible ? 'rotate-180' : ''
             }`}
             fill="none"
