@@ -113,31 +113,29 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
             {/* Overlay escuro gradiente */}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
             
-            {/* Ícone do mapa CENTRALIZADO */}
-            {map.icon && (
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                <div className="w-16 h-16 bg-black/60 backdrop-blur-sm rounded-lg p-2 border border-faceit-orange/30">
+            {/* Conteúdo */}
+            <div className="relative h-full flex flex-col items-center justify-center gap-2 p-3">
+              {/* Ícone do mapa (sem fundo, acima do texto) */}
+              {map.icon && (
+                <div className="w-16 h-16 flex-shrink-0">
                   <Image
                     src={map.icon}
                     alt={`${formatMapName(map.name)} icon`}
                     width={64}
                     height={64}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain drop-shadow-lg"
                     unoptimized
                   />
                 </div>
-              </div>
-            )}
-            
-            {/* Conteúdo */}
-            <div className="relative h-full flex flex-col items-center justify-end p-3 pb-4">
+              )}
+              
               {/* Número grande */}
-              <p className="text-4xl font-bold text-faceit-orange mb-2">
+              <p className="text-4xl font-bold text-faceit-orange drop-shadow-lg">
                 {map.count}
               </p>
               
               {/* Nome do mapa */}
-              <p className="text-xs font-semibold text-white/90 text-center leading-tight">
+              <p className="text-xs font-semibold text-white/90 text-center leading-tight drop-shadow-lg">
                 {formatMapName(map.name)}
               </p>
             </div>
