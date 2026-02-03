@@ -95,9 +95,8 @@ export default function PlayerTable({ players }: PlayerTableProps) {
             <SortableHeader column="matchesPlayed" label="Partidas" className="hidden lg:table-cell" />
             <SortableHeader column="winRate" label="Win Rate" />
             <SortableHeader column="kd" label="K/D" />
-            
+            <SortableHeader column="adr" label="ADR" className="hidden lg:table-cell" />
             <th className="hidden xl:table-cell">HS%</th>
-           
           </tr>
         </thead>
         <tbody>
@@ -184,7 +183,12 @@ export default function PlayerTable({ players }: PlayerTableProps) {
                   </span>
                 </td>
 
-               
+                {/* ADR */}
+                <td className="hidden lg:table-cell">
+                  <span className={`font-semibold ${getADRColor(player.adr)}`}>
+                    {formatStat(player.adr, 1)}
+                  </span>
+                </td>
 
                 {/* HS% */}
                 <td className="hidden xl:table-cell">
@@ -192,8 +196,6 @@ export default function PlayerTable({ players }: PlayerTableProps) {
                     {formatStat(player.headshotPercentage, 1)}%
                   </span>
                 </td>
-
-                
               </tr>
             );
           })}
