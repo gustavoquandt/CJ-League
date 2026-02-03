@@ -714,8 +714,8 @@ function HomePageContent() {
           isRefreshing={isRefreshing}
         />
         
-        {/* ✅ Destaques e Mapas - APENAS SEASON 1 */}
-        {activeSeason === 'SEASON_1' && filteredPlayers.length > 0 && (
+        {/* ✅ Destaques e Mapas - TODAS AS SEASONS */}
+        {filteredPlayers.length > 0 && (
           <SeasonStatsSection
             players={filteredPlayers}
             seasonName={SEASONS[activeSeason].name}
