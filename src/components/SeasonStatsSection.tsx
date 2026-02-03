@@ -99,10 +99,20 @@ export default function SeasonStatsSection({
         onClick={() => setIsVisible(!isVisible)}
         className="w-full flex items-center justify-between mb-4 hover:opacity-80 transition-opacity"
       >
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <span className="text-faceit-orange">📈</span>
-          Destaques - {seasonName}
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <span className="text-faceit-orange">📈</span>
+            Destaques - {seasonName}
+          </h2>
+          
+          {/* Tag ao lado do título */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-faceit-dark border border-faceit-light-gray/50 rounded-full">
+            <span className="text-faceit-orange text-xs">ℹ️</span>
+            <p className="text-xs text-white">
+              Estatísticas referentes a toda a season
+            </p>
+          </div>
+        </div>
         
         <div className="flex items-center gap-2">
           <span className="text-sm text-faceit-light-gray">
@@ -178,16 +188,6 @@ export default function SeasonStatsSection({
               isLoading={isLoadingMapStats}
               isVisible={true}
             />
-            
-            {/* Tag pequena ABAIXO dos mapas */}
-            <div className="flex justify-center mt-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-faceit-dark border border-faceit-light-gray/50 rounded-full">
-                <span className="text-faceit-orange text-xs">ℹ️</span>
-                <p className="text-xs text-faceit-light-gray">
-                  Estatísticas referentes a toda a season (todas as partidas disputadas)
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       )}
