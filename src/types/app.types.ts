@@ -21,6 +21,7 @@ export interface PlayerStats {
 
   // Ranking no Hub
   rankingPoints: number;
+  peakRankingPoints?: number; // ✅ Maior pontuação já alcançada na season
   position: number;
 
   // Partidas no Hub

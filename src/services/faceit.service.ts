@@ -364,6 +364,18 @@ class FaceitService {
     }
     const longestWinStreak = longestStreak;
 
+    // ✅ NOVO: Calcular maior pontuação já alcançada (peak)
+    // Simula o histórico de pontos partida por partida
+    let currentPoints: number = RANKING_CONFIG.INITIAL_POINTS; // 1000
+    let peakPoints: number = currentPoints;
+    
+    // Assume que matchResults está em ordem cronológica (mais antiga → mais recente)
+    for (const won of matchResults.reverse()) { // Reverse porque API retorna mais recente primeiro
+      currentPoints += won ? 3 : -3;
+      peakPoints = Math.max(peakPoints, currentPoints);
+    }
+    const peakRankingPoints = peakPoints;
+
     const lifetime = stats?.lifetime as any;
     const assists = parseStatValue(lifetime?.['Average Assists']) || 0;
     const kr = parseStatValue(lifetime?.['K/R Ratio']) || 0;
@@ -377,7 +389,9 @@ class FaceitService {
 
     return sanitizePlayer({
       playerId, nickname, avatar, country, pot,
-      rankingPoints: points, position: 0,
+      rankingPoints: points,
+      peakRankingPoints,  // ✅ NOVO: Maior pontuação histórica
+      position: 0,
       matchesPlayed, wins, losses, winRate,
       kills, deaths, assists, kd, kr, adr,
       headshotPercentage, faceitElo, skillLevel,

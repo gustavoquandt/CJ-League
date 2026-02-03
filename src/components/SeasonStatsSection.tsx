@@ -37,13 +37,22 @@ export default function SeasonStatsSection({
     }, filteredPlayers[0]);
   };
 
+  // Líder de pontuação usa peakRankingPoints (ou rankingPoints como fallback)
+  const getPeakLeader = () => {
+    return filteredPlayers.reduce((max, p) => {
+      const pValue = p.peakRankingPoints || p.rankingPoints;
+      const maxValue = max.peakRankingPoints || max.rankingPoints;
+      return pValue > maxValue ? p : max;
+    }, filteredPlayers[0]);
+  };
+
   // Definir estatísticas com líderes
   const stats = [
     {
-      label: 'Mais Pontos',
+      label: 'Maior Pontuação',
       icon: '🏆',
-      leader: getLeader('rankingPoints'),
-      getValue: (p: PlayerStats) => p.rankingPoints,
+      leader: getPeakLeader(),
+      getValue: (p: PlayerStats) => p.peakRankingPoints || p.rankingPoints,
       formatter: (val: number) => val.toString(),
     },
     {

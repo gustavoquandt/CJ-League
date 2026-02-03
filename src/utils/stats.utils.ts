@@ -221,6 +221,7 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     country: player.country || '',
     pot: player.pot,
     rankingPoints: player.rankingPoints || 0,
+    peakRankingPoints: player.peakRankingPoints,
     position: player.position || 0,
     matchesPlayed: player.matchesPlayed || 0,
     wins: player.wins || 0,
