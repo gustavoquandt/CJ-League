@@ -222,3 +222,94 @@ body {
     @apply p-3;
   }
 }
+
+/* ========================================
+   ESTILOS DA TABELA - PALETA GAMING
+   ======================================== */
+
+.table-container {
+  @apply w-full overflow-x-auto rounded-lg border border-[var(--border-default)];
+  background: var(--bg-card);
+  position: relative;
+}
+
+.table {
+  @apply w-full border-collapse;
+  min-width: 800px;
+}
+
+/* THEAD - Cabeçalho */
+.table thead {
+  @apply bg-[var(--bg-dark)] sticky top-0 z-20;
+  border-bottom: 2px solid var(--primary-purple);
+}
+
+.table thead th {
+  @apply px-4 py-4 text-left text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider;
+  white-space: nowrap;
+}
+
+/* TBODY - Corpo */
+.table tbody tr {
+  @apply border-b border-[var(--border-default)] transition-all;
+}
+
+.table tbody tr:hover {
+  @apply bg-[var(--bg-dark)];
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.1);
+}
+
+.table tbody tr:last-child {
+  @apply border-b-0;
+}
+
+.table tbody td {
+  @apply px-4 py-4 text-sm text-[var(--text-primary)];
+  white-space: nowrap;
+}
+
+/* Coluna sticky de posição */
+.table th.sticky,
+.table td.sticky {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: var(--bg-card);
+}
+
+.table thead th.sticky {
+  z-index: 30;
+  background: var(--bg-dark);
+}
+
+.table tbody tr:hover td.sticky {
+  background: var(--bg-dark);
+}
+
+/* Fade effect para indicar scroll */
+.table-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 30px;
+  background: linear-gradient(to left, var(--bg-card), transparent);
+  pointer-events: none;
+}
+
+/* Animação de fade in */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-in-out;
+}
