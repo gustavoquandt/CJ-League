@@ -98,8 +98,9 @@ export default function PlayerCard({ player }: PlayerCardProps) {
                 {player.rivalNickname}
               </span>
             </div>
-            <div className="text-xs text-gray-500">
-              {player.rivalMatchCount}x • {player.rivalWins}W {player.rivalLosses}L
+            <div className="text-sm font-bold flex items-center gap-1">
+              <span className="text-green-500">{player.rivalWins}W</span>
+              <span className="text-red-500">{player.rivalLosses}L</span>
             </div>
           </div>
         </div>
