@@ -243,6 +243,10 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     totalDeaths: player.totalDeaths,    // ✅ ADICIONADO
     totalDamage: player.totalDamage,    // ✅ ADICIONADO
     totalRounds: player.totalRounds,    // ✅ ADICIONADO
+    rivalNickname: player.rivalNickname,        // ✅ NOVO: Maior rival
+    rivalMatchCount: player.rivalMatchCount || 0,
+    rivalWins: player.rivalWins || 0,
+    rivalLosses: player.rivalLosses || 0,
   };
 }
 

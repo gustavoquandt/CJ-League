@@ -51,6 +51,12 @@ export interface PlayerStats {
   currentStreak: number;
   longestWinStreak: number;
 
+  // ✅ NOVO: Maior Rival (adversário mais frequente)
+  rivalNickname?: string;      // Nome do rival
+  rivalMatchCount?: number;    // Vezes que jogou contra
+  rivalWins?: number;          // Vitórias contra o rival
+  rivalLosses?: number;        // Derrotas contra o rival
+
   // Meta
   lastMatch?: Date;
 

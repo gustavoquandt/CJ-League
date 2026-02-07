@@ -56,6 +56,10 @@ interface QueuePlayerStats {
   totalHeadshots: number;      // ✅ NOVO
   matchADRs: number[];          // ✅ NOVO
   matchResults: boolean[];      // ✅ NOVO
+  rivalNickname?: string;       // ✅ NOVO: Maior rival
+  rivalMatchCount?: number;     // ✅ NOVO
+  rivalWins?: number;           // ✅ NOVO
+  rivalLosses?: number;         // ✅ NOVO
 }
 
 class FaceitService {
@@ -172,6 +176,14 @@ class FaceitService {
     let matchADRs: number[] = [];  // ✅ NOVO
     let matchResults: boolean[] = [];  // ✅ NOVO
     
+    // ✅ NOVO: Rastrear oponentes (maior rival)
+    const opponentMap = new Map<string, {
+      nickname: string;
+      count: number;
+      wins: number;
+      losses: number;
+    }>();
+    
     try {
       // Buscar páginas SEQUENCIALMENTE
       const allMatches = [];
@@ -252,6 +264,32 @@ class FaceitService {
             
             const won = match.results?.winner === playerTeam;
 
+            // ✅ NOVO: Rastrear oponentes desta partida
+            const opponentTeam = playerTeam === 'faction1' ? 'faction2' : 'faction1';
+            const opponents = match.teams?.[opponentTeam]?.players || [];
+            
+            for (const opponent of opponents) {
+              const oppNickname = opponent.nickname;
+              
+              if (!opponentMap.has(oppNickname)) {
+                opponentMap.set(oppNickname, {
+                  nickname: oppNickname,
+                  count: 0,
+                  wins: 0,
+                  losses: 0
+                });
+              }
+              
+              const rivalStats = opponentMap.get(oppNickname)!;
+              rivalStats.count++;
+              
+              if (won) {
+                rivalStats.wins++;
+              } else {
+                rivalStats.losses++;
+              }
+            }
+
             // ✅ NOVO: Calcular ADR da partida
             const matchADR = matchRounds > 0 ? matchDamage / matchRounds : 0;
             
@@ -286,12 +324,24 @@ class FaceitService {
       const matchesPlayed = wins + losses;
       const points = RANKING_CONFIG.INITIAL_POINTS + (wins * 3) - (losses * 3);
 
+      // ✅ NOVO: Encontrar maior rival
+      let biggestRival = null;
+      for (const rival of opponentMap.values()) {
+        if (!biggestRival || rival.count > biggestRival.count) {
+          biggestRival = rival;
+        }
+      }
+
       console.log(`   ✅ ${nickname}: ${wins}W/${losses}L (${queueMatches.length} partidas)`);
 
       return { 
         wins, losses, matchesPlayed, points, lastMatchId,
         totalKills, totalDeaths, totalDamage, totalRounds,
-        totalHeadshots, matchADRs, matchResults  // ✅ NOVO
+        totalHeadshots, matchADRs, matchResults,  // ✅ NOVO
+        rivalNickname: biggestRival?.nickname,
+        rivalMatchCount: biggestRival?.count || 0,
+        rivalWins: biggestRival?.wins || 0,
+        rivalLosses: biggestRival?.losses || 0,
       };
       
     } catch (error) {
@@ -299,7 +349,11 @@ class FaceitService {
       return { 
         wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
         totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
-        totalHeadshots: 0, matchADRs: [], matchResults: []  // ✅ NOVO
+        totalHeadshots: 0, matchADRs: [], matchResults: [],  // ✅ NOVO
+        rivalNickname: undefined,
+        rivalMatchCount: 0,
+        rivalWins: 0,
+        rivalLosses: 0,
       };
     }
   }
@@ -333,7 +387,8 @@ class FaceitService {
     const { 
       wins, losses, matchesPlayed, points, lastMatchId, 
       totalKills, totalDeaths, totalDamage, totalRounds,
-      totalHeadshots, matchADRs, matchResults  // ✅ NOVO
+      totalHeadshots, matchADRs, matchResults,  // ✅ NOVO
+      rivalNickname, rivalMatchCount, rivalWins, rivalLosses  // ✅ NOVO: Rival
     } = queueStats;
     
     const kd = totalDeaths > 0 ? parseFloat((totalKills / totalDeaths).toFixed(2)) : 0;
@@ -397,6 +452,7 @@ class FaceitService {
       headshotPercentage, faceitElo, skillLevel,
       currentStreak, longestWinStreak, lastMatchId,
       totalKills, totalDeaths, totalDamage, totalRounds,  // ✅ ADICIONADO para salvar no Redis
+      rivalNickname, rivalMatchCount, rivalWins, rivalLosses,  // ✅ NOVO: Maior rival
     });
   }
 
@@ -491,12 +547,24 @@ class FaceitService {
     let totalHeadshots = 0;  // ✅ NOVO
     let matchADRs: number[] = [];  // ✅ NOVO
     let matchResults: boolean[] = [];  // ✅ NOVO
+    
+    // ✅ NOVO: Rastrear oponentes (maior rival)
+    const opponentMap = new Map<string, {
+      nickname: string;
+      count: number;
+      wins: number;
+      losses: number;
+    }>();
 
     if (matches.length === 0) {
       return this.buildPlayerStats(nickname, playerInfo, {
         wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
         totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
         totalHeadshots: 0, matchADRs: [], matchResults: [],  // ✅ NOVO
+        rivalNickname: undefined,
+        rivalMatchCount: 0,
+        rivalWins: 0,
+        rivalLosses: 0,
       }, null);
     }
 
@@ -535,6 +603,32 @@ class FaceitService {
             ? 'faction1' : 'faction2';
           const won = match.results?.winner === playerTeam;
 
+          // ✅ NOVO: Rastrear oponentes desta partida
+          const opponentTeam = playerTeam === 'faction1' ? 'faction2' : 'faction1';
+          const opponents = match.teams?.[opponentTeam]?.players || [];
+          
+          for (const opponent of opponents) {
+            const oppNickname = opponent.nickname;
+            
+            if (!opponentMap.has(oppNickname)) {
+              opponentMap.set(oppNickname, {
+                nickname: oppNickname,
+                count: 0,
+                wins: 0,
+                losses: 0
+              });
+            }
+            
+            const rivalStats = opponentMap.get(oppNickname)!;
+            rivalStats.count++;
+            
+            if (won) {
+              rivalStats.wins++;
+            } else {
+              rivalStats.losses++;
+            }
+          }
+
           // ✅ NOVO: Calcular ADR da partida
           const matchADR = matchRounds > 0 ? matchDamage / matchRounds : 0;
           
@@ -563,9 +657,21 @@ class FaceitService {
     const matchesPlayed = wins + losses;
     const points = RANKING_CONFIG.INITIAL_POINTS + (wins * 3) - (losses * 3);
 
+    // ✅ NOVO: Encontrar maior rival
+    let biggestRival = null;
+    for (const rival of opponentMap.values()) {
+      if (!biggestRival || rival.count > biggestRival.count) {
+        biggestRival = rival;
+      }
+    }
+
     return this.buildPlayerStats(nickname, playerInfo, {
       wins, losses, matchesPlayed, points, totalKills, totalDeaths, totalDamage, totalRounds,
       totalHeadshots, matchADRs, matchResults,  // ✅ NOVO
+      rivalNickname: biggestRival?.nickname,
+      rivalMatchCount: biggestRival?.count || 0,
+      rivalWins: biggestRival?.wins || 0,
+      rivalLosses: biggestRival?.losses || 0,
     }, null);
   }
 
