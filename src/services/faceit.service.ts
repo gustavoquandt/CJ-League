@@ -324,10 +324,12 @@ class FaceitService {
       const matchesPlayed = wins + losses;
       const points = RANKING_CONFIG.INITIAL_POINTS + (wins * 3) - (losses * 3);
 
-      // ✅ NOVO: Encontrar maior rival
+      // ✅ NOVO: Encontrar maior rival (com desempate por ordem alfabética)
       let biggestRival = null;
       for (const rival of opponentMap.values()) {
-        if (!biggestRival || rival.count > biggestRival.count) {
+        if (!biggestRival || 
+            rival.count > biggestRival.count ||
+            (rival.count === biggestRival.count && rival.nickname < biggestRival.nickname)) {
           biggestRival = rival;
         }
       }
@@ -657,10 +659,12 @@ class FaceitService {
     const matchesPlayed = wins + losses;
     const points = RANKING_CONFIG.INITIAL_POINTS + (wins * 3) - (losses * 3);
 
-    // ✅ NOVO: Encontrar maior rival
+    // ✅ NOVO: Encontrar maior rival (com desempate por ordem alfabética)
     let biggestRival = null;
     for (const rival of opponentMap.values()) {
-      if (!biggestRival || rival.count > biggestRival.count) {
+      if (!biggestRival || 
+          rival.count > biggestRival.count ||
+          (rival.count === biggestRival.count && rival.nickname < biggestRival.nickname)) {
         biggestRival = rival;
       }
     }
