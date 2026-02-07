@@ -63,35 +63,34 @@ export default function PlayerCard({ player }: PlayerCardProps) {
           </p>
         </div>
 
-        {/* Partidas */}
+        {/* ADR */}
         <div className="bg-faceit-darker rounded-lg p-3">
-          <p className="text-xs text-text-secondary mb-1">Partidas</p>
-          <p className="text-2xl font-bold">{player.matchesPlayed}</p>
-        </div>
-
-        {/* Win Rate */}
-        <div className="bg-faceit-darker rounded-lg p-3">
-          <p className="text-xs text-text-secondary mb-1">Win Rate</p>
-          <p className={`text-xl font-bold ${getWinRateColor(player.winRate)}`}>
-            {formatPercentage(player.winRate)}
-          </p>
-          <p className="text-xs text-text-secondary">
-            {player.wins}W / {player.losses}L
+          <p className="text-xs text-text-secondary mb-1">ADR</p>
+          <p className={`text-2xl font-bold ${getADRColor(player.adr)}`}>
+            {formatStat(player.adr, 1)}
           </p>
         </div>
 
         {/* K/D */}
         <div className="bg-faceit-darker rounded-lg p-3">
           <p className="text-xs text-text-secondary mb-1">K/D Ratio</p>
-          <p className={`text-xl font-bold ${getKDColor(player.kd)}`}>
+          <p className={`text-2xl font-bold ${getKDColor(player.kd)}`}>
             {formatStat(player.kd)}
+          </p>
+        </div>
+
+        {/* HS% */}
+        <div className="bg-faceit-darker rounded-lg p-3">
+          <p className="text-xs text-text-secondary mb-1">HS%</p>
+          <p className="text-2xl font-bold">
+            {formatStat(player.headshotPercentage, 1)}%
           </p>
         </div>
       </div>
 
       {/* ✅ NOVO: Maior Rival */}
       {player.rivalNickname && player.rivalMatchCount && player.rivalMatchCount > 2 && (
-        <div className="pt-3 border-t border-faceit-dark-lighter">
+        <div className="mb-3 px-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-400">🎯 Rival:</span>
@@ -106,22 +105,27 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         </div>
       )}
 
-      {/* Stats Secundárias - ADR e HS% 
-      <div className="grid grid-cols-2 gap-2 pt-3 border-t border-faceit-light-gray text-center">
+      {/* Separator */}
+      <div className="border-t border-faceit-dark-lighter my-3"></div>
+
+      {/* Win Rate e Partidas */}
+      <div className="grid grid-cols-2 gap-4 text-center">
         <div>
-          <p className="text-xs text-text-secondary mb-1">ADR (Fila)</p>
-          <p className={`text-sm font-semibold ${getADRColor(player.adr)}`}>
-            {formatStat(player.adr, 1)}
+          <p className="text-xs text-text-secondary mb-1">Win Rate</p>
+          <p className={`text-lg font-bold ${getWinRateColor(player.winRate)}`}>
+            {formatPercentage(player.winRate)}
+          </p>
+          <p className="text-xs text-text-secondary mt-1">
+            {player.wins}W / {player.losses}L
           </p>
         </div>
         
         <div>
-          <p className="text-xs text-text-secondary mb-1">HS%</p>
-          <p className="text-sm font-semibold">
-            {formatStat(player.headshotPercentage, 1)}%
-          </p>
+          <p className="text-xs text-text-secondary mb-1">Partidas</p>
+          <p className="text-lg font-bold">{player.matchesPlayed}</p>
+          <p className="text-xs text-text-secondary mt-1">jogadas</p>
         </div>
-      </div>*/}
+      </div>
     </div>
   );
 }
