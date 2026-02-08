@@ -1,7 +1,7 @@
 /**
  * Serviço de Cache com Upstash Redis
  * Armazena dados dos jogadores de forma persistente
- * ✅ Cache individual por jogador + Suporte a múltiplas seasons
+ * ✅ Cache individual por jogador + Suporte a múltiplas seasons + Map stats
  */
 
 import { Redis } from '@upstash/redis';
@@ -203,6 +203,43 @@ export const kvCacheService = {
     } catch (error) {
       console.error('❌ [REDIS] Erro ao limpar caches de jogadores:', error);
       throw error;
+    }
+  },
+
+  /**
+   * ✅ NOVO: Salvar estatísticas de mapas no cache
+   */
+  async saveMapStats(mapStats: any, seasonId: SeasonId = 'SEASON_1'): Promise<void> {
+    try {
+      const key = `cj-stats:maps:${seasonId}`;
+      await redis.set(key, JSON.stringify(mapStats));
+      console.log(`💾 [REDIS] Map stats salvas (${seasonId}): ${mapStats.totalMatches} partidas`);
+    } catch (error) {
+      console.error('❌ [REDIS] Erro ao salvar map stats:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * ✅ NOVO: Buscar estatísticas de mapas do cache
+   */
+  async getMapStats(seasonId: SeasonId = 'SEASON_1'): Promise<any | null> {
+    try {
+      const key = `cj-stats:maps:${seasonId}`;
+      const cached = await redis.get(key);
+      
+      if (!cached) {
+        console.log(`⚠️ [REDIS] Map stats não encontradas (${seasonId})`);
+        return null;
+      }
+
+      const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
+      console.log(`✅ [REDIS] Map stats lidas (${seasonId}): ${data.totalMatches || 0} partidas`);
+      
+      return data;
+    } catch (error) {
+      console.error('❌ [REDIS] Erro ao ler map stats:', error);
+      return null;
     }
   },
 };
