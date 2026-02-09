@@ -167,4 +167,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutos
+export const maxDuration = 2400; // 5 minutos
