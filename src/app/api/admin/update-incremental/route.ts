@@ -60,6 +60,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     console.log(`   ✅ Cache encontrado: ${currentCache.players.length} jogadores`);
     const cacheTimestamp = new Date(currentCache.lastUpdated).getTime();
+    console.log(`   📅 Cache lastUpdated: ${currentCache.lastUpdated}`);
+    console.log(`   📅 Cache timestamp: ${cacheTimestamp}`);
 
     // ✅ PASSO 2: Buscar últimas 100 partidas do hub
     console.log('🎮 [UPDATE-INCREMENTAL] Buscando últimas partidas do hub...');
@@ -69,6 +71,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const allMatches = hubMatches.items || [];
     console.log(`   ✅ ${allMatches.length} partidas encontradas`);
+
+    // 🔍 DEBUG: Mostrar as 3 partidas mais recentes
+    if (allMatches.length > 0) {
+      console.log('\n📊 [DEBUG] 3 partidas mais recentes:');
+      allMatches.slice(0, 3).forEach((match: any, i: number) => {
+        const matchTime = new Date(match.finished_at || match.started_at).getTime();
+        const matchDate = new Date(match.finished_at || match.started_at).toISOString();
+        const isNew = matchTime > cacheTimestamp;
+        console.log(`   ${i + 1}. ${matchDate} - ${isNew ? '✅ NOVA' : '❌ ANTIGA'}`);
+      });
+      console.log('');
+    }
 
     // ✅ PASSO 3: Filtrar apenas partidas NOVAS (após lastUpdated)
     const newMatches = allMatches.filter((match: any) => {
