@@ -49,7 +49,7 @@ export default function SeasonStatsSection({
   // Definir estatísticas com líderes
   const stats = [
     {
-      label: 'Maior Pontuação Histórica',
+      label: 'Pontuação Histórica',
       icon: '🏆',
       leader: getPeakLeader(),
       getValue: (p: PlayerStats) => p.peakRankingPoints || p.rankingPoints,
