@@ -5,6 +5,7 @@ import type { PlayerStats, HubStatsResponse, PlayerFilters, MapStats } from '@/t
 import { storageService } from '@/services/storage.service';
 import { useBackgroundUpdate } from '@/hooks/useBackgroundUpdate';
 import { useAdmin } from '@/hooks/useAdmin';
+import { useUpdateNotification } from '@/hooks/useUpdateNotification';
 import StatsHeader from '@/components/StatsHeader';
 import PrizeCards from '@/components/PrizeCards';
 import PlayerCard from '@/components/PlayerCard';
@@ -12,6 +13,7 @@ import PlayerTable from '@/components/PlayerTable';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 import UpdateToast from '@/components/UpdateToast';
+import UpdateBadge from '@/components/UpdateBadge';
 import AdminPanel from '@/components/AdminPanel';
 import SeasonHeader from '@/components/SeasonHeader';
 import StatsCards from '@/components/StatsCards';
@@ -55,6 +57,9 @@ function HomePageContent() {
   const { status: updateStatus, applyUpdate } = useBackgroundUpdate((newPlayers) => {
     setPlayers(newPlayers);
   });
+  
+  // Hook de notificação de novos dados
+  const { hasNewData, markAsRead } = useUpdateNotification(activeSeason);
 
   const {
     isAdmin,
@@ -211,6 +216,9 @@ function HomePageContent() {
   // Admin: Forçar atualização (1 jogador por batch - < 300s)
   const handleForceUpdate = async (seasonId: SeasonId) => {
     if (!isAdmin) return;
+
+    // Marcar como lido ao atualizar
+    markAsRead();
 
     setIsForceUpdating(true);
     const seasonToUpdate = seasonId; // ✅ Usa a season passada como parâmetro
@@ -715,6 +723,14 @@ function HomePageContent() {
           updateProgress={updateStatus.progress}
           onRefreshData={handleRefreshData}
           isRefreshing={isRefreshing}
+        />
+        
+        {/* Badge de notificação de novos dados */}
+        <UpdateBadge
+          isUpdating={isForceUpdating}
+          progress={0}
+          hasNewData={hasNewData}
+          onRefresh={() => handleForceUpdate(activeSeason)}
         />
         
         {/* ✅ Destaques e Mapas - TODAS AS SEASONS */}
