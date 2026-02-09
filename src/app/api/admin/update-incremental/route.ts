@@ -76,17 +76,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (allMatches.length > 0) {
       console.log('\n📊 [DEBUG] 3 partidas mais recentes:');
       allMatches.slice(0, 3).forEach((match: any, i: number) => {
-        const matchTime = new Date(match.finished_at || match.started_at).getTime();
-        const matchDate = new Date(match.finished_at || match.started_at).toISOString();
+        // ✅ FIX: API retorna em SEGUNDOS, precisamos multiplicar por 1000
+        const matchTimestamp = match.finished_at || match.started_at;
+        const matchTime = typeof matchTimestamp === 'number' && matchTimestamp < 10000000000
+          ? matchTimestamp * 1000  // ✅ Converter segundos para milissegundos
+          : matchTimestamp;
+        const matchDate = new Date(matchTime).toISOString();
         const isNew = matchTime > cacheTimestamp;
-        console.log(`   ${i + 1}. ${matchDate} - ${isNew ? '✅ NOVA' : '❌ ANTIGA'}`);
+        console.log(`   ${i + 1}. ${matchDate} - ${isNew ? '✅ NOVA' : '❌ ANTIGA'} (timestamp: ${matchTimestamp})`);
       });
       console.log('');
     }
 
     // ✅ PASSO 3: Filtrar apenas partidas NOVAS (após lastUpdated)
     const newMatches = allMatches.filter((match: any) => {
-      const matchTime = new Date(match.finished_at || match.started_at).getTime();
+      // ✅ FIX: API retorna em SEGUNDOS, precisamos multiplicar por 1000
+      const matchTimestamp = match.finished_at || match.started_at;
+      const matchTime = typeof matchTimestamp === 'number' && matchTimestamp < 10000000000
+        ? matchTimestamp * 1000  // ✅ Converter segundos para milissegundos
+        : matchTimestamp;
       return matchTime > cacheTimestamp;
     });
 
