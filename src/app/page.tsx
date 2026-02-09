@@ -633,10 +633,9 @@ function HomePageContent() {
 
         {/* Badge de notificação de novos dados */}
         <UpdateBadge
-          isUpdating={isForceUpdating}
-          progress={0}
           hasNewData={hasNewData}
           onRefresh={() => handleForceUpdate(activeSeason)}
+          isUpdating={isForceUpdating}
         />
 
         {/* ✅ Destaques e Mapas - TODAS AS SEASONS */}
