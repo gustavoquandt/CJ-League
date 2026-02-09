@@ -90,7 +90,7 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
 
     return (
         <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-4">Mapas: {mapStats.totalMatches}</h2>
+            <h2 className="text-2xl font-bold mb-4">Partidas: {mapStats.totalMatches}</h2>
 
             {/* Container com toda a largura */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
