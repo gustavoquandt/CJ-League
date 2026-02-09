@@ -16,6 +16,7 @@ import UpdateToast from '@/components/UpdateToast';
 import UpdateBadge from '@/components/UpdateBadge';
 import AdminPanel from '@/components/AdminPanel';
 import SeasonHeader from '@/components/SeasonHeader';
+import LastUpdateInfo from '@/components/LastUpdateInfo';
 import StatsCards from '@/components/StatsCards';
 import MapStatsCards from '@/components/MapStatsCards';
 import SeasonStatsSection from '@/components/SeasonStatsSection';
@@ -608,6 +609,14 @@ function HomePageContent() {
           onRefreshData={handleRefreshData}
           isRefreshing={isRefreshing}
         />
+
+        {/* ✅ Informações de Atualização e Verificação */}
+        <div className="mb-6">
+          <LastUpdateInfo 
+            lastDataUpdate={lastUpdated}
+            seasonId={activeSeason}
+          />
+        </div>
 
         {/* Header com título e filtros */}
         <StatsHeader

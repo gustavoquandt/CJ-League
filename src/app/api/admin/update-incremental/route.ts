@@ -48,202 +48,124 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // ✅ PASSO 1: Buscar cache atual
     console.log('📦 [UPDATE-INCREMENTAL] Buscando cache atual...');
-    const cache = await kvCacheService.getCache(seasonId);
-    const currentPlayers = cache?.players || [];
-    
-    console.log(`   ✅ Cache carregado: ${currentPlayers.length} jogadores`);
+    const currentCache = await kvCacheService.getCache(seasonId);
 
-    // ✅ PASSO 2: Buscar partidas recentes (últimas 100)
-    console.log('🔍 [UPDATE-INCREMENTAL] Buscando partidas recentes...');
-    const recentMatches: any = await faceitService['request'](
+    if (!currentCache || currentCache.players.length === 0) {
+      console.log('⚠️ [UPDATE-INCREMENTAL] Cache vazio, use batch-update primeiro');
+      return NextResponse.json({
+        success: false,
+        error: 'Cache vazio. Execute batch-update primeiro.',
+      }, { status: 400 });
+    }
+
+    console.log(`   ✅ Cache encontrado: ${currentCache.players.length} jogadores`);
+    const cacheTimestamp = new Date(currentCache.lastUpdated).getTime();
+
+    // ✅ PASSO 2: Buscar últimas 100 partidas do hub
+    console.log('🎮 [UPDATE-INCREMENTAL] Buscando últimas partidas do hub...');
+    const hubMatches: any = await faceitService['request'](
       `/hubs/${queueId}/matches?type=past&offset=0&limit=100`
     );
 
-    if (!recentMatches?.items || recentMatches.items.length === 0) {
-      console.log('   ℹ️ Nenhuma partida nova encontrada');
-      return NextResponse.json({
-        success: true,
-        seasonId,
-        message: 'Nenhuma partida nova',
-        playersUpdated: 0,
-        duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
-      });
-    }
+    const allMatches = hubMatches.items || [];
+    console.log(`   ✅ ${allMatches.length} partidas encontradas`);
 
-    console.log(`   ✅ ${recentMatches.items.length} partidas encontradas`);
-
-    // ✅ PASSO 3: Identificar jogadores com partidas novas
-    const lastUpdateTime = cache?.lastUpdated ? new Date(cache.lastUpdated).getTime() : 0;
-    const playersToUpdate = new Set<string>();
-
-    for (const match of recentMatches.items) {
+    // ✅ PASSO 3: Filtrar apenas partidas NOVAS (após lastUpdated)
+    const newMatches = allMatches.filter((match: any) => {
       const matchTime = new Date(match.finished_at || match.started_at).getTime();
-      
-      // Se partida é mais recente que último update
-      if (matchTime > lastUpdateTime) {
-        // Adicionar todos jogadores da partida
-        if (match.teams?.faction1?.roster) {
-          match.teams.faction1.roster.forEach((player: any) => {
-            playersToUpdate.add(player.player_id);
-          });
-        }
-        if (match.teams?.faction2?.roster) {
-          match.teams.faction2.roster.forEach((player: any) => {
-            playersToUpdate.add(player.player_id);
-          });
-        }
-      }
-    }
-
-    console.log(`   ✅ ${playersToUpdate.size} jogadores com partidas novas`);
-
-    // Se nenhum jogador precisa atualizar
-    if (playersToUpdate.size === 0) {
-      console.log('   ℹ️ Nenhum jogador precisa atualização');
-      return NextResponse.json({
-        success: true,
-        seasonId,
-        message: 'Nenhum jogador precisa atualização',
-        playersUpdated: 0,
-        duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
-      });
-    }
-
-    // ✅ PASSO 4: Buscar dados atualizados do leaderboard
-    console.log('📊 [UPDATE-INCREMENTAL] Buscando leaderboard atualizado...');
-    const leaderboardData: any = await faceitService['request'](
-      `/leaderboards/hubs/${queueId}/general?offset=0&limit=1000`
-    );
-
-    if (!leaderboardData?.items) {
-      throw new Error('Erro ao buscar leaderboard');
-    }
-
-    // Criar mapa de jogadores atualizados
-    const updatedPlayersMap = new Map<string, any>();
-    for (const player of leaderboardData.items) {
-      if (playersToUpdate.has(player.player.player_id)) {
-        updatedPlayersMap.set(player.player.player_id, player);
-      }
-    }
-
-    console.log(`   ✅ ${updatedPlayersMap.size} jogadores atualizados no leaderboard`);
-
-    // ✅ PASSO 5: Processar estatísticas dos jogadores atualizados
-    console.log('⚙️ [UPDATE-INCREMENTAL] Processando estatísticas...');
-    const processedPlayers: PlayerStats[] = [];
-
-    for (const [playerId, leaderboardPlayer] of updatedPlayersMap) {
-      try {
-        // Buscar estatísticas do jogador
-        const statsData: any = await faceitService['request'](
-          `/players/${playerId}/stats/cs2`
-        );
-
-        const segments = statsData?.segments || [];
-        const overallSegment = segments.find((s: any) => s.mode === '5v5' && s.label === 'Overall');
-
-        if (!overallSegment) {
-          console.log(`   ⚠️ Sem estatísticas para ${leaderboardPlayer.player.nickname}`);
-          continue;
-        }
-
-        const stats = overallSegment.stats;
-
-        // Calcular rival (jogador mais enfrentado)
-        let biggestRival: { nickname: string; count: number; wins: number; losses: number } | null = null;
-        
-        if (overallSegment.opponents) {
-          const opponents = Object.entries(overallSegment.opponents)
-            .map(([nickname, data]: [string, any]) => ({
-              nickname,
-              count: data.Matches || 0,
-              wins: data.Wins || 0,
-              losses: data.Losses || 0,
-            }))
-            .filter(opp => opp.count >= 2);
-
-          if (opponents.length > 0) {
-            opponents.sort((a, b) => {
-              if (b.count === a.count) {
-                return a.nickname.localeCompare(b.nickname);
-              }
-              return b.count - a.count;
-            });
-            biggestRival = opponents[0];
-          }
-        }
-
-        const playerStats: PlayerStats = {
-          playerId: leaderboardPlayer.player.player_id,
-          nickname: leaderboardPlayer.player.nickname,
-          avatar: leaderboardPlayer.player.avatar || '',
-          country: leaderboardPlayer.player.country || '',
-          skillLevel: leaderboardPlayer.player.game_skill_level || 1,
-          faceitElo: leaderboardPlayer.player.faceit_elo || 1000,
-          rankingPoints: leaderboardPlayer.points || 0,
-          position: leaderboardPlayer.position || 0,
-          
-          // Partidas
-          matchesPlayed: parseInt(stats['Matches'] || '0'),
-          wins: parseInt(stats['Wins'] || '0'),
-          losses: parseInt(stats['Losses'] || '0'),
-          winRate: parseFloat(stats['Win Rate %'] || '0'),
-          
-          // Kills/Deaths
-          kills: parseFloat(stats['Average Kills'] || '0'),
-          deaths: parseFloat(stats['Average Deaths'] || '0'),
-          assists: parseFloat(stats['Average Assists'] || '0'),
-          kd: parseFloat(stats['Average K/D Ratio'] || '0'),
-          kr: parseFloat(stats['Average K/R Ratio'] || '0'),
-          
-          // Outros
-          adr: parseFloat(stats['ADR'] || '0'),
-          headshotPercentage: parseFloat(stats['Average Headshots %'] || '0'),
-          
-          // Streaks
-          currentStreak: parseInt(stats['Current Win Streak'] || '0'),
-          longestWinStreak: parseInt(stats['Longest Win Streak'] || '0'),
-          
-          // Rival
-          rivalNickname: biggestRival?.nickname,
-          rivalMatchCount: biggestRival?.count,
-          rivalWins: biggestRival?.wins,
-          rivalLosses: biggestRival?.losses,
-        };
-
-        processedPlayers.push(playerStats);
-        console.log(`   ✅ ${playerStats.nickname} processado`);
-
-        // Delay para evitar rate limit
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-      } catch (error) {
-        console.error(`   ❌ Erro ao processar ${leaderboardPlayer.player.nickname}:`, error);
-      }
-    }
-
-    // ✅ PASSO 6: Mesclar com cache atual
-    console.log('🔄 [UPDATE-INCREMENTAL] Mesclando com cache...');
-    const updatedPlayersMap2 = new Map(processedPlayers.map(p => [p.playerId, p]));
-    
-    const mergedPlayers = currentPlayers.map(player => {
-      return updatedPlayersMap2.get(player.playerId) || player;
+      return matchTime > cacheTimestamp;
     });
 
-    // Adicionar novos jogadores (caso existam)
-    for (const newPlayer of processedPlayers) {
-      if (!currentPlayers.find(p => p.playerId === newPlayer.playerId)) {
-        mergedPlayers.push(newPlayer);
+    console.log(`   🆕 ${newMatches.length} partidas novas desde ${new Date(cacheTimestamp).toISOString()}`);
+
+    if (newMatches.length === 0) {
+      console.log('✅ [UPDATE-INCREMENTAL] Nenhuma partida nova. Cache permanece igual.');
+      
+      // ✅ SALVAR TIMESTAMP DE VERIFICAÇÃO
+      const lastCheckKey = `last-check:${seasonId}`;
+      await kvCacheService.setRaw(lastCheckKey, new Date().toISOString());
+      console.log('   ✅ Timestamp de verificação salvo');
+
+      return NextResponse.json({
+        success: true,
+        message: 'Nenhuma partida nova encontrada',
+        playersUpdated: 0,
+        totalPlayers: currentCache.players.length,
+        duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // ✅ PASSO 4: Extrair player_ids únicos das partidas novas
+    const playerIdsToUpdate = new Set<string>();
+    newMatches.forEach((match: any) => {
+      const teams = match.teams || {};
+      Object.values(teams).forEach((team: any) => {
+        const roster = team.roster || [];
+        roster.forEach((player: any) => {
+          if (player.player_id) {
+            playerIdsToUpdate.add(player.player_id);
+          }
+        });
+      });
+    });
+
+    console.log(`   👥 ${playerIdsToUpdate.size} jogadores únicos com partidas novas`);
+
+    // ✅ PASSO 5: Atualizar apenas jogadores com partidas novas
+    console.log('🔄 [UPDATE-INCREMENTAL] Processando jogadores...');
+    const processedPlayers: PlayerStats[] = [];
+
+    let processed = 0;
+    for (const playerId of Array.from(playerIdsToUpdate)) {
+      try {
+        processed++;
+        console.log(`   [${processed}/${playerIdsToUpdate.size}] Processando ${playerId}...`);
+
+        const playerStats = await faceitService.getPlayerHubStats(playerId, queueId);
+        if (playerStats) {
+          processedPlayers.push(playerStats);
+        }
+
+        // Delay entre requests (evitar rate limit)
+        if (processed < playerIdsToUpdate.size) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      } catch (error) {
+        console.error(`   ❌ Erro ao processar ${playerId}:`, error);
+        continue;
       }
     }
 
-    // Ordenar por ranking points
-    mergedPlayers.sort((a, b) => b.rankingPoints - a.rankingPoints);
+    console.log(`   ✅ ${processedPlayers.length} jogadores atualizados com sucesso`);
+
+    // ✅ PASSO 6: Mesclar com cache existente
+    console.log('🔀 [UPDATE-INCREMENTAL] Mesclando com cache...');
+    const playerMap = new Map(currentCache.players.map(p => [p.playerId, p]));
+
+    // Atualizar jogadores processados
+    processedPlayers.forEach(player => {
+      playerMap.set(player.playerId, player);
+    });
+
+    // Converter de volta para array e ordenar
+    const mergedPlayers = Array.from(playerMap.values())
+      .sort((a, b) => b.rankingPoints - a.rankingPoints)
+      .map((player, index) => ({
+        ...player,
+        position: index + 1,
+      }));
+
+    console.log(`   ✅ Total após merge: ${mergedPlayers.length} jogadores`);
 
     // ✅ PASSO 7: Salvar no cache
     console.log('💾 [UPDATE-INCREMENTAL] Salvando cache atualizado...');
     await kvCacheService.saveCache(mergedPlayers, seasonId);
+
+    // ✅ SALVAR TIMESTAMP DE VERIFICAÇÃO
+    const lastCheckKey = `last-check:${seasonId}`;
+    await kvCacheService.setRaw(lastCheckKey, new Date().toISOString());
+    console.log('   ✅ Timestamp de verificação salvo');
 
     // ✅ PASSO 8: Atualizar mapas também
     console.log('🗺️ [UPDATE-INCREMENTAL] Atualizando estatísticas de mapas...');
