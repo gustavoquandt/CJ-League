@@ -42,9 +42,6 @@ function HomePageContent() {
   const [activeSeason, setActiveSeason] = useState<SeasonId>('SEASON_1');
   const [mapStats, setMapStats] = useState<MapStats | null>(null);
   const [isLoadingMapStats, setIsLoadingMapStats] = useState(false);
-  const [isUpdatingMapStats, setIsUpdatingMapStats] = useState(false); // ✅ NOVO
-  const [minGamesFilterSeason1, setMinGamesFilterSeason1] = useState(false); // ✅ NOVO: Filtro cards
-  const [showStatsCards, setShowStatsCards] = useState(true); // ✅ NOVO: Mostrar/Ocultar Stats Cards
 
   const [filters, setFilters] = useState<PlayerFilters>({
     searchTerm: '',
@@ -110,22 +107,6 @@ function HomePageContent() {
     loadInitialCache();
     storageService.saveLastVisit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ✅ NOVO: Carregar filtro do localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('minGamesFilterSeason1');
-    if (saved !== null) {
-      setMinGamesFilterSeason1(saved === 'true');
-    }
-  }, []);
-
-  // ✅ NOVO: Carregar visibilidade Stats Cards do localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('showStatsCards');
-    if (saved !== null) {
-      setShowStatsCards(saved === 'true');
-    }
   }, []);
 
   // Fallback: buscar da API (Redis) com suporte a seasons
@@ -377,72 +358,6 @@ function HomePageContent() {
 
   const handleManagePlayers = () => {
     setShowPlayerManagement(true);
-  };
-
-  // ✅ NOVO: Toggle filtro de jogos mínimos Season 1
-  const handleToggleMinGamesFilter = () => {
-    const newValue = !minGamesFilterSeason1;
-    setMinGamesFilterSeason1(newValue);
-    localStorage.setItem('minGamesFilterSeason1', String(newValue));
-    console.log(`🎯 Filtro cards Season 1: ${newValue ? '10+ jogos' : 'Todos'}`);
-  };
-
-
-  // ✅ NOVO: Toggle visibilidade Stats Cards
-  const handleToggleStatsCardsVisibility = () => {
-    const newValue = !showStatsCards;
-    setShowStatsCards(newValue);
-    localStorage.setItem('showStatsCards', String(newValue));
-    console.log(`👁️ Stats Cards: ${newValue ? 'Visível' : 'Oculto'} para todos`);
-  };
-  // ✅ NOVO: Atualizar map stats
-  const handleUpdateMapStats = async (seasonId: SeasonId) => {
-    if (!isAdmin) return;
-
-    setIsUpdatingMapStats(true);
-
-    try {
-      console.log(`\n${'='.repeat(60)}`);
-      console.log(`🗺️  [ADMIN] ATUALIZANDO MAP STATS`);
-      console.log(`🏆 Season: ${SEASONS[seasonId].name}`);
-      console.log(`⏱️  Tempo estimado: ~10 segundos`);
-      console.log(`${'='.repeat(60)}\n`);
-
-      const startTime = Date.now();
-
-      // Forçar busca da API (sem cache)
-      const response = await fetch(
-        `/api/faceit/map-stats?season=${seasonId}&force=true&t=${Date.now()}`,
-        { cache: 'no-store' }
-      );
-
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        // Atualizar mapStats no estado
-        setMapStats(data.data);
-
-        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-
-        console.log(`\n${'='.repeat(60)}`);
-        console.log(`🎉 MAP STATS ATUALIZADAS!`);
-        console.log(`⏱️  Duração: ${duration} segundos`);
-        console.log(`📊 Total de partidas: ${data.data.totalMatches}`);
-        if (data.data.mostPlayed) {
-          console.log(`🗺️  Mapa mais jogado: ${data.data.mostPlayed.map} (${data.data.mostPlayed.count}x)`);
-        }
-        console.log(`${'='.repeat(60)}\n`);
-
-        alert(`✅ Map stats atualizadas!\n\nDuração: ${duration}s\nPartidas: ${data.data.totalMatches}`);
-      } else {
-        throw new Error('Falha ao atualizar map stats');
-      }
-    } catch (error) {
-      console.error('❌ Erro ao atualizar map stats:', error);
-      alert('❌ Erro ao atualizar map stats. Verifique o console.');
-    } finally {
-      setIsUpdatingMapStats(false);
-    }
   };
 
   // ✅ NOVO: Trocar de season
