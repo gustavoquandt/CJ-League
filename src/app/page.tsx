@@ -338,7 +338,7 @@ function HomePageContent() {
         `✅ Sucesso: ${successCount} jogadores\n` +
         `⚠️ Erros: ${errorCount}\n` +
         `🎮 Com partidas: ${playersWithMatches}\n\n` +
-        `Os dados já estão disponíveis no site!`
+        `Os dados já estão disponíveis agora!`
       );
 
     } catch (err) {
