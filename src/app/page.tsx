@@ -45,7 +45,7 @@ function HomePageContent() {
   const [isUpdatingMapStats, setIsUpdatingMapStats] = useState(false); // ✅ NOVO
   const [minGamesFilterSeason1, setMinGamesFilterSeason1] = useState(false); // ✅ NOVO: Filtro cards
   const [showStatsCards, setShowStatsCards] = useState(true); // ✅ NOVO: Mostrar/Ocultar Stats Cards
-  
+
   const [filters, setFilters] = useState<PlayerFilters>({
     searchTerm: '',
     pot: 'all',
@@ -57,7 +57,7 @@ function HomePageContent() {
   const { status: updateStatus, applyUpdate } = useBackgroundUpdate((newPlayers) => {
     setPlayers(newPlayers);
   });
-  
+
   // Hook de notificação de novos dados
   const { hasNewData, markAsRead } = useUpdateNotification(activeSeason);
 
@@ -81,10 +81,10 @@ function HomePageContent() {
     const loadInitialCache = async () => {
       try {
         setLoading(true);
-        
+
         // ✅ NÃO LIMPAR O CACHE! Deixar funcionar normalmente
         const cache = storageService.getCache();
-        
+
         if (cache && cache.players.length > 0) {
           console.log('✅ Carregando do cache local');
           setPlayers(cache.players);
@@ -95,10 +95,10 @@ function HomePageContent() {
           console.log('⚠️ Cache vazio, buscando do Redis...');
           await loadFromAPI();
         }
-        
+
         // ✅ Carregar map stats da season inicial
         await loadMapStats(activeSeason);
-        
+
       } catch (err) {
         console.error('Erro ao carregar cache:', err);
         await loadFromAPI();
@@ -140,7 +140,7 @@ function HomePageContent() {
         setPlayers(data.data);
         setLastUpdated(new Date(data.cache.lastUpdated));
         setNextUpdate(new Date(data.cache.nextUpdate));
-        
+
         storageService.saveCache({
           players: data.data,
           lastUpdated: data.cache.lastUpdated,
@@ -157,10 +157,10 @@ function HomePageContent() {
   const handleRefreshData = async () => {
     setIsRefreshing(true);
     setError(null);
-    
+
     try {
       console.log(`🔄 Buscando dados atualizados do Redis (${SEASONS[activeSeason].name})...`);
-      
+
       const timestamp = Date.now();
       const response = await fetch(`/api/faceit/hub-stats?season=${activeSeason}&t=${timestamp}`);
       const data: HubStatsResponse = await response.json();
@@ -169,14 +169,14 @@ function HomePageContent() {
         setPlayers(data.data);
         setLastUpdated(new Date(data.cache.lastUpdated));
         setNextUpdate(new Date(data.cache.nextUpdate));
-        
+
         storageService.saveCache({
           players: data.data,
           lastUpdated: data.cache.lastUpdated,
           nextUpdate: data.cache.nextUpdate,
           version: '1.0.0',
         }, activeSeason);
-        
+
         console.log('✅ Dados atualizados com sucesso!');
       } else {
         throw new Error('Nenhum dado disponível no banco');
@@ -194,7 +194,7 @@ function HomePageContent() {
     setIsLoadingMapStats(true);
     try {
       console.log(`🗺️ Buscando estatísticas de mapas para ${SEASONS[seasonId].name}...`);
-      
+
       const response = await fetch(`/api/faceit/map-stats?season=${seasonId}`);
       const data = await response.json();
 
@@ -212,7 +212,7 @@ function HomePageContent() {
       setIsLoadingMapStats(false);
     }
   };
- 
+
   // Admin: Forçar atualização (1 jogador por batch - < 300s)
   const handleForceUpdate = async (seasonId: SeasonId) => {
     if (!isAdmin) return;
@@ -224,7 +224,7 @@ function HomePageContent() {
     const seasonToUpdate = seasonId; // ✅ Usa a season passada como parâmetro
     const updateStartTime = Date.now();
     const startDateTime = new Date().toLocaleString('pt-BR');
-    
+
     console.log(`\n${'='.repeat(60)}`);
     console.log(`🎯 [ADMIN] INICIANDO ATUALIZAÇÃO`);
     console.log(`📅 Início: ${startDateTime}`);
@@ -235,7 +235,7 @@ function HomePageContent() {
 
     try {
       const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
-      
+
       let batchNumber = 0;
       let hasMore = true;
       let existingPlayers: any[] = [];
@@ -280,7 +280,7 @@ function HomePageContent() {
           const currentPlayer = data.batch.currentPlayer || '?';
           const progress = Math.round((data.batch.totalPlayers / 49) * 100);
           const timeElapsed = ((Date.now() - updateStartTime) / 1000 / 60).toFixed(1);
-          
+
           // Barra de progresso visual
           const barLength = 30;
           const filled = Math.round((progress / 100) * barLength);
@@ -309,7 +309,7 @@ function HomePageContent() {
         } catch (err) {
           console.error(`❌ Erro no batch ${batchNumber + 1}:`, err);
           errorCount++;
-          
+
           // Continuar mesmo com erro
           batchNumber++;
           if (batchNumber >= 49) {
@@ -326,7 +326,7 @@ function HomePageContent() {
       if (finalData.success && finalData.data) {
         setPlayers(finalData.data);
         setLastUpdated(new Date());
-        
+
         storageService.saveCache({
           players: finalData.data,
           lastUpdated: new Date().toISOString(),
@@ -362,13 +362,13 @@ function HomePageContent() {
     } catch (err) {
       const errorDuration = Date.now() - updateStartTime;
       const errorMinutes = (errorDuration / 1000 / 60).toFixed(1);
-      
+
       console.error(`\n${'='.repeat(60)}`);
       console.error(`❌ ERRO FATAL NA ATUALIZAÇÃO`);
       console.error(`⏱️ Tempo até erro: ${errorMinutes} minutos`);
       console.error(`📝 Detalhes:`, err);
       console.error(`${'='.repeat(60)}\n`);
-      
+
       alert('❌ Erro fatal: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
     } finally {
       setIsForceUpdating(false);
@@ -400,7 +400,7 @@ function HomePageContent() {
     if (!isAdmin) return;
 
     setIsUpdatingMapStats(true);
-    
+
     try {
       console.log(`\n${'='.repeat(60)}`);
       console.log(`🗺️  [ADMIN] ATUALIZANDO MAP STATS`);
@@ -415,15 +415,15 @@ function HomePageContent() {
         `/api/faceit/map-stats?season=${seasonId}&force=true&t=${Date.now()}`,
         { cache: 'no-store' }
       );
-      
+
       const data = await response.json();
 
       if (data.success && data.data) {
         // Atualizar mapStats no estado
         setMapStats(data.data);
-        
+
         const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-        
+
         console.log(`\n${'='.repeat(60)}`);
         console.log(`🎉 MAP STATS ATUALIZADAS!`);
         console.log(`⏱️  Duração: ${duration} segundos`);
@@ -450,13 +450,13 @@ function HomePageContent() {
     setActiveSeason(seasonId);
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log(`🔄 Trocando para ${SEASONS[seasonId].name}...`);
-      
+
       // Tentar carregar do cache local primeiro
       const cache = storageService.getCache(seasonId);
-      
+
       if (cache && cache.players.length > 0) {
         console.log(`✅ Carregando ${SEASONS[seasonId].name} do cache local`);
         setPlayers(cache.players);
@@ -466,10 +466,10 @@ function HomePageContent() {
         console.log(`⚠️ Cache vazio, buscando ${SEASONS[seasonId].name} do Redis...`);
         await loadFromAPI(seasonId);
       }
-      
+
       // ✅ Carregar map stats também
       await loadMapStats(seasonId);
-      
+
     } catch (err) {
       console.error('Erro ao trocar season:', err);
       setError(err instanceof Error ? err.message : 'Erro ao trocar season');
@@ -490,16 +490,16 @@ function HomePageContent() {
     result = result.filter(player => player.matchesPlayed > 0);
 
     result = filterBySearch(result, filters.searchTerm);
-    
+
     const pot = filters.pot ?? 'all';
     const potFilter = pot === 'all' ? 'all' : Number(pot);
     result = filterByPot(result, potFilter);
 
     // ✅ Ordenar com critérios de desempate específicos da Season 1
     result.sort((a, b) => comparePlayers(
-      a, 
-      b, 
-      filters.sortBy, 
+      a,
+      b,
+      filters.sortBy,
       filters.sortOrder,
       activeSeason // ✅ Passa a season ativa para aplicar critérios de desempate
     ));
@@ -532,7 +532,7 @@ function HomePageContent() {
     return (
       <>
         <LoadingState />
-        
+
         {/* Admin Panel - Disponível em todos os estados */}
         <AdminPanel
           isAdmin={isAdmin}
@@ -541,13 +541,7 @@ function HomePageContent() {
           onClose={() => setShowAdminModal(false)}
           onLogout={adminLogout}
           onForceUpdate={handleForceUpdate}
-          onUpdateMapStats={handleUpdateMapStats}
           isUpdating={isForceUpdating}
-          isUpdatingMapStats={isUpdatingMapStats}
-          minGamesFilterSeason1={minGamesFilterSeason1}
-          onToggleMinGamesFilter={handleToggleMinGamesFilter}
-          showStatsCards={showStatsCards}
-          onToggleStatsCardsVisibility={handleToggleStatsCardsVisibility}
         />
       </>
     );
@@ -565,7 +559,7 @@ function HomePageContent() {
           </div>
 
           {/* ✅ Abas de Seasons */}
-          <SeasonHeader 
+          <SeasonHeader
             activeSeason={activeSeason}
             onSeasonChange={handleSeasonChange}
             lastUpdated={lastUpdated}
@@ -577,22 +571,22 @@ function HomePageContent() {
           <div className="flex items-center justify-center p-4 mt-12">
             <div className="card max-w-md w-full text-center py-12 px-6">
               <div className="mb-6">
-                <svg 
-                  className="w-20 h-20 mx-auto text-faceit-orange mb-4" 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className="w-20 h-20 mx-auto text-faceit-orange mb-4"
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" 
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
                   />
                 </svg>
-                
+
                 <h2 className="text-2xl font-bold mb-3">Nenhum dado disponível para {SEASONS[activeSeason].name}</h2>
-                
+
                 <p className="text-text-secondary mb-6">
                   {activeSeason === 'SEASON_1' ? (
                     <>
@@ -608,12 +602,12 @@ function HomePageContent() {
 
                 <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6">
                   <p className="text-xs text-blue-300">
-                    💡 <strong>Nota:</strong> Isso busca os dados que já estão salvos no banco. 
+                    💡 <strong>Nota:</strong> Isso busca os dados que já estão salvos no banco.
                     Não faz novas requisições para a API da FACEIT.
                   </p>
                 </div>
               </div>
-              
+
               <button
                 onClick={handleRefreshData}
                 disabled={isRefreshing}
@@ -643,7 +637,7 @@ function HomePageContent() {
                     {error}
                   </p>
                   <p className="text-xs text-text-secondary mt-2">
-                    {activeSeason === 'SEASON_1' 
+                    {activeSeason === 'SEASON_1'
                       ? 'A Season 1 precisa ser atualizada pelo admin primeiro.'
                       : 'Tente trocar para outra season ou aguarde.'
                     }
@@ -662,13 +656,7 @@ function HomePageContent() {
           onClose={() => setShowAdminModal(false)}
           onLogout={adminLogout}
           onForceUpdate={handleForceUpdate}
-          onUpdateMapStats={handleUpdateMapStats}
           isUpdating={isForceUpdating}
-          isUpdatingMapStats={isUpdatingMapStats}
-          minGamesFilterSeason1={minGamesFilterSeason1}
-          onToggleMinGamesFilter={handleToggleMinGamesFilter}
-          showStatsCards={showStatsCards}
-          onToggleStatsCardsVisibility={handleToggleStatsCardsVisibility}
         />
       </div>
     );
@@ -678,7 +666,7 @@ function HomePageContent() {
     return (
       <>
         <ErrorState error={error} onRetry={handleRefreshData} />
-        
+
         {/* Admin Panel - Disponível no error state */}
         <AdminPanel
           isAdmin={isAdmin}
@@ -687,13 +675,7 @@ function HomePageContent() {
           onClose={() => setShowAdminModal(false)}
           onLogout={adminLogout}
           onForceUpdate={handleForceUpdate}
-          onUpdateMapStats={handleUpdateMapStats}
           isUpdating={isForceUpdating}
-          isUpdatingMapStats={isUpdatingMapStats}
-          minGamesFilterSeason1={minGamesFilterSeason1}
-          onToggleMinGamesFilter={handleToggleMinGamesFilter}
-          showStatsCards={showStatsCards}
-          onToggleStatsCardsVisibility={handleToggleStatsCardsVisibility}
         />
       </>
     );
@@ -711,7 +693,7 @@ function HomePageContent() {
           onRefreshData={handleRefreshData}
           isRefreshing={isRefreshing}
         />
-        
+
         {/* Header com título e filtros */}
         <StatsHeader
           filters={filters}
@@ -724,7 +706,7 @@ function HomePageContent() {
           onRefreshData={handleRefreshData}
           isRefreshing={isRefreshing}
         />
-        
+
         {/* Badge de notificação de novos dados */}
         <UpdateBadge
           isUpdating={isForceUpdating}
@@ -732,7 +714,7 @@ function HomePageContent() {
           hasNewData={hasNewData}
           onRefresh={() => handleForceUpdate(activeSeason)}
         />
-        
+
         {/* ✅ Destaques e Mapas - TODAS AS SEASONS */}
         {filteredPlayers.length > 0 && (
           <SeasonStatsSection
@@ -743,7 +725,7 @@ function HomePageContent() {
             minGamesFilter={activeSeason === 'SEASON_0' ? 10 : 0}  // ✅ 10+ jogos apenas Season 0
           />
         )}
-        
+
         {/* <PrizeCards /> */}
 
         {/* Error banner */}
@@ -773,11 +755,10 @@ function HomePageContent() {
           <div className="flex bg-faceit-darker rounded-lg p-1 border border-faceit-light-gray">
             <button
               onClick={() => setViewMode('cards')}
-              className={`px-4 py-2 rounded-md transition-all ${
-                viewMode === 'cards'
-                  ? 'bg-faceit-orange text-white'
-                  : 'text-text-secondary hover:text-white'
-              }`}
+              className={`px-4 py-2 rounded-md transition-all ${viewMode === 'cards'
+                ? 'bg-faceit-orange text-white'
+                : 'text-text-secondary hover:text-white'
+                }`}
               title="Vista de Cards"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -786,11 +767,10 @@ function HomePageContent() {
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`px-4 py-2 rounded-md transition-all ${
-                viewMode === 'table'
-                  ? 'bg-faceit-orange text-white'
-                  : 'text-text-secondary hover:text-white'
-              }`}
+              className={`px-4 py-2 rounded-md transition-all ${viewMode === 'table'
+                ? 'bg-faceit-orange text-white'
+                : 'text-text-secondary hover:text-white'
+                }`}
               title="Vista de Tabela"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -837,13 +817,7 @@ function HomePageContent() {
         onClose={() => setShowAdminModal(false)}
         onLogout={adminLogout}
         onForceUpdate={handleForceUpdate}
-        onUpdateMapStats={handleUpdateMapStats}
         isUpdating={isForceUpdating}
-        isUpdatingMapStats={isUpdatingMapStats}
-        minGamesFilterSeason1={minGamesFilterSeason1}
-        onToggleMinGamesFilter={handleToggleMinGamesFilter}
-        showStatsCards={showStatsCards}
-        onToggleStatsCardsVisibility={handleToggleStatsCardsVisibility}
       />
 
       {/* Player Management Panel */}
