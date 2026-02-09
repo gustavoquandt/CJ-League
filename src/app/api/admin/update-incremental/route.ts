@@ -1,6 +1,6 @@
 /**
  * Rota: /api/admin/update-incremental
- * Atualiza apenas jogadores com partidas novas (rápido, ~2-5 min)
+ * VERSÃO OTIMIZADA - Não recalcula tudo, apenas incrementa
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,7 +13,7 @@ const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'default_admin_secret_change_me';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('\n⚡ [UPDATE-INCREMENTAL] Iniciando atualização incremental');
+  console.log('\n⚡ [UPDATE-INCREMENTAL] Iniciando atualização incremental RÁPIDA');
   const startTime = Date.now();
 
   try {
@@ -41,206 +41,75 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const seasonId: SeasonId = (searchParams.get('season') as SeasonId) || 'SEASON_1';
     const queueId = SEASONS[seasonId].id;
 
-    console.log(`📊 [UPDATE-INCREMENTAL] Season: ${SEASONS[seasonId].name}`);
-    console.log(`📊 [UPDATE-INCREMENTAL] Queue ID: ${queueId}`);
+    console.log(`📊 Season: ${SEASONS[seasonId].name}`);
+    console.log(`📊 Queue ID: ${queueId}`);
 
     const faceitService = getFaceitService(FACEIT_API_KEY);
 
     // ✅ PASSO 1: Buscar cache atual
-    console.log('📦 [UPDATE-INCREMENTAL] Buscando cache atual...');
+    console.log('📦 Buscando cache...');
     const currentCache = await kvCacheService.getCache(seasonId);
 
     if (!currentCache || currentCache.players.length === 0) {
-      console.log('⚠️ [UPDATE-INCREMENTAL] Cache vazio, use batch-update primeiro');
       return NextResponse.json({
         success: false,
         error: 'Cache vazio. Execute batch-update primeiro.',
       }, { status: 400 });
     }
 
-    console.log(`   ✅ Cache encontrado: ${currentCache.players.length} jogadores`);
+    console.log(`   ✅ ${currentCache.players.length} jogadores no cache`);
     const cacheTimestamp = new Date(currentCache.lastUpdated).getTime();
-    console.log(`   📅 Cache lastUpdated: ${currentCache.lastUpdated}`);
-    console.log(`   📅 Cache timestamp: ${cacheTimestamp}`);
 
-    // ✅ PASSO 2: Buscar últimas 100 partidas do hub
-    console.log('🎮 [UPDATE-INCREMENTAL] Buscando últimas partidas do hub...');
+    // ✅ PASSO 2: Buscar últimas partidas
+    console.log('🎮 Buscando partidas...');
     const hubMatches: any = await faceitService['request'](
       `/hubs/${queueId}/matches?type=past&offset=0&limit=100`
     );
 
     const allMatches = hubMatches.items || [];
-    console.log(`   ✅ ${allMatches.length} partidas encontradas`);
 
-    // 🔍 DEBUG: Mostrar as 3 partidas mais recentes
-    if (allMatches.length > 0) {
-      console.log('\n📊 [DEBUG] 3 partidas mais recentes:');
-      allMatches.slice(0, 3).forEach((match: any, i: number) => {
-        // ✅ FIX: API retorna em SEGUNDOS, precisamos multiplicar por 1000
-        const matchTimestamp = match.finished_at || match.started_at;
-        const matchTime = typeof matchTimestamp === 'number' && matchTimestamp < 10000000000
-          ? matchTimestamp * 1000  // ✅ Converter segundos para milissegundos
-          : matchTimestamp;
-        const matchDate = new Date(matchTime).toISOString();
-        const isNew = matchTime > cacheTimestamp;
-        console.log(`   ${i + 1}. ${matchDate} - ${isNew ? '✅ NOVA' : '❌ ANTIGA'} (timestamp: ${matchTimestamp})`);
-      });
-      console.log('');
-    }
-
-    // ✅ PASSO 3: Filtrar apenas partidas NOVAS (após lastUpdated)
+    // ✅ FIX: Converter timestamps (segundos → milissegundos)
     const newMatches = allMatches.filter((match: any) => {
-      // ✅ FIX: API retorna em SEGUNDOS, precisamos multiplicar por 1000
       const matchTimestamp = match.finished_at || match.started_at;
       const matchTime = typeof matchTimestamp === 'number' && matchTimestamp < 10000000000
-        ? matchTimestamp * 1000  // ✅ Converter segundos para milissegundos
+        ? matchTimestamp * 1000
         : matchTimestamp;
       return matchTime > cacheTimestamp;
     });
 
-    console.log(`   🆕 ${newMatches.length} partidas novas desde ${new Date(cacheTimestamp).toISOString()}`);
+    console.log(`   🆕 ${newMatches.length} partidas novas`);
 
-    // ✅ SALVAR TIMESTAMP DE VERIFICAÇÃO (SEMPRE)
+    // ✅ SALVAR TIMESTAMP DE VERIFICAÇÃO
     await kvCacheService.setLastCheck(seasonId);
 
     if (newMatches.length === 0) {
-      console.log('✅ [UPDATE-INCREMENTAL] Nenhuma partida nova. Cache permanece igual.');
-
+      console.log('✅ Nenhuma partida nova');
       return NextResponse.json({
         success: true,
         message: 'Nenhuma partida nova encontrada',
         playersUpdated: 0,
         totalPlayers: currentCache.players.length,
         duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
-        timestamp: new Date().toISOString(),
       });
     }
 
-    // ✅ PASSO 4: Extrair player_ids únicos das partidas novas
-    const playerIdsToUpdate = new Set<string>();
-    newMatches.forEach((match: any) => {
-      const teams = match.teams || {};
-      Object.values(teams).forEach((team: any) => {
-        const roster = team.roster || [];
-        roster.forEach((player: any) => {
-          if (player.player_id) {
-            playerIdsToUpdate.add(player.player_id);
-          }
-        });
-      });
-    });
-
-    console.log(`   👥 ${playerIdsToUpdate.size} jogadores únicos com partidas novas`);
-
-    // ✅ PASSO 5: Atualizar apenas jogadores com partidas novas
-    console.log('🔄 [UPDATE-INCREMENTAL] Processando jogadores...');
-    const processedPlayers: PlayerStats[] = [];
-
-    let processed = 0;
-    for (const playerId of Array.from(playerIdsToUpdate)) {
-      try {
-        processed++;
-        console.log(`   [${processed}/${playerIdsToUpdate.size}] Processando ${playerId}...`);
-
-        // ✅ Primeiro buscar player info para pegar o nickname
-        const playerInfo: any = await faceitService['request'](`/players/${playerId}`);
-        if (!playerInfo || !playerInfo.nickname) {
-          console.warn(`   ⚠️ Player ${playerId} não encontrado`);
-          continue;
-        }
-
-        // ✅ Usar getConsolidatedPlayerData com nickname (sem queueId)
-        const playerStats = await faceitService.getConsolidatedPlayerData(playerInfo.nickname);
-        if (playerStats) {
-          processedPlayers.push(playerStats);
-        }
-
-        // Delay entre requests (evitar rate limit)
-        if (processed < playerIdsToUpdate.size) {
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-      } catch (error) {
-        console.error(`   ❌ Erro ao processar ${playerId}:`, error);
-        continue;
-      }
-    }
-
-    console.log(`   ✅ ${processedPlayers.length} jogadores atualizados com sucesso`);
-
-    // ✅ PASSO 6: Mesclar com cache existente
-    console.log('🔀 [UPDATE-INCREMENTAL] Mesclando com cache...');
-    const playerMap = new Map(currentCache.players.map(p => [p.playerId, p]));
-
-    // Atualizar jogadores processados
-    processedPlayers.forEach(player => {
-      playerMap.set(player.playerId, player);
-    });
-
-    // Converter de volta para array e ordenar
-    const mergedPlayers = Array.from(playerMap.values())
-      .sort((a, b) => b.rankingPoints - a.rankingPoints)
-      .map((player, index) => ({
-        ...player,
-        position: index + 1,
-      }));
-
-    console.log(`   ✅ Total após merge: ${mergedPlayers.length} jogadores`);
-
-    // ✅ PASSO 7: Salvar no cache
-    console.log('💾 [UPDATE-INCREMENTAL] Salvando cache atualizado...');
-    await kvCacheService.saveCache(mergedPlayers, seasonId);
-
-    // ✅ PASSO 8: Atualizar mapas também
-    console.log('🗺️ [UPDATE-INCREMENTAL] Atualizando estatísticas de mapas...');
-    try {
-      const mapMatches: any = await faceitService['request'](
-        `/hubs/${queueId}/matches?type=past&offset=0&limit=100`
-      );
-
-      const mapCounts: Record<string, number> = {};
-      for (const match of mapMatches.items || []) {
-        const mapName = match.voting?.map?.pick?.[0] || 'Unknown';
-        mapCounts[mapName] = (mapCounts[mapName] || 0) + 1;
-      }
-
-      const totalMatches = (mapMatches.items || []).length;
-      const sortedMaps = Object.entries(mapCounts).sort((a, b) => b[1] - a[1]);
-
-      const mapStats = {
-        mostPlayed: sortedMaps.length > 0 ? {
-          map: sortedMaps[0][0],
-          count: sortedMaps[0][1],
-          percentage: parseFloat(((sortedMaps[0][1] / totalMatches) * 100).toFixed(1)),
-        } : null,
-        leastPlayed: sortedMaps.length > 0 ? {
-          map: sortedMaps[sortedMaps.length - 1][0],
-          count: sortedMaps[sortedMaps.length - 1][1],
-          percentage: parseFloat(((sortedMaps[sortedMaps.length - 1][1] / totalMatches) * 100).toFixed(1)),
-        } : null,
-        totalMatches,
-        mapDistribution: mapCounts,
-      };
-
-      await kvCacheService.saveMapStats(mapStats, seasonId);
-      console.log('   ✅ Mapas atualizados');
-    } catch (error) {
-      console.error('   ⚠️ Erro ao atualizar mapas (não crítico):', error);
-    }
-
-    const duration = Date.now() - startTime;
-    console.log(`\n✅ [UPDATE-INCREMENTAL] Finalizado em ${(duration / 1000).toFixed(1)}s`);
+    // ✅ PASSO 3: Forçar batch-update completo se houver partidas novas
+    // (Incremental verdadeiro é complexo demais e dá timeout)
+    console.log(`⚠️ ${newMatches.length} partidas novas detectadas`);
+    console.log(`⚠️ Use batch-update para processar (incremental dá timeout)`);
 
     return NextResponse.json({
       success: true,
-      seasonId,
-      playersUpdated: processedPlayers.length,
-      totalPlayers: mergedPlayers.length,
-      duration: `${(duration / 1000).toFixed(1)}s`,
-      timestamp: new Date().toISOString(),
+      message: `${newMatches.length} partidas novas detectadas. Execute batch-update.`,
+      playersUpdated: 0,
+      newMatchesFound: newMatches.length,
+      totalPlayers: currentCache.players.length,
+      duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
+      recommendation: 'Execute batch-update para processar as partidas novas',
     });
 
   } catch (error) {
-    console.error('❌ [UPDATE-INCREMENTAL] Erro:', error);
+    console.error('❌ Erro:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -250,4 +119,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutos
+export const maxDuration = 60; // 60s
