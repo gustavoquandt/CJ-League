@@ -9,13 +9,7 @@ interface AdminPanelProps {
   onClose: () => void;
   onLogout: () => void;
   onForceUpdate: (seasonId: 'SEASON_0' | 'SEASON_1') => void;
-  onUpdateMapStats: (seasonId: 'SEASON_0' | 'SEASON_1') => void;
   isUpdating: boolean;
-  isUpdatingMapStats?: boolean;
-  minGamesFilterSeason1: boolean; // ✅ NOVO
-  onToggleMinGamesFilter: () => void; // ✅ NOVO
-  showStatsCards: boolean; // ✅ NOVO: Mostrar/Ocultar Stats Cards globalmente
-  onToggleStatsCardsVisibility: () => void; // ✅ NOVO
 }
 
 export default function AdminPanel({
@@ -25,13 +19,7 @@ export default function AdminPanel({
   onClose,
   onLogout,
   onForceUpdate,
-  onUpdateMapStats,
-  showStatsCards, // ✅ NOVO
-  onToggleStatsCardsVisibility, // ✅ NOVO
-  minGamesFilterSeason1, // ✅ NOVO
-  onToggleMinGamesFilter, // ✅ NOVO
   isUpdating,
-  isUpdatingMapStats = false,
 }: AdminPanelProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -42,6 +30,7 @@ export default function AdminPanel({
       onLogin(password);
       setPassword('');
       setError('');
+      // ✅ NÃO FECHA O MODAL - deixa o hook decidir
     }
   };
 
@@ -106,14 +95,14 @@ export default function AdminPanel({
             </div>
 
             <div className="space-y-3">
-              {/* ✅ ATUALIZAR PLAYERS - Season 1 */}
+              {/* ✅ ATUALIZAR Season 1 (Batch Update) */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
-                  Season Atual - Players
+                  Season 1 (Atual)
                 </p>
                 <button
                   onClick={() => onForceUpdate('SEASON_1')}
-                  disabled={isUpdating || isUpdatingMapStats}
+                  disabled={isUpdating}
                   className="w-full btn-primary flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUpdating ? (
@@ -129,52 +118,23 @@ export default function AdminPanel({
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      <span>Atualizar Players Season 1 ⚡</span>
+                      <span>Atualizar Season 1 ⚡</span>
                     </>
                   )}
                 </button>
                 <p className="text-xs text-text-secondary">
-                  🔄 Atualiza estatísticas dos jogadores (~25 min)
+                  🔄 Atualiza jogadores + mapas (~25 min)
                 </p>
               </div>
 
-              {/* ✅ ATUALIZAR MAP STATS - Season 1 */}
-              <div className="space-y-2">
-                <button
-                  onClick={() => onUpdateMapStats('SEASON_1')}
-                  disabled={isUpdating || isUpdatingMapStats}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isUpdatingMapStats ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      <span>Atualizando Mapas...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                      </svg>
-                      <span>Atualizar Mapas Season 1 🗺️</span>
-                    </>
-                  )}
-                </button>
-                <p className="text-xs text-text-secondary">
-                  🗺️ Atualiza apenas os cards de mapas (~10 segundos)
-                </p>
-              </div>
-
-              {/* ✅ ATUALIZAR PLAYERS - Season 0 */}
+              {/* ✅ ATUALIZAR Season 0 (Histórico) */}
               <div className="space-y-2 pt-2 border-t border-faceit-light-gray">
                 <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
-                  Histórico - Players
+                  Season 0 (Histórico)
                 </p>
                 <button
                   onClick={() => onForceUpdate('SEASON_0')}
-                  disabled={isUpdating || isUpdatingMapStats}
+                  disabled={isUpdating}
                   className="w-full btn-secondary flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUpdating ? (
@@ -190,7 +150,7 @@ export default function AdminPanel({
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                       </svg>
-                      <span>Atualizar Players Season 0</span>
+                      <span>Atualizar Season 0</span>
                     </>
                   )}
                 </button>
@@ -199,82 +159,7 @@ export default function AdminPanel({
                 </p>
               </div>
 
-              {/* ✅ ATUALIZAR MAP STATS - Season 0 */}
-              <div className="space-y-2">
-                <button
-                  onClick={() => onUpdateMapStats('SEASON_0')}
-                  disabled={isUpdating || isUpdatingMapStats}
-                  className="w-full bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isUpdatingMapStats ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      <span>Atualizando Mapas...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                      </svg>
-                      <span>Atualizar Mapas Season 0 🗺️</span>
-                    </>
-                  )}
-                </button>
-                <p className="text-xs text-text-secondary">
-                  🗺️ Atualiza apenas os cards de mapas do histórico
-                </p>
-              </div>
-
               {/* Logout */}
-
-
-              {/* ✅ NOVO: Toggle visibilidade global Stats Cards */}
-              <div className="pt-2 border-t border-faceit-light-gray">
-                <label className="flex items-center gap-3 px-3 py-2 bg-faceit-darker rounded-lg cursor-pointer hover:bg-faceit-light-gray/10 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={showStatsCards}
-                    onChange={onToggleStatsCardsVisibility}
-                    className="w-4 h-4 rounded border-faceit-light-gray bg-faceit-dark text-faceit-orange focus:ring-2 focus:ring-faceit-orange"
-                  />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium">👁️ Mostrar Stats Cards</span>
-                    <p className="text-xs text-text-secondary mt-0.5">
-                      {showStatsCards 
-                        ? "✅ Visível para TODOS os usuários" 
-                        : "🔒 Oculto para TODOS os usuários"}
-                    </p>
-                    <p className="text-xs text-text-secondary/70 mt-0.5">
-                      (Use durante testes de deploy)
-                    </p>
-                  </div>
-                </label>
-              </div>
-              {/* ✅ NOVO: Toggle filtro cards Season 1 */}
-              <div className="pt-2 border-t border-faceit-light-gray">
-                <label className="flex items-center gap-3 px-3 py-2 bg-faceit-darker rounded-lg cursor-pointer hover:bg-faceit-light-gray/10 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={minGamesFilterSeason1}
-                    onChange={onToggleMinGamesFilter}
-                    className="w-4 h-4 rounded border-faceit-light-gray bg-faceit-dark text-faceit-orange focus:ring-2 focus:ring-faceit-orange"
-                  />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium">Filtrar Cards: 10+ jogos</span>
-                    <p className="text-xs text-text-secondary mt-0.5">
-                      {minGamesFilterSeason1 
-                        ? "✅ Mostrando apenas jogadores com 10+ partidas" 
-                        : "📊 Mostrando todos os jogadores"}
-                    </p>
-                    <p className="text-xs text-text-secondary/70 mt-0.5">
-                      (Aplica-se apenas à Season 1)
-                    </p>
-                  </div>
-                </label>
-              </div>
               <div className="pt-2 border-t border-faceit-light-gray">
                 <button
                   onClick={onLogout}

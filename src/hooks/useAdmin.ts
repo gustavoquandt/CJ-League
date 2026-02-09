@@ -18,7 +18,7 @@ export function useAdmin() {
     const adminParam = searchParams.get('admin');
     if (adminParam === ADMIN_SECRET) {
       setIsAdmin(true);
-      console.log('🔐 Modo admin ativado via URL');
+      console.log('🔓 Modo admin ativado via URL');
       
       // Salvar no sessionStorage
       sessionStorage.setItem('admin_auth', 'true');
@@ -51,8 +51,8 @@ export function useAdmin() {
     if (password === ADMIN_SECRET) {
       setIsAdmin(true);
       sessionStorage.setItem('admin_auth', 'true');
-      setShowAdminModal(false);
-      console.log('🔐 Modo admin ativado via modal');
+      // ✅ NÃO FECHA O MODAL - deixa aberto para mostrar opções
+      console.log('🔓 Modo admin ativado via modal');
       return true;
     }
     return false;
@@ -62,7 +62,8 @@ export function useAdmin() {
   const adminLogout = () => {
     setIsAdmin(false);
     sessionStorage.removeItem('admin_auth');
-    console.log('🔓 Modo admin desativado');
+    setShowAdminModal(false); // ✅ Fecha modal ao fazer logout
+    console.log('🔒 Modo admin desativado');
   };
 
   return {
