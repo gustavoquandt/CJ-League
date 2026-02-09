@@ -242,4 +242,40 @@ export const kvCacheService = {
       return null;
     }
   },
+
+  /**
+   * ✅ NOVO: Salvar timestamp da última verificação
+   */
+  async setLastCheck(seasonId: SeasonId = 'SEASON_1'): Promise<void> {
+    try {
+      const key = `cj-stats:last-check:${seasonId}`;
+      await redis.set(key, new Date().toISOString());
+      console.log(`✅ [REDIS] Last check salvo (${seasonId})`);
+    } catch (error) {
+      console.error('❌ [REDIS] Erro ao salvar last check:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * ✅ NOVO: Buscar timestamp da última verificação
+   */
+  async getLastCheck(seasonId: SeasonId = 'SEASON_1'): Promise<string | null> {
+    try {
+      const key = `cj-stats:last-check:${seasonId}`;
+      const cached = await redis.get(key);
+      
+      if (!cached) {
+        return null;
+      }
+
+      const timestamp = typeof cached === 'string' ? cached : String(cached);
+      console.log(`✅ [REDIS] Last check lido (${seasonId}): ${timestamp}`);
+      
+      return timestamp;
+    } catch (error) {
+      console.error('❌ [REDIS] Erro ao ler last check:', error);
+      return null;
+    }
+  },
 };

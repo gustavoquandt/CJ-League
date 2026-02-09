@@ -4,7 +4,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv'; // ✅ IMPORTAR KV DIRETAMENTE
 import { kvCacheService } from '@/services/kv-cache.service';
 import type { SeasonId } from '@/config/constants';
 
@@ -25,8 +24,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // ✅ Buscar timestamp da última verificação
-    const lastCheckKey = `last-check:${seasonId}`;
-    const lastCheck = await kv.get<string>(lastCheckKey);
+    const lastCheck = await kvCacheService.getLastCheck(seasonId);
 
     return NextResponse.json({
       success: true,

@@ -78,13 +78,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     console.log(`   🆕 ${newMatches.length} partidas novas desde ${new Date(cacheTimestamp).toISOString()}`);
 
+    // ✅ SALVAR TIMESTAMP DE VERIFICAÇÃO (SEMPRE)
+    await kvCacheService.setLastCheck(seasonId);
+
     if (newMatches.length === 0) {
       console.log('✅ [UPDATE-INCREMENTAL] Nenhuma partida nova. Cache permanece igual.');
-      
-      // ✅ SALVAR TIMESTAMP DE VERIFICAÇÃO
-      const lastCheckKey = `last-check:${seasonId}`;
-      await kvCacheService.setRaw(lastCheckKey, new Date().toISOString());
-      console.log('   ✅ Timestamp de verificação salvo');
 
       return NextResponse.json({
         success: true,
@@ -122,7 +120,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         processed++;
         console.log(`   [${processed}/${playerIdsToUpdate.size}] Processando ${playerId}...`);
 
-        const playerStats = await faceitService.getPlayerHubStats(playerId, queueId);
+        // ✅ Primeiro buscar player info para pegar o nickname
+        const playerInfo: any = await faceitService['request'](`/players/${playerId}`);
+        if (!playerInfo || !playerInfo.nickname) {
+          console.warn(`   ⚠️ Player ${playerId} não encontrado`);
+          continue;
+        }
+
+        // ✅ Usar getConsolidatedPlayerData com nickname (sem queueId)
+        const playerStats = await faceitService.getConsolidatedPlayerData(playerInfo.nickname);
         if (playerStats) {
           processedPlayers.push(playerStats);
         }
@@ -161,11 +167,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // ✅ PASSO 7: Salvar no cache
     console.log('💾 [UPDATE-INCREMENTAL] Salvando cache atualizado...');
     await kvCacheService.saveCache(mergedPlayers, seasonId);
-
-    // ✅ SALVAR TIMESTAMP DE VERIFICAÇÃO
-    const lastCheckKey = `last-check:${seasonId}`;
-    await kvCacheService.setRaw(lastCheckKey, new Date().toISOString());
-    console.log('   ✅ Timestamp de verificação salvo');
 
     // ✅ PASSO 8: Atualizar mapas também
     console.log('🗺️ [UPDATE-INCREMENTAL] Atualizando estatísticas de mapas...');
