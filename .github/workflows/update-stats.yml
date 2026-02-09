@@ -1,9 +1,9 @@
-name: Update CJ Stats
+name: Update CJ Stats (Incremental)
 
 on:
   schedule:
-    # 05:00 UTC = 02:00 AM Brasília
-    - cron: '0 5 * * *'
+    # A cada 2 horas
+    - cron: '0 */2 * * *'
   
   # Permite executar manualmente
   workflow_dispatch:
@@ -11,15 +11,15 @@ on:
 jobs:
   update-stats:
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # 60 minutos de timeout
+    timeout-minutes: 10  # Apenas 10 minutos (incremental é rápido)
     
     steps:
-      - name: Update Season 1 Stats
+      - name: Update Season 1 (Incremental)
         run: |
-          echo "🚀 Iniciando atualização da Season 1..."
+          echo "⚡ Iniciando atualização incremental da Season 1..."
           
           response=$(curl -X POST \
-            "https://www.statscj.com/api/admin/update-all?season=SEASON_1" \
+            "https://www.statscj.com/api/admin/update-incremental?season=SEASON_1" \
             -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
             -H "Content-Type: application/json" \
             -w "\n%{http_code}" \
@@ -37,10 +37,9 @@ jobs:
             exit 1
           fi
           
-          echo "✅ Season 1 atualizada com sucesso!"
+          echo "✅ Season 1 atualizada incrementalmente!"
       
       - name: Send notification on failure
         if: failure()
         run: |
           echo "❌ Atualização falhou! Verifique os logs."
-          # Opcional: Adicionar notificação por email/Slack aqui
