@@ -59,7 +59,7 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
     if (isLoading) {
         return (
             <div className="mb-8">
-                <h2 className="text-2xl font-bold mb-4">Mapas</h2>
+                <h2 className="text-2xl font-bold mb-4">Partidas</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
                     {CS2_MAP_POOL.map((mapName) => (
                         <div
