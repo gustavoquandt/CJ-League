@@ -1,25 +1,23 @@
-name: Update CJ Stats (Incremental)
+name: Update CJ League Stats
 
 on:
   schedule:
-    # A cada 2 horas
+    # A cada 2 horas (horas pares: 00:00, 02:00, 04:00, etc)
     - cron: '0 */2 * * *'
-  
-  # Permite executar manualmente
-  workflow_dispatch:
+  workflow_dispatch:  # Permite rodar manualmente
 
 jobs:
   update-stats:
     runs-on: ubuntu-latest
-    timeout-minutes: 10  # Apenas 10 minutos (incremental é rápido)
+    timeout-minutes: 30  # Timeout de 30 minutos
     
     steps:
-      - name: Update Season 1 (Incremental)
+      - name: Update Season 1 (Batch)
         run: |
-          echo "⚡ Iniciando atualização incremental da Season 1..."
+          echo "⚡ Iniciando atualização COMPLETA da Season 1..."
           
           response=$(curl -X POST \
-            "https://www.statscj.com/api/admin/update-incremental?season=SEASON_1" \
+            "https://www.statscj.com/api/admin/batch-update?season=SEASON_1" \
             -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
             -H "Content-Type: application/json" \
             -w "\n%{http_code}" \
@@ -37,9 +35,32 @@ jobs:
             exit 1
           fi
           
-          echo "✅ Season 1 atualizada incrementalmente!"
+          echo "✅ Season 1 atualizada com sucesso!"
       
-      - name: Send notification on failure
-        if: failure()
+      - name: Wait between seasons
+        run: sleep 10
+      
+      - name: Update Season 0 (Batch)
         run: |
-          echo "❌ Atualização falhou! Verifique os logs."
+          echo "⚡ Iniciando atualização COMPLETA da Season 0..."
+          
+          response=$(curl -X POST \
+            "https://www.statscj.com/api/admin/batch-update?season=SEASON_0" \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            -s)
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "📊 Status Code: $http_code"
+          echo "📋 Response:"
+          echo "$body" | jq '.' || echo "$body"
+          
+          if [ "$http_code" != "200" ]; then
+            echo "❌ Erro na atualização!"
+            exit 1
+          fi
+          
+          echo "✅ Season 0 atualizada com sucesso!"
