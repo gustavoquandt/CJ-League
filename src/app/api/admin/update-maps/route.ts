@@ -21,6 +21,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // 🔐 Autenticação
     const authHeader = request.headers.get('authorization');
     const providedSecret = authHeader?.replace('Bearer ', '');
+    
+    // ✅ DEBUG LOGS
+    console.log('🔍 [DEBUG] authHeader completo:', authHeader);
+    console.log('🔍 [DEBUG] providedSecret (após remover Bearer):', providedSecret);
+    console.log('🔍 [DEBUG] ADMIN_SECRET do env:', process.env.ADMIN_SECRET);
+    console.log('🔍 [DEBUG] ADMIN_SECRET const:', ADMIN_SECRET);
+    console.log('🔍 [DEBUG] Tokens são iguais?', providedSecret === ADMIN_SECRET);
+    console.log('🔍 [DEBUG] Tipo providedSecret:', typeof providedSecret);
+    console.log('🔍 [DEBUG] Tipo ADMIN_SECRET:', typeof ADMIN_SECRET);
+    console.log('🔍 [DEBUG] Length providedSecret:', providedSecret?.length);
+    console.log('🔍 [DEBUG] Length ADMIN_SECRET:', ADMIN_SECRET?.length);
 
     if (!providedSecret || providedSecret !== ADMIN_SECRET) {
       console.log('❌ [UPDATE-MAPS] Não autorizado');
