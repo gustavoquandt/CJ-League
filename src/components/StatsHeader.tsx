@@ -50,7 +50,7 @@ export default function StatsHeader({
         </div>
 
         {/* Update Badge (substitui o botão de atualizar) */}
-        <UpdateBadge isUpdating={isUpdating} progress={updateProgress} />
+        
       </div>
 
       {/* Filters */}
