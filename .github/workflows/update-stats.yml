@@ -108,12 +108,37 @@ jobs:
           echo "✅ INCREMENTAL FINALIZADO!"
           echo "📊 Jogadores atualizados: $PLAYER_COUNT"
           echo "🎉 ========================================="
+
+      - name: Update map stats
+        if: steps.check.outputs.hasNew == 'true'
+        run: |
+          echo "🗺️ Atualizando estatísticas de mapas..."
+
+          response=$(curl -X POST \
+            "https://www.statscj.com/api/admin/update-map-stats?season=SEASON_1" \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            -s)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "📊 Status Code: $http_code"
+          echo "$body" | jq '.' || echo "$body"
+
+          if [ "$http_code" = "200" ]; then
+            echo "✅ Mapas atualizados e salvos no Redis!"
+          else
+            echo "⚠️ Aviso: falha ao atualizar mapas (não crítico)"
+          fi
       
       - name: Summary
         run: |
           if [ "${{ steps.check.outputs.hasNew }}" = "true" ]; then
             echo "📊 Resumo:"
             echo "   • ${{ steps.check.outputs.playerCount }} jogadores atualizados"
+            echo "   • 🗺️ Mapas atualizados"
             echo "   • ✅ Incremental executado"
           else
             echo "✅ Nenhuma atualização necessária"

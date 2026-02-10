@@ -1,6 +1,7 @@
 /**
- * Rota: /api/admin/update-incremental
- * VERSÃO OTIMIZADA - Não recalcula tudo, apenas incrementa
+ * Rota: /api/admin/process-incremental
+ * VERSÃO RÁPIDA: Usa fetchPlayerWithMatches com lastMatchId
+ * Busca APENAS partidas novas → soma com cache → salva
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,7 +14,6 @@ const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'default_admin_secret_change_me';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('\n⚡ [UPDATE-INCREMENTAL] Iniciando atualização incremental RÁPIDA');
   const startTime = Date.now();
 
   try {
@@ -22,94 +22,120 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const providedSecret = authHeader?.replace('Bearer ', '');
 
     if (!providedSecret || providedSecret !== ADMIN_SECRET) {
-      console.log('❌ [UPDATE-INCREMENTAL] Não autorizado');
-      return NextResponse.json({
-        success: false,
-        error: 'Não autorizado',
-      }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 });
     }
 
     if (!FACEIT_API_KEY) {
-      return NextResponse.json({
-        success: false,
-        error: 'FACEIT API Key não configurada',
-      }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'FACEIT API Key não configurada' }, { status: 500 });
     }
 
-    // 📋 Parâmetros
+    // ✅ Ler parâmetros
     const { searchParams } = new URL(request.url);
     const seasonId: SeasonId = (searchParams.get('season') as SeasonId) || 'SEASON_1';
-    const queueId = SEASONS[seasonId].id;
 
-    console.log(`📊 Season: ${SEASONS[seasonId].name}`);
-    console.log(`📊 Queue ID: ${queueId}`);
+    let body: any = {};
+    try {
+      const text = await request.text();
+      if (text) body = JSON.parse(text);
+    } catch (e) {}
 
-    const faceitService = getFaceitService(FACEIT_API_KEY);
+    const playerNicknames: string[] = body.playerNicknames || [];
+    const playerIndex: number = body.playerIndex || 0;
+    const existingUpdates: Partial<PlayerStats>[] = body.existingUpdates || [];
 
-    // ✅ PASSO 1: Buscar cache atual
-    console.log('📦 Buscando cache...');
-    const currentCache = await kvCacheService.getCache(seasonId);
+    console.log(`\n⚡ [INCREMENTAL ${playerIndex + 1}/${playerNicknames.length}]`);
 
-    if (!currentCache || currentCache.players.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Cache vazio. Execute batch-update primeiro.',
-      }, { status: 400 });
+    if (playerNicknames.length === 0) {
+      return NextResponse.json({ success: false, error: 'playerNicknames é obrigatório' }, { status: 400 });
     }
 
-    console.log(`   ✅ ${currentCache.players.length} jogadores no cache`);
-    const cacheTimestamp = new Date(currentCache.lastUpdated).getTime();
+    // ✅ Buscar cache atual (onde estão os dados completos)
+    const currentCache = await kvCacheService.getCache(seasonId);
+    if (!currentCache) {
+      return NextResponse.json({ success: false, error: 'Cache não encontrado. Execute batch-update primeiro.' }, { status: 404 });
+    }
 
-    // ✅ PASSO 2: Buscar últimas partidas
-    console.log('🎮 Buscando partidas...');
-    const hubMatches: any = await faceitService['request'](
-      `/hubs/${queueId}/matches?type=past&offset=0&limit=100`
-    );
-
-    const allMatches = hubMatches.items || [];
-
-    // ✅ FIX: Converter timestamps (segundos → milissegundos)
-    const newMatches = allMatches.filter((match: any) => {
-      const matchTimestamp = match.finished_at || match.started_at;
-      const matchTime = typeof matchTimestamp === 'number' && matchTimestamp < 10000000000
-        ? matchTimestamp * 1000
-        : matchTimestamp;
-      return matchTime > cacheTimestamp;
-    });
-
-    console.log(`   🆕 ${newMatches.length} partidas novas`);
-
-    // ✅ SALVAR TIMESTAMP DE VERIFICAÇÃO
-    await kvCacheService.setLastCheck(seasonId);
-
-    if (newMatches.length === 0) {
-      console.log('✅ Nenhuma partida nova');
+    // ✅ Verificar se terminou
+    if (playerIndex >= playerNicknames.length) {
+      console.log(`✅ Todos os ${playerNicknames.length} jogadores processados!`);
       return NextResponse.json({
         success: true,
-        message: 'Nenhuma partida nova encontrada',
-        playersUpdated: 0,
-        totalPlayers: currentCache.players.length,
-        duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
+        message: 'Todos os jogadores processados',
+        hasMore: false,
+        playersUpdated: playerNicknames.length,
       });
     }
 
-    // ✅ PASSO 3: Forçar batch-update completo se houver partidas novas
-    // (Incremental verdadeiro é complexo demais e dá timeout)
-    console.log(`⚠️ ${newMatches.length} partidas novas detectadas`);
-    console.log(`⚠️ Use batch-update para processar (incremental dá timeout)`);
+    const nickname = playerNicknames[playerIndex];
+    const queueId = SEASONS[seasonId].id;
+    const faceitService = getFaceitService(FACEIT_API_KEY);
+
+    console.log(`   Jogador: ${nickname}`);
+
+    // ✅ Pegar cache individual do jogador (tem o lastMatchId)
+    const cachedPlayer = await kvCacheService.getPlayerCache(nickname, seasonId);
+    const lastMatchId = cachedPlayer?.lastMatchId || null;
+
+    console.log(`   lastMatchId: ${lastMatchId ? lastMatchId.substring(0, 8) + '...' : 'nenhum'}`);
+
+    try {
+      // ✅ CHAVE: Usar fetchPlayerWithMatches COM lastMatchId
+      // Busca APENAS partidas novas (após lastMatchId)
+      // Season 1 = SEMPRE recalcular do zero (shouldUseCache = false)
+      const playerData = await faceitService.fetchPlayerWithMatches(
+        nickname,
+        200,
+        lastMatchId,    // ← Para na última partida conhecida
+        queueId,
+        null            // Season 1 não usa cache incremental
+      );
+
+      if (playerData && playerData.matchesPlayed > 0) {
+        console.log(`   ✅ ${playerData.matchesPlayed} partidas processadas`);
+
+        // Salvar cache individual atualizado
+        await kvCacheService.savePlayerCache(nickname, playerData, seasonId);
+
+        // Atualizar no cache geral
+        const playerMap = new Map(currentCache.players.map(p => [p.playerId, p]));
+        playerMap.set(playerData.playerId, playerData);
+
+        const mergedPlayers = Array.from(playerMap.values())
+          .sort((a, b) => {
+            if (a.rankingPoints !== b.rankingPoints) return b.rankingPoints - a.rankingPoints;
+            if (a.wins !== b.wins) return b.wins - a.wins;
+            return b.matchesPlayed - a.matchesPlayed;
+          })
+          .map((p, i) => ({ ...p, position: i + 1 }));
+
+        await kvCacheService.saveCache(mergedPlayers, seasonId);
+        console.log(`   💾 Cache atualizado (${mergedPlayers.length} jogadores)`);
+      } else {
+        console.log(`   ⚡ Sem partidas novas para ${nickname}`);
+      }
+    } catch (error) {
+      console.error(`   ❌ Erro ao processar ${nickname}:`, error);
+    }
+
+    const duration = Date.now() - startTime;
+    const hasMore = playerIndex + 1 < playerNicknames.length;
+
+    console.log(`   ⏱️ ${(duration / 1000).toFixed(1)}s | hasMore: ${hasMore}`);
 
     return NextResponse.json({
       success: true,
-      message: `${newMatches.length} partidas novas detectadas. Execute batch-update.`,
-      playersUpdated: 0,
-      newMatchesFound: newMatches.length,
-      totalPlayers: currentCache.players.length,
-      duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
-      recommendation: 'Execute batch-update para processar as partidas novas',
+      seasonId,
+      currentPlayer: nickname,
+      playerIndex,
+      hasMore,
+      nextPlayerIndex: hasMore ? playerIndex + 1 : null,
+      playerNicknames,
+      existingUpdates,
+      duration: `${(duration / 1000).toFixed(1)}s`,
     });
 
   } catch (error) {
-    console.error('❌ Erro:', error);
+    console.error('❌ [INCREMENTAL] Erro:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -119,4 +145,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 60s
+export const maxDuration = 300;
