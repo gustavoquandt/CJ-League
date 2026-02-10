@@ -1,4 +1,4 @@
-name: Update CJ League Stats
+name: Update CJ League Stats (Incremental)
 
 on:
   schedule:
@@ -9,17 +9,48 @@ on:
 jobs:
   update-stats:
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # Timeout de 30 minutos
+    timeout-minutes: 30
     
     steps:
-      - name: Update Season 1 (Batch)
+      - name: Check for new matches
+        id: check
         run: |
-          echo "⚡ Iniciando atualização COMPLETA da Season 1..."
+          echo "🔍 Verificando partidas novas..."
+          
+          response=$(curl -s \
+            "https://www.statscj.com/api/admin/check-new-matches?season=SEASON_1")
+          
+          echo "📋 Response:"
+          echo "$response" | jq '.'
+          
+          # Extrair hasNewMatches
+          hasNew=$(echo "$response" | jq -r '.hasNewMatches')
+          playerCount=$(echo "$response" | jq -r '.playerIds | length // 0')
+          matchCount=$(echo "$response" | jq -r '.newMatchesCount // 0')
+          
+          echo "hasNew=$hasNew" >> $GITHUB_OUTPUT
+          echo "playerCount=$playerCount" >> $GITHUB_OUTPUT
+          echo "matchCount=$matchCount" >> $GITHUB_OUTPUT
+          echo "checkResponse<<EOF" >> $GITHUB_OUTPUT
+          echo "$response" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          if [ "$hasNew" = "true" ]; then
+            echo "✅ $matchCount partidas novas com $playerCount jogadores"
+          else
+            echo "✅ Nenhuma partida nova"
+          fi
+      
+      - name: Process incremental update
+        if: steps.check.outputs.hasNew == 'true'
+        run: |
+          echo "⚡ Processando ${{ steps.check.outputs.playerCount }} jogadores..."
           
           response=$(curl -X POST \
-            "https://www.statscj.com/api/admin/batch-update?season=SEASON_1" \
+            "https://www.statscj.com/api/admin/process-incremental" \
             -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
             -H "Content-Type: application/json" \
+            -d '${{ steps.check.outputs.checkResponse }}' \
             -w "\n%{http_code}" \
             -s)
           
@@ -31,36 +62,19 @@ jobs:
           echo "$body" | jq '.' || echo "$body"
           
           if [ "$http_code" != "200" ]; then
-            echo "❌ Erro na atualização!"
+            echo "❌ Erro ao processar!"
             exit 1
           fi
           
-          echo "✅ Season 1 atualizada com sucesso!"
+          echo "✅ Atualização incremental concluída!"
       
-      - name: Wait between seasons
-        run: sleep 10
-      
-      - name: Update Season 0 (Batch)
+      - name: Summary
         run: |
-          echo "⚡ Iniciando atualização COMPLETA da Season 0..."
-          
-          response=$(curl -X POST \
-            "https://www.statscj.com/api/admin/batch-update?season=SEASON_0" \
-            -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
-            -H "Content-Type: application/json" \
-            -w "\n%{http_code}" \
-            -s)
-          
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | sed '$d')
-          
-          echo "📊 Status Code: $http_code"
-          echo "📋 Response:"
-          echo "$body" | jq '.' || echo "$body"
-          
-          if [ "$http_code" != "200" ]; then
-            echo "❌ Erro na atualização!"
-            exit 1
+          if [ "${{ steps.check.outputs.hasNew }}" = "true" ]; then
+            echo "📊 Resumo:"
+            echo "   • ${{ steps.check.outputs.matchCount }} partidas novas"
+            echo "   • ${{ steps.check.outputs.playerCount }} jogadores atualizados"
+            echo "   • ✅ Incremental executado"
+          else
+            echo "✅ Nenhuma atualização necessária"
           fi
-          
-          echo "✅ Season 0 atualizada com sucesso!"
