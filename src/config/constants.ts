@@ -63,6 +63,7 @@ export const FREE_PLAYERS = [
   'Matheusgsr1',
   'nansch',
   'NegaoReinert',
+  'JapaMarley',
 ] as const;
 
 /**
@@ -82,8 +83,7 @@ export const PLAYER_POTS: Record<string, number> = {
   'nollan9': 1,
   'Roxu__': 1,
   'bobz1k4hs': 1,
-  'polippera': 1,
-  'JapaMarley': 1,
+  'polippera': 1,  
   'caiobafk': 1,
   'PiMPauMMMM': 1,
   'Pauletovski': 1,
