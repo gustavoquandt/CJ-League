@@ -110,7 +110,6 @@ jobs:
           echo "🎉 ========================================="
 
       - name: Update map stats
-        if: steps.check.outputs.hasNew == 'true'
         run: |
           echo "🗺️ Atualizando estatísticas de mapas..."
 
@@ -141,5 +140,6 @@ jobs:
             echo "   • 🗺️ Mapas atualizados"
             echo "   • ✅ Incremental executado"
           else
-            echo "✅ Nenhuma atualização necessária"
+            echo "✅ Nenhuma partida nova"
+            echo "   • 🗺️ Mapas atualizados"
           fi
