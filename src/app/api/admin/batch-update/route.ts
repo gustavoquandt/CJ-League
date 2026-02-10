@@ -2,6 +2,7 @@
  * Rota: /api/admin/batch-update
  * 1 JOGADOR POR BATCH (evita timeout de 300s)
  * Sistema otimizado com cache incremental + Suporte a seasons
+ * ✅ CORRIGIDO: Funciona sem body (pega season do query param)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -36,12 +37,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 500 });
     }
 
-    // ✅ Ler parâmetros do batch + season
-    const body = await request.json();
+    // ✅ CORRIGIDO: Ler season do query param
+    const { searchParams } = new URL(request.url);
+    const seasonId: SeasonId = (searchParams.get('season') as SeasonId) || 'SEASON_1';
+    const queueId = SEASONS[seasonId].id;
+    
+    // ✅ Body é opcional (só usado em chamadas recursivas internas)
+    let body: any = {};
+    try {
+      const text = await request.text();
+      if (text) {
+        body = JSON.parse(text);
+      }
+    } catch (e) {
+      // Sem body, tudo bem - primeira chamada do GitHub Actions
+    }
+    
     const batchNumber = body.batchNumber || 0;
     const existingPlayers = body.existingPlayers || [];
-    const seasonId: SeasonId = body.seasonId || 'SEASON_1';
-    const queueId = SEASONS[seasonId].id; // ✅ Queue da season
 
     // 🔍 LOG CRÍTICO: Quantos jogadores estão chegando?
     console.log(`\n📦 [BATCH ${batchNumber}] RECEBENDO REQUEST`);
