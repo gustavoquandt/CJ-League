@@ -645,7 +645,7 @@ function HomePageContent() {
             seasonName={SEASONS[activeSeason].name}
             mapStats={mapStats}
             isLoadingMapStats={isLoadingMapStats}
-            minGamesFilter={activeSeason === 'SEASON_0' ? 10 : 0}  // ✅ 10+ jogos apenas Season 0
+            minGamesFilter={10}  // ✅ 10+ jogos apenas Season 0
           />
         )}
 

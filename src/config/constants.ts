@@ -84,7 +84,7 @@ export const PLAYER_POTS: Record<string, number> = {
   'Roxu__': 1,
   'bobz1k4hs': 1,
   'polippera': 1,  
-  'caiobafk': 1,
+  
   'PiMPauMMMM': 1,
   'Pauletovski': 1,
 
@@ -98,7 +98,7 @@ export const PLAYER_POTS: Record<string, number> = {
   'daftzera': 2,
   'ViniDrMM': 2,
   'rogeriN-xddd': 2,
-  'knightziin': 2,
+
   'tohru_sc': 2,
   'malkava': 2,
 
@@ -110,7 +110,7 @@ export const PLAYER_POTS: Record<string, number> = {
   'gboorges': 3,
   'caiosergioo': 3,
   'pedr0bear': 3,
-  'GriloTJ': 3,
+ 
   'R1tzx': 3,
 
   // POT 4
@@ -128,7 +128,7 @@ export const PLAYER_POTS: Record<string, number> = {
   // 'nansch': 4,
 
   // POT 5
-  'VTB': 5,
+ 
   'Caopiroto': 5,
   'mateustoto': 5,
   'BITENCOURT95': 5,
