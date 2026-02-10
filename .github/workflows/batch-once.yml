@@ -1,0 +1,35 @@
+name: Batch Update (Run Once)
+
+on:
+  workflow_dispatch:  # Manual apenas
+
+jobs:
+  batch-update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Run batch update
+        run: |
+          echo "⚡ Criando cache inicial..."
+          
+          response=$(curl -X POST \
+            "https://www.statscj.com/api/admin/batch-update?season=SEASON_1" \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            -s)
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "📊 Status Code: $http_code"
+          echo "📋 Response:"
+          echo "$body" | jq '.' || echo "$body"
+          
+          if [ "$http_code" != "200" ]; then
+            echo "❌ Erro!"
+            exit 1
+          fi
+          
+          echo "✅ Cache inicial criado!"
