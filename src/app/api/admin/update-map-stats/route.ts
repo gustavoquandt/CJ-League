@@ -53,20 +53,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 404 });
     }
 
-    // ✅ Calcular distribuição de mapas
+    // ✅ Calcular distribuição de mapas (apenas mapas válidos)
     const mapCounts: Record<string, number> = {};
 
     for (const match of matches) {
       // FACEIT retorna o mapa votado em voting.map.pick[0]
+      // Ignorar IDs numéricos como "3437809122"
       const mapName = match.voting?.map?.pick?.[0] || null;
-      if (mapName) {
+      if (mapName && mapName.startsWith('de_')) {
         mapCounts[mapName] = (mapCounts[mapName] || 0) + 1;
       }
     }
 
     console.log(`   Mapas encontrados: ${Object.keys(mapCounts).join(', ')}`);
 
-    const totalMatches = matches.length;
+    // totalMatches = só partidas com mapa válido
+    const totalMatches = Object.values(mapCounts).reduce((sum, n) => sum + n, 0);
     const sortedMaps = Object.entries(mapCounts).sort((a, b) => b[1] - a[1]);
 
     // ✅ Montar objeto MapStats

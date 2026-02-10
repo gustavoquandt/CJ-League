@@ -51,12 +51,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const mapCounts: Record<string, number> = {};
     for (const match of matches) {
       const mapName = match.voting?.map?.pick?.[0] || null;
-      if (mapName) {
+      if (mapName && mapName.startsWith('de_')) {
         mapCounts[mapName] = (mapCounts[mapName] || 0) + 1;
       }
     }
 
-    const totalMatches = matches.length;
+    // totalMatches = só partidas com mapa válido
+    const totalMatches = Object.values(mapCounts).reduce((sum, n) => sum + n, 0);
     const sortedMaps = Object.entries(mapCounts).sort((a, b) => b[1] - a[1]);
 
     const freshMapStats: MapStats = {
