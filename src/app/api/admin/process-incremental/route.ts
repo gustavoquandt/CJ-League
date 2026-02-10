@@ -97,11 +97,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     try {
-      // ✅ Processar jogador
-      const playerData = await faceitService.getConsolidatedPlayerData(nickname);
+      // ✅ Buscar lastMatchId do cache individual do jogador
+      const cachedPlayer = await kvCacheService.getPlayerCache(nickname, seasonId);
+      const lastMatchId = cachedPlayer?.lastMatchId || null;
+
+      console.log(`   lastMatchId: ${lastMatchId ? lastMatchId.substring(0, 8) + '...' : 'nenhum'}`);
+
+      // ✅ CORRETO: fetchPlayerWithMatches com queueId da Season correta
+      // Garante que só busca partidas da Season 1, não da Season 0!
+      const playerData = await faceitService.fetchPlayerWithMatches(
+        nickname,
+        200,
+        lastMatchId,  // Para na última partida conhecida
+        queueId,      // ← queueId da Season 1 (bcbe03eb...)
+        null          // Season 1 = sem acumulação de cache
+      );
       
       if (playerData) {
         console.log(`      ✅ ${playerData.matchesPlayed} partidas, ${playerData.rankingPoints} pts`);
+
+        // Salvar cache individual atualizado
+        await kvCacheService.savePlayerCache(nickname, playerData, seasonId);
         
         // Adicionar ou atualizar
         const existingIndex = existingPlayers.findIndex(
