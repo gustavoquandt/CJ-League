@@ -160,6 +160,7 @@ function HomePageContent() {
         }, activeSeason);
 
         console.log('✅ Dados atualizados com sucesso!');
+        await loadMapStats(activeSeason); // ← linha nova
       } else {
         throw new Error('Nenhum dado disponível no banco');
       }
