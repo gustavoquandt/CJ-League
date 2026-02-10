@@ -1,35 +1,81 @@
-name: Batch Update (Run Once)
+name: Batch Update Complete (Run Once)
 
 on:
   workflow_dispatch:  # Manual apenas
 
 jobs:
-  batch-update:
+  batch-update-complete:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60  # 60 minutos para processar todos
     
     steps:
-      - name: Run batch update
+      - name: Run complete batch update
         run: |
-          echo "⚡ Criando cache inicial..."
+          echo "⚡ Iniciando batch-update COMPLETO..."
           
-          response=$(curl -X POST \
-            "https://www.statscj.com/api/admin/batch-update?season=SEASON_1" \
-            -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
-            -H "Content-Type: application/json" \
-            -w "\n%{http_code}" \
-            -s)
+          SEASON="SEASON_1"
+          BATCH=0
+          HAS_MORE=true
+          PLAYERS_JSON="[]"
           
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | sed '$d')
+          while [ "$HAS_MORE" = "true" ]; do
+            echo ""
+            echo "📦 Processando batch $BATCH..."
+            
+            # Montar body com jogadores acumulados
+            BODY=$(jq -n \
+              --argjson batch "$BATCH" \
+              --argjson players "$PLAYERS_JSON" \
+              '{batchNumber: $batch, existingPlayers: $players}')
+            
+            # Chamar endpoint
+            RESPONSE=$(curl -X POST \
+              "https://www.statscj.com/api/admin/batch-update?season=$SEASON" \
+              -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
+              -H "Content-Type: application/json" \
+              -d "$BODY" \
+              -w "\n%{http_code}" \
+              -s)
+            
+            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+            BODY_RESPONSE=$(echo "$RESPONSE" | sed '$d')
+            
+            echo "📊 Status Code: $HTTP_CODE"
+            
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "❌ Erro no batch $BATCH!"
+              echo "$BODY_RESPONSE" | jq '.'
+              exit 1
+            fi
+            
+            # Extrair dados
+            SUCCESS=$(echo "$BODY_RESPONSE" | jq -r '.success')
+            HAS_MORE=$(echo "$BODY_RESPONSE" | jq -r '.hasMore')
+            NEXT_BATCH=$(echo "$BODY_RESPONSE" | jq -r '.nextBatch // "null"')
+            PLAYERS_JSON=$(echo "$BODY_RESPONSE" | jq -c '.players')
+            TOTAL_PLAYERS=$(echo "$BODY_RESPONSE" | jq -r '.batch.totalPlayers')
+            CURRENT_PLAYER=$(echo "$BODY_RESPONSE" | jq -r '.batch.currentPlayer // "N/A"')
+            
+            echo "✅ Batch $BATCH concluído"
+            echo "   Jogador processado: $CURRENT_PLAYER"
+            echo "   Total de jogadores: $TOTAL_PLAYERS"
+            echo "   Tem mais: $HAS_MORE"
+            
+            if [ "$HAS_MORE" = "true" ] && [ "$NEXT_BATCH" != "null" ]; then
+              BATCH=$NEXT_BATCH
+              echo "   ➡️ Próximo batch: $BATCH"
+            else
+              HAS_MORE=false
+            fi
+            
+            # Pequeno delay entre batches
+            if [ "$HAS_MORE" = "true" ]; then
+              sleep 2
+            fi
+          done
           
-          echo "📊 Status Code: $http_code"
-          echo "📋 Response:"
-          echo "$body" | jq '.' || echo "$body"
-          
-          if [ "$http_code" != "200" ]; then
-            echo "❌ Erro!"
-            exit 1
-          fi
-          
-          echo "✅ Cache inicial criado!"
+          echo ""
+          echo "🎉 ========================================="
+          echo "✅ BATCH-UPDATE COMPLETO FINALIZADO!"
+          echo "📊 Total de jogadores processados: $TOTAL_PLAYERS"
+          echo "🎉 ========================================="
