@@ -58,7 +58,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         {/* Pontos */}
         <div className="bg-faceit-darker rounded-lg p-3">
           <p className="text-xs text-text-secondary mb-1">Pontos</p>
-          <p className="text-2xl font-bold text-[#0EA5E9]">
+          <p className="text-2xl font-bold text-[#FF6B35]">
             {player.rankingPoints}
           </p>
         </div>
