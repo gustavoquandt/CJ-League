@@ -31,10 +31,8 @@ export default function StatsHeader({
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="card h-full">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="card">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Search */}
           <div>
             <label className="block text-sm font-semibold mb-2 text-[var(--text-primary)]">
@@ -104,6 +102,5 @@ export default function StatsHeader({
           </div>
         </div>
       </div>
-    </div>
   );
 }

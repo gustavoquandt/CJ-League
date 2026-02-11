@@ -613,7 +613,7 @@ function HomePageContent() {
             <img
               src="/CJL-logo-color-s1.png"
               alt="CJ League Season 1"
-              className="w-full h-full object-contain p-3"
+              className="max-w-full max-h-full object-contain p-3"
             />
           </div>
 
