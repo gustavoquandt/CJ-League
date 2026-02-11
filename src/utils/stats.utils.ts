@@ -239,18 +239,10 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     currentStreak: player.currentStreak || 0,
     longestWinStreak: player.longestWinStreak || 0,
     lastMatch: player.lastMatch,
-    totalKills: player.totalKills,
-    totalDeaths: player.totalDeaths,
-    totalDamage: player.totalDamage,
-    totalRounds: player.totalRounds,
-    totalHeadshots: player.totalHeadshots,    // ✅ Para HS% incremental
-    matchResults: player.matchResults,         // ✅ Para acumulação incremental
-    matchADRs: player.matchADRs,               // ✅ Para ADR incremental
-    rivalNickname: player.rivalNickname,
-    rivalMatchCount: player.rivalMatchCount,
-    rivalWins: player.rivalWins,
-    rivalLosses: player.rivalLosses,
-    lastMatchId: player.lastMatchId,
+    totalKills: player.totalKills,      // ✅ ADICIONADO
+    totalDeaths: player.totalDeaths,    // ✅ ADICIONADO
+    totalDamage: player.totalDamage,    // ✅ ADICIONADO
+    totalRounds: player.totalRounds,    // ✅ ADICIONADO
   };
 }
 
@@ -306,11 +298,11 @@ export function formatPosition(position: number): string {
 // ==================== COLOR UTILITIES ====================
 
 /**
- * Retorna cor baseada em valor (verde/amarelo/vermelho)
+ * Retorna cor baseada em valor (azul/amarelo/vermelho)
  * Para K/D, Win Rate, etc.
  */
 export function getStatColor(value: number, thresholds: { good: number; bad: number }): string {
-  if (value >= thresholds.good) return 'text-green-500';
+  if (value >= thresholds.good) return 'text-blue-400';
   if (value <= thresholds.bad) return 'text-red-500';
   return 'text-yellow-500';
 }

@@ -83,7 +83,7 @@ export default function StatsCards({
               <p className="font-bold text-white mb-1">
                 {leader.player.nickname}
               </p>
-              <p className="text-3xl font-bold text-[#e31e24]">
+              <p className="text-3xl font-bold text-[#1a1f6e]">
                 {leader.value.toFixed(leader.label.includes('HS') ? 1 : 2)}
                 {leader.label.includes('HS') && '%'}
               </p>

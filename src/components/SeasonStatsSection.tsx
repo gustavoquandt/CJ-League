@@ -171,7 +171,7 @@ export default function SeasonStatsSection({
                   <div className="flex items-center gap-3">
                     {/* Avatar com fallback para inicial */}
                     {stat.leader.avatar ? (
-                      <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#e31e24] flex-shrink-0">
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#1a1f6e] flex-shrink-0">
                         <Image
                           src={stat.leader.avatar}
                           alt={stat.leader.nickname}
@@ -181,7 +181,7 @@ export default function SeasonStatsSection({
                         />
                       </div>
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-faceit-light-gray border-2 border-[#e31e24] flex items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-faceit-light-gray border-2 border-[#1a1f6e] flex items-center justify-center flex-shrink-0">
                         <span className="text-xl font-bold text-white">
                           {stat.leader.nickname.charAt(0).toUpperCase()}
                         </span>
@@ -192,7 +192,7 @@ export default function SeasonStatsSection({
                       <p className="font-bold text-white truncate">
                         {stat.leader.nickname}
                       </p>
-                      <p className="text-2xl font-bold text-[#e31e24]">
+                      <p className="text-2xl font-bold text-[#1a1f6e]">
                         {stat.formatter(value)}
                       </p>
                     </div>

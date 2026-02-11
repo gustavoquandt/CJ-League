@@ -3,28 +3,28 @@
 @tailwind utilities;
 
 :root {
-  /* Paleta CJ League — Vermelho + Azul Marinho */
+  /* Paleta CJ League — Azul Marinho PRIMÁRIA + Vermelho ACENTO */
 
-  /* Primária - Vermelho CJL */
-  --cjl-red: #e31e24;
-  --cjl-red-dark: #b51419;
-  --cjl-red-light: #ff3a40;
-
-  /* Secundária - Azul Marinho CJL */
+  /* Primária - Azul Marinho CJL */
   --cjl-navy: #1a1f6e;
   --cjl-navy-dark: #12165a;
   --cjl-navy-light: #252b8a;
 
-  /* Compatibilidade — mantém nomes antigos apontando para as novas cores */
-  --primary-purple: #e31e24;
-  --primary-purple-dark: #b51419;
-  --primary-purple-light: #ff3a40;
+  /* Acento - Vermelho CJL */
+  --cjl-red: #e31e24;
+  --cjl-red-dark: #b51419;
+  --cjl-red-light: #ff3a40;
+
+  /* Compatibilidade — INVERTIDO: primária = azul, laranja/roxo = azul */
+  --primary-purple: #1a1f6e;
+  --primary-purple-dark: #12165a;
+  --primary-purple-light: #252b8a;
   --secondary-cyan: #1a1f6e;
   --secondary-cyan-dark: #12165a;
   --secondary-cyan-light: #252b8a;
   --accent-pink: #e31e24;
   --accent-pink-dark: #b51419;
-  --faceit-orange: #e31e24;
+  --faceit-orange: #1a1f6e;  /* Azul agora é a "cor principal" */
 
   /* Backgrounds */
   --bg-darker: #0A0A0F;
@@ -66,8 +66,8 @@ body {
 
 ::-webkit-scrollbar { width: 12px; }
 ::-webkit-scrollbar-track { background: var(--bg-dark); }
-::-webkit-scrollbar-thumb { background: var(--cjl-red); border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: var(--cjl-red-dark); }
+::-webkit-scrollbar-thumb { background: var(--cjl-navy); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cjl-navy-dark); }
 
 @layer components {
   .card {
@@ -75,7 +75,7 @@ body {
   }
 
   .card-hover {
-    @apply transition-all hover:border-[var(--cjl-red)] hover:shadow-[0_0_20px_rgba(227,30,36,0.2)];
+    @apply transition-all hover:border-[var(--cjl-navy)] hover:shadow-[0_0_20px_rgba(26,31,110,0.3)];
   }
 
   .input {
@@ -89,7 +89,7 @@ body {
 
   select.input {
     @apply cursor-pointer appearance-none bg-no-repeat pr-10;
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23e31e24' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%231a1f6e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-position: right 1rem center;
     background-size: 12px 8px;
   }
@@ -97,22 +97,22 @@ body {
   select.input option { @apply bg-[var(--bg-dark)] text-[var(--text-primary)]; }
 
   .btn-primary {
-    @apply bg-[var(--cjl-red)] hover:bg-[var(--cjl-red-dark)] text-white font-semibold px-4 py-2 rounded-lg transition-all;
+    @apply bg-[var(--cjl-navy)] hover:bg-[var(--cjl-navy-dark)] text-white font-semibold px-4 py-2 rounded-lg transition-all;
   }
 
   .btn-secondary {
-    @apply bg-[var(--cjl-navy)] hover:bg-[var(--cjl-navy-dark)] text-white font-semibold px-4 py-2 rounded-lg transition-all;
+    @apply bg-[var(--cjl-red)] hover:bg-[var(--cjl-red-dark)] text-white font-semibold px-4 py-2 rounded-lg transition-all;
   }
 
   .badge { @apply px-3 py-1 rounded-full text-xs font-semibold; }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-[var(--cjl-red)] to-[var(--cjl-navy-light)] bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[var(--cjl-navy)] to-[var(--cjl-navy-light)] bg-clip-text text-transparent;
   }
 
-  .glow-red   { box-shadow: 0 0 20px rgba(227, 30, 36, 0.4); }
   .glow-navy  { box-shadow: 0 0 20px rgba(26, 31, 110, 0.5); }
-  .glow-purple { box-shadow: 0 0 20px rgba(227, 30, 36, 0.4); }
+  .glow-red   { box-shadow: 0 0 20px rgba(227, 30, 36, 0.4); }
+  .glow-purple { box-shadow: 0 0 20px rgba(26, 31, 110, 0.5); }
   .glow-cyan   { box-shadow: 0 0 20px rgba(26, 31, 110, 0.5); }
 }
 
@@ -122,8 +122,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(227, 30, 36, 0.25); }
-  50%       { box-shadow: 0 0 30px rgba(227, 30, 36, 0.5); }
+  0%, 100% { box-shadow: 0 0 20px rgba(26, 31, 110, 0.25); }
+  50%       { box-shadow: 0 0 30px rgba(26, 31, 110, 0.5); }
 }
 
 .animate-fadeIn     { animation: fadeIn 0.3s ease-in-out; }
@@ -140,7 +140,7 @@ body {
   top: 0; left: 0; right: 0; bottom: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, var(--cjl-red), var(--cjl-navy-light));
+  background: linear-gradient(135deg, var(--cjl-navy), var(--cjl-navy-light));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -171,7 +171,7 @@ body {
 
 .table thead {
   @apply bg-[var(--bg-dark)] sticky top-0 z-20;
-  border-bottom: 2px solid var(--cjl-red);
+  border-bottom: 2px solid var(--cjl-navy);
 }
 
 .table thead th {
@@ -185,7 +185,7 @@ body {
 
 .table tbody tr:hover {
   @apply bg-[var(--bg-dark)];
-  box-shadow: 0 0 15px rgba(227, 30, 36, 0.08);
+  box-shadow: 0 0 15px rgba(26, 31, 110, 0.08);
 }
 
 .table tbody tr:last-child { @apply border-b-0; }

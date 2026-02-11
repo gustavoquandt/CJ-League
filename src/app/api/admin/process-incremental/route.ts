@@ -97,20 +97,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     try {
-      // ✅ Buscar lastMatchId do cache individual do jogador
-      const cachedPlayer = await kvCacheService.getPlayerCache(nickname, seasonId);
+      // ✅ Buscar cache individual (tem lastMatchId salvo pelo incremental anterior)
+      let cachedPlayer = await kvCacheService.getPlayerCache(nickname, seasonId);
+
+      // ✅ FALLBACK: se não tem cache individual, usar cache geral (batch-update não salva individual)
+      if (!cachedPlayer) {
+        const generalCache = await kvCacheService.getCache(seasonId);
+        const playerFromGeneral = generalCache?.players.find(
+          p => p.nickname.toLowerCase() === nickname.toLowerCase()
+        );
+        if (playerFromGeneral) {
+          console.log(`   ⚠️ Cache individual vazio, usando cache geral como fallback`);
+          cachedPlayer = { ...playerFromGeneral, lastFetchedAt: new Date().toISOString() } as any;
+        }
+      }
+
       const lastMatchId = cachedPlayer?.lastMatchId || null;
 
       console.log(`   lastMatchId: ${lastMatchId ? lastMatchId.substring(0, 8) + '...' : 'nenhum'}`);
+      console.log(`   previousStats: ${cachedPlayer ? `${cachedPlayer.matchesPlayed}P ${cachedPlayer.rankingPoints}pts` : 'nenhum'}`);
 
-      // ✅ CORRETO: fetchPlayerWithMatches com queueId da Season correta
-      // Garante que só busca partidas da Season 1, não da Season 0!
+      // ✅ CORRETO: fetchPlayerWithMatches com queueId da Season correta + acumulação
       const playerData = await faceitService.fetchPlayerWithMatches(
         nickname,
         200,
-        lastMatchId,  // Para na última partida conhecida
-        queueId,      // ← queueId da Season 1 (bcbe03eb...)
-        null          // Season 1 = sem acumulação de cache
+        lastMatchId,    // Para na última partida conhecida
+        queueId,        // ← queueId da Season 1 (bcbe03eb...)
+        cachedPlayer    // ← previousStats para acumular (pontos, ADR, KD...)
       );
       
       if (playerData) {
