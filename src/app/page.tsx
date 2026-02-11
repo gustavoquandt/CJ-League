@@ -16,7 +16,6 @@ import UpdateToast from '@/components/UpdateToast';
 import UpdateBadge from '@/components/UpdateBadge';
 import AdminPanel from '@/components/AdminPanel';
 import SeasonHeader from '@/components/SeasonHeader';
-import LastUpdateInfo from '@/components/LastUpdateInfo';
 import StatsCards from '@/components/StatsCards';
 import MapStatsCards from '@/components/MapStatsCards';
 import SeasonStatsSection from '@/components/SeasonStatsSection';
@@ -469,12 +468,6 @@ function HomePageContent() {
     return (
       <div className="min-h-screen bg-faceit-darker">
         <div className="container mx-auto px-4 py-8 max-w-7xl">
-          {/* ✅ Header básico */}
-          <div className="mb-6">
-            <h1 className="text-4xl font-bold text-center mb-2">🏆 CJ League</h1>
-            <p className="text-center text-text-secondary">Counter-Strike 2 Rankings</p>
-          </div>
-
           {/* ✅ Abas de Seasons */}
           <SeasonHeader
             activeSeason={activeSeason}
@@ -611,26 +604,34 @@ function HomePageContent() {
           isRefreshing={isRefreshing}
         />
 
-        {/* ✅ Informações de Atualização e Verificação */}
-        <div className="mb-6">
-          <LastUpdateInfo 
-            lastDataUpdate={lastUpdated}
-            seasonId={activeSeason}
-          />
-        </div>
+        {/* Busca, filtros e logo */}
+        <div className="flex gap-4 items-stretch mb-6">
+          {/* Logo CJL */}
+          <div className="hidden lg:flex flex-shrink-0 w-[200px] items-center justify-center
+                          bg-[var(--bg-card)] border border-[var(--border-default)] rounded-lg overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/CJL-logo-color-s1.png"
+              alt="CJ League Season 1"
+              className="w-full h-full object-contain p-3"
+            />
+          </div>
 
-        {/* Header com título e filtros */}
-        <StatsHeader
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          totalPlayers={players.length}
-          lastUpdated={lastUpdated}
-          nextUpdate={nextUpdate}
-          isUpdating={updateStatus.isUpdating}
-          updateProgress={updateStatus.progress}
-          onRefreshData={handleRefreshData}
-          isRefreshing={isRefreshing}
-        />
+          {/* Filtros e busca */}
+          <div className="flex-1">
+            <StatsHeader
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              totalPlayers={players.length}
+              lastUpdated={lastUpdated}
+              nextUpdate={nextUpdate}
+              isUpdating={updateStatus.isUpdating}
+              updateProgress={updateStatus.progress}
+              onRefreshData={handleRefreshData}
+              isRefreshing={isRefreshing}
+            />
+          </div>
+        </div>
 
         {/* Badge de notificação de novos dados */}
         <UpdateBadge
