@@ -2,31 +2,23 @@
 
 import type { PlayerFilters, SortOption } from '@/types/app.types';
 import { POT_CONFIG } from '@/config/constants';
-import { formatDateTime, formatRelativeTime } from '@/utils/date.utils';
-import UpdateBadge from '@/components/UpdateBadge';
+
 
 interface StatsHeaderProps {
   filters: PlayerFilters;
   onFiltersChange: (filters: PlayerFilters) => void;
-  totalPlayers: number;
-  lastUpdated: Date | null;
-  nextUpdate: Date | null;
+  totalPlayers?: number;
+  lastUpdated?: Date | null;
+  nextUpdate?: Date | null;
   isUpdating?: boolean;
   updateProgress?: number;
-  onRefreshData?: () => void; // ✅ NOVO
-  isRefreshing?: boolean; // ✅ NOVO
+  onRefreshData?: () => void;
+  isRefreshing?: boolean;
 }
 
 export default function StatsHeader({
   filters,
   onFiltersChange,
-  totalPlayers,
-  lastUpdated,
-  nextUpdate,
-  isUpdating = false,
-  updateProgress = 0,
-  onRefreshData, // ✅ NOVO
-  isRefreshing = false, // ✅ NOVO
 }: StatsHeaderProps) {
   const sortOptions: { value: SortOption; label: string }[] = [
     { value: 'rankingPoints', label: 'Pontos' },
@@ -40,19 +32,6 @@ export default function StatsHeader({
 
   return (
     <div className="space-y-4">
-      {/* Header com Logo e Badge */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-faceit-orange to-orange-400 bg-clip-text text-transparent">
-            🏆 CJ League
-          </h1>
-          
-        </div>
-
-        {/* Update Badge (substitui o botão de atualizar) */}
-        
-      </div>
-
       {/* Filters */}
       <div className="card">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -116,7 +95,7 @@ export default function StatsHeader({
                   ...filters,
                   sortOrder: filters.sortOrder === 'desc' ? 'asc' : 'desc'
                 })}
-                className="px-4 py-2 bg-[var(--bg-dark)] hover:bg-[var(--bg-medium)] rounded-lg border border-[var(--primary-purple)] text-[var(--primary-purple)] hover:text-[var(--primary-purple-light)] transition-all font-bold text-lg"
+                className="px-4 py-2 bg-[var(--bg-dark)] hover:bg-[var(--bg-medium)] rounded-lg border border-[#e31e24] text-[#e31e24] hover:text-[#ff3a40] transition-all font-bold text-lg"
                 title={filters.sortOrder === 'desc' ? 'Ordem Decrescente' : 'Ordem Crescente'}
               >
                 {filters.sortOrder === 'desc' ? '↓' : '↑'}

@@ -9,112 +9,15 @@ on:
 jobs:
   update-stats:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    
-    steps:
-      - name: Check for new matches
-        id: check
-        run: |
-          echo "🔍 Verificando partidas novas..."
-          
-          response=$(curl -s \
-            "https://www.statscj.com/api/admin/check-new-matches?season=SEASON_1")
-          
-          echo "📋 Check Response:"
-          echo "$response" | jq '.'
-          
-          # Extrair dados
-          hasNew=$(echo "$response" | jq -r '.hasNewMatches')
-          playerCount=$(echo "$response" | jq -r '.playerNicknames | length // 0')
-          
-          echo "hasNew=$hasNew" >> $GITHUB_OUTPUT
-          echo "playerCount=$playerCount" >> $GITHUB_OUTPUT
-          
-          # Salvar playerNicknames em arquivo
-          echo "$response" | jq -c '.playerNicknames // []' > /tmp/players.json
-          
-          if [ "$hasNew" = "true" ]; then
-            echo "✅ Partidas novas com $playerCount jogadores"
-          else
-            echo "✅ Nenhuma partida nova"
-          fi
-      
-      - name: Process incremental (recursive)
-        if: steps.check.outputs.hasNew == 'true'
-        run: |
-          echo "⚡ Processando ${{ steps.check.outputs.playerCount }} jogadores (1 por vez)..."
-          
-          PLAYER_NICKNAMES=$(cat /tmp/players.json)
-          PLAYER_COUNT=$(echo "$PLAYER_NICKNAMES" | jq 'length')
-          PLAYER_INDEX=0
-          HAS_MORE=true
-          EXISTING_PLAYERS="[]"
-          
-          while [ "$HAS_MORE" = "true" ] && [ "$PLAYER_INDEX" -lt "$PLAYER_COUNT" ]; do
-            echo ""
-            echo "📦 Processando jogador $((PLAYER_INDEX + 1))/$PLAYER_COUNT..."
-            
-            # Montar body
-            BODY=$(jq -n \
-              --argjson nicknames "$PLAYER_NICKNAMES" \
-              --argjson index "$PLAYER_INDEX" \
-              --argjson existing "$EXISTING_PLAYERS" \
-              '{
-                playerNicknames: $nicknames,
-                playerIndex: $index,
-                existingPlayers: $existing
-              }')
-            
-            # Chamar endpoint
-            RESPONSE=$(curl -X POST \
-              "https://www.statscj.com/api/admin/process-incremental?season=SEASON_1" \
-              -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
-              -H "Content-Type: application/json" \
-              -d "$BODY" \
-              -w "\n%{http_code}" \
-              -s)
-            
-            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-            BODY_RESPONSE=$(echo "$RESPONSE" | sed '$d')
-            
-            if [ "$HTTP_CODE" != "200" ]; then
-              echo "❌ Erro no jogador $((PLAYER_INDEX + 1))!"
-              echo "$BODY_RESPONSE" | jq '.'
-              exit 1
-            fi
-            
-            # Extrair dados
-            HAS_MORE=$(echo "$BODY_RESPONSE" | jq -r '.hasMore')
-            NEXT_INDEX=$(echo "$BODY_RESPONSE" | jq -r '.nextPlayerIndex // "null"')
-            EXISTING_PLAYERS=$(echo "$BODY_RESPONSE" | jq -c '.existingPlayers')
-            CURRENT_PLAYER=$(echo "$BODY_RESPONSE" | jq -r '.currentPlayer')
-            
-            echo "✅ Processado: $CURRENT_PLAYER"
-            
-            if [ "$HAS_MORE" = "true" ] && [ "$NEXT_INDEX" != "null" ]; then
-              PLAYER_INDEX=$NEXT_INDEX
-            else
-              HAS_MORE=false
-            fi
-            
-            # Delay entre jogadores
-            if [ "$HAS_MORE" = "true" ]; then
-              sleep 2
-            fi
-          done
-          
-          echo ""
-          echo "🎉 ========================================="
-          echo "✅ INCREMENTAL FINALIZADO!"
-          echo "📊 Jogadores atualizados: $PLAYER_COUNT"
-          echo "🎉 ========================================="
+    timeout-minutes: 15
 
-      - name: Update map stats
+    steps:
+      - name: Run incremental update
         run: |
-          echo "🗺️ Atualizando estatísticas de mapas..."
+          echo "⚡ Iniciando atualização incremental..."
 
           response=$(curl -X POST \
-            "https://www.statscj.com/api/admin/update-map-stats?season=SEASON_1" \
+            "https://www.statscj.com/api/admin/update-incremental?season=SEASON_1" \
             -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
             -H "Content-Type: application/json" \
             -w "\n%{http_code}" \
@@ -123,23 +26,22 @@ jobs:
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
 
-          echo "📊 Status Code: $http_code"
+          echo "📋 Status: $http_code"
           echo "$body" | jq '.' || echo "$body"
 
-          if [ "$http_code" = "200" ]; then
-            echo "✅ Mapas atualizados e salvos no Redis!"
-          else
-            echo "⚠️ Aviso: falha ao atualizar mapas (não crítico)"
+          if [ "$http_code" != "200" ]; then
+            echo "❌ Erro na atualização!"
+            exit 1
           fi
-      
-      - name: Summary
-        run: |
-          if [ "${{ steps.check.outputs.hasNew }}" = "true" ]; then
-            echo "📊 Resumo:"
-            echo "   • ${{ steps.check.outputs.playerCount }} jogadores atualizados"
-            echo "   • 🗺️ Mapas atualizados"
-            echo "   • ✅ Incremental executado"
-          else
-            echo "✅ Nenhuma partida nova"
-            echo "   • 🗺️ Mapas atualizados"
-          fi
+
+          new_matches=$(echo "$body" | jq -r '.newMatches // 0')
+          players_updated=$(echo "$body" | jq -r '.playersUpdated // 0')
+          duration=$(echo "$body" | jq -r '.duration // "?"')
+
+          echo ""
+          echo "🎉 ========================================="
+          echo "✅ INCREMENTAL FINALIZADO!"
+          echo "🎮 Partidas novas: $new_matches"
+          echo "👥 Jogadores atualizados: $players_updated"
+          echo "⏱️  Duração: $duration"
+          echo "🎉 ========================================="
