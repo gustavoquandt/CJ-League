@@ -99,8 +99,8 @@ export default function PlayerCard({ player }: PlayerCardProps) {
               </span>
             </div>
             <div className="text-sm font-bold flex items-center gap-1">
-              <span className="text-green-500">{player.rivalWins}W</span>
-              <span className="text-red-500">{player.rivalLosses}L</span>
+              <span className="text-[#10B981]">{player.rivalWins}W</span>
+              <span className="text-[#e31e24]">{player.rivalLosses}L</span>
             </div>
           </div>
         </div>

@@ -43,7 +43,7 @@ export default function SeasonHeader({
               <div className="flex items-center gap-2">
                 <span className="text-sm lg:text-base">{season.name}</span>
                 {season.status === 'active' && (
-                  <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
+                  <span className="px-2 py-0.5 text-xs bg-[#10B981]/20 text-[#10B981] rounded-full border border-[#10B981]/30">
                     Ativa
                   </span>
                 )}
