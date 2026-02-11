@@ -38,10 +38,13 @@ export interface PlayerStats {
   kr: number; // K/R Ratio
   adr: number; // Average Damage per Round
   headshotPercentage: number;
-  totalKills?: number;     // Total acumulado
-  totalDeaths?: number;    // Total acumulado
-  totalDamage?: number;    // Total acumulado
-  totalRounds?: number;    // Total acumulado
+  totalKills?: number;        // Total acumulado
+  totalDeaths?: number;       // Total acumulado
+  totalDamage?: number;       // Total acumulado
+  totalRounds?: number;       // Total acumulado
+  totalHeadshots?: number;    // Total acumulado (para HS% incremental)
+  matchResults?: boolean[];   // Histórico de resultados (true=win)
+  matchADRs?: number[];       // ADR por partida (para média incremental)
 
   // Faceit Info
   faceitElo: number;

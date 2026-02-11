@@ -239,14 +239,18 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     currentStreak: player.currentStreak || 0,
     longestWinStreak: player.longestWinStreak || 0,
     lastMatch: player.lastMatch,
-    totalKills: player.totalKills,      // ✅ ADICIONADO
-    totalDeaths: player.totalDeaths,    // ✅ ADICIONADO
-    totalDamage: player.totalDamage,    // ✅ ADICIONADO
-    totalRounds: player.totalRounds,    // ✅ ADICIONADO
-    rivalNickname: player.rivalNickname,        // ✅ NOVO: Maior rival
-    rivalMatchCount: player.rivalMatchCount || 0,
-    rivalWins: player.rivalWins || 0,
-    rivalLosses: player.rivalLosses || 0,
+    totalKills: player.totalKills,
+    totalDeaths: player.totalDeaths,
+    totalDamage: player.totalDamage,
+    totalRounds: player.totalRounds,
+    totalHeadshots: player.totalHeadshots,    // ✅ Para HS% incremental
+    matchResults: player.matchResults,         // ✅ Para acumulação incremental
+    matchADRs: player.matchADRs,               // ✅ Para ADR incremental
+    rivalNickname: player.rivalNickname,
+    rivalMatchCount: player.rivalMatchCount,
+    rivalWins: player.rivalWins,
+    rivalLosses: player.rivalLosses,
+    lastMatchId: player.lastMatchId,
   };
 }
 

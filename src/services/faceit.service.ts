@@ -522,11 +522,92 @@ class FaceitService {
       
       const newStats = await this.calculateStatsFromMatches(allMatches, playerInfo, nickname);
 
+      // ✅ ACUMULAÇÃO: se tem stats anteriores, somar com as novas partidas
+      if (previousStats && allMatches.length > 0) {
+        console.log(`   ⚡ ${nickname}: Acumulando ${allMatches.length} partidas novas com ${previousStats.matchesPlayed} existentes`);
 
-      // 🚨 FORÇANDO RECALCULO TOTAL - SEM ACUMULAÇÃO
-      console.log(`   ✅ ${nickname}: Calculando do ZERO (${allMatches.length} partidas)`);
+        const combinedWins      = previousStats.wins + newStats.wins;
+        const combinedLosses    = previousStats.losses + newStats.losses;
+        const combinedPlayed    = combinedWins + combinedLosses;
+        const combinedKills     = (previousStats.totalKills     || 0) + (newStats.totalKills     || 0);
+        const combinedDeaths    = (previousStats.totalDeaths    || 0) + (newStats.totalDeaths    || 0);
+        const combinedDamage    = (previousStats.totalDamage    || 0) + (newStats.totalDamage    || 0);
+        const combinedRounds    = (previousStats.totalRounds    || 0) + (newStats.totalRounds    || 0);
+        const combinedHeadshots = (previousStats.totalHeadshots || 0) + (newStats.totalHeadshots || 0);
 
-      // ✅ Sempre retornar newStats SEM acumular
+        // Arrays: novas partidas primeiro (mais recentes), depois antigas
+        const combinedMatchResults = [
+          ...(newStats.matchResults || []),
+          ...(previousStats.matchResults || []),
+        ];
+        const combinedMatchADRs = [
+          ...(newStats.matchADRs || []),
+          ...(previousStats.matchADRs || []),
+        ];
+
+        // Recalcular stats derivadas
+        const rankingPoints = RANKING_CONFIG.INITIAL_POINTS + (combinedWins * 3) - (combinedLosses * 3);
+        const kd      = combinedDeaths > 0 ? parseFloat((combinedKills / combinedDeaths).toFixed(2)) : 0;
+        const adr     = combinedMatchADRs.length > 0
+          ? parseFloat((combinedMatchADRs.reduce((s, a) => s + a, 0) / combinedMatchADRs.length).toFixed(1))
+          : 0;
+        const headshotPercentage = combinedKills > 0
+          ? parseFloat(((combinedHeadshots / combinedKills) * 100).toFixed(1))
+          : 0;
+        const winRate = combinedPlayed > 0
+          ? parseFloat(((combinedWins / combinedPlayed) * 100).toFixed(1))
+          : 0;
+        const kills  = combinedPlayed > 0 ? parseFloat((combinedKills  / combinedPlayed).toFixed(1)) : 0;
+        const deaths = combinedPlayed > 0 ? parseFloat((combinedDeaths / combinedPlayed).toFixed(1)) : 0;
+
+        // Peak points (tipagem explícita para evitar literal type 1000)
+        let simPoints: number = RANKING_CONFIG.INITIAL_POINTS;
+        let peakPoints: number = simPoints;
+        for (const won of [...combinedMatchResults].reverse()) {
+          simPoints += won ? 3 : -3;
+          peakPoints = Math.max(peakPoints, simPoints);
+        }
+
+        // Longest win streak
+        let streak = 0;
+        let longestStreak = 0;
+        for (const won of combinedMatchResults) {
+          if (won) { streak++; longestStreak = Math.max(longestStreak, streak); }
+          else { streak = 0; }
+        }
+
+        return sanitizePlayer({
+          ...previousStats,
+          wins: combinedWins,
+          losses: combinedLosses,
+          matchesPlayed: combinedPlayed,
+          rankingPoints,
+          peakRankingPoints: Math.max(peakPoints, previousStats.peakRankingPoints || 0),
+          winRate,
+          kills,
+          deaths,
+          kd,
+          adr,
+          headshotPercentage,
+          totalKills:     combinedKills,
+          totalDeaths:    combinedDeaths,
+          totalDamage:    combinedDamage,
+          totalRounds:    combinedRounds,
+          totalHeadshots: combinedHeadshots,
+          longestWinStreak: longestStreak,
+          matchADRs:     combinedMatchADRs,
+          matchResults:  combinedMatchResults,
+          lastMatchId:   allMatches[0].match_id,
+          // Rival mantém o do cache (tem histórico completo)
+          rivalNickname:  previousStats.rivalNickname,
+          rivalMatchCount: previousStats.rivalMatchCount,
+          rivalWins:      previousStats.rivalWins,
+          rivalLosses:    previousStats.rivalLosses,
+        });
+      }
+
+      // Sem previousStats: retornar newStats normalmente (primeiro processamento)
+      console.log(`   ✅ ${nickname}: Calculado do zero (${allMatches.length} partidas)`);
       return {
         ...newStats,
         lastMatchId: allMatches.length > 0 ? allMatches[0].match_id : undefined,
