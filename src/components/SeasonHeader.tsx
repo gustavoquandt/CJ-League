@@ -63,7 +63,7 @@ export default function SeasonHeader({
         </div>
 
         {/* Info de atualização + Botão — inline */}
-        <div className="flex items-center gap-3 pb-3">
+        <div className="flex items-stretch gap-3 pb-3">
 
           {/* Dados compactos */}
           <div className="flex items-center gap-4 px-3 py-2 rounded-lg bg-[rgba(26,31,110,0.2)] border border-[rgba(37,43,138,0.35)]">

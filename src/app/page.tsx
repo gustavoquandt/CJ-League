@@ -605,7 +605,7 @@ function HomePageContent() {
         />
 
         {/* Busca, filtros e logo */}
-        <div className="flex gap-4 items-stretch mb-6">
+        <div className="flex gap-4 items-start mb-6">
           {/* Logo CJL */}
           <div className="hidden lg:flex flex-shrink-0 w-[200px] items-center justify-center
                           bg-[var(--bg-card)] border border-[var(--border-default)] rounded-lg overflow-hidden">
@@ -613,7 +613,7 @@ function HomePageContent() {
             <img
               src="/CJL-logo-color-s1.png"
               alt="CJ League Season 1"
-              className="max-w-full max-h-full object-contain p-3"
+              className="w-auto h-32 object-contain p-4"
             />
           </div>
 
