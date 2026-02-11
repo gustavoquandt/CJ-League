@@ -302,7 +302,7 @@ export function formatPosition(position: number): string {
  * Para K/D, Win Rate, etc.
  */
 export function getStatColor(value: number, thresholds: { good: number; bad: number }): string {
-  if (value >= thresholds.good) return 'text-blue-400';
+  if (value >= thresholds.good) return 'text-sky-500';
   if (value <= thresholds.bad) return 'text-red-500';
   return 'text-yellow-500';
 }

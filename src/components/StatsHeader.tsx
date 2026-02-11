@@ -93,7 +93,7 @@ export default function StatsHeader({
                   ...filters,
                   sortOrder: filters.sortOrder === 'desc' ? 'asc' : 'desc'
                 })}
-                className="px-4 py-2 bg-[var(--bg-dark)] hover:bg-[var(--bg-medium)] rounded-lg border border-[#1a1f6e] text-[#1a1f6e] hover:text-[#252b8a] transition-all font-bold text-lg"
+                className="px-4 py-2 bg-[var(--bg-dark)] hover:bg-[var(--bg-medium)] rounded-lg border border-[#0EA5E9] text-[#0EA5E9] hover:text-[#38BDF8] transition-all font-bold text-lg"
                 title={filters.sortOrder === 'desc' ? 'Ordem Decrescente' : 'Ordem Crescente'}
               >
                 {filters.sortOrder === 'desc' ? '↓' : '↑'}

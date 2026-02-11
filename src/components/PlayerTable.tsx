@@ -50,11 +50,11 @@ export default function PlayerTable({ players }: PlayerTableProps) {
     }
 
     return sortOrder === 'desc' ? (
-      <svg className="w-4 h-4 text-[#1a1f6e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 text-[#0EA5E9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
       </svg>
     ) : (
-      <svg className="w-4 h-4 text-[#1a1f6e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 text-[#0EA5E9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
       </svg>
     );
@@ -132,7 +132,7 @@ export default function PlayerTable({ players }: PlayerTableProps) {
                         alt={player.nickname}
                         width={40}
                         height={40}
-                        className="rounded-full border-2 border-[#1a1f6e]"
+                        className="rounded-full border-2 border-[#0EA5E9]"
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-faceit-light-gray flex items-center justify-center font-bold">
@@ -154,7 +154,7 @@ export default function PlayerTable({ players }: PlayerTableProps) {
 
                 {/* Points */}
                 <td>
-                  <span className="text-[#1a1f6e] font-bold text-lg">
+                  <span className="text-[#0EA5E9] font-bold text-lg">
                     {player.rankingPoints}
                   </span>
                 </td>

@@ -97,7 +97,7 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
                 {sortedMaps.map((map) => (
                     <div
                         key={map.name}
-                        className="relative h-40 bg-faceit-dark border border-faceit-light-gray rounded-lg overflow-hidden hover:border-[#1a1f6e] transition-all group cursor-pointer"
+                        className="relative h-40 bg-faceit-dark border border-faceit-light-gray rounded-lg overflow-hidden hover:border-[#0EA5E9] transition-all group cursor-pointer"
                     >
                         {/* Imagem de fundo */}
                         {map.image && (
@@ -130,7 +130,7 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
                             )}
 
                             {/* Número grande */}
-                            <p className="text-4xl font-bold text-[#1a1f6e] drop-shadow-lg">
+                            <p className="text-4xl font-bold text-[#0EA5E9] drop-shadow-lg">
                                 {map.count}
                             </p>
 

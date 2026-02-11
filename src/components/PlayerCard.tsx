@@ -29,7 +29,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
                 alt={player.nickname}
                 width={56}
                 height={56}
-                className="rounded-full border-2 border-[#1a1f6e]"
+                className="rounded-full border-2 border-[#0EA5E9]"
               />
             ) : (
               <div className="w-14 h-14 rounded-full bg-faceit-light-gray flex items-center justify-center text-2xl font-bold">
@@ -58,7 +58,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         {/* Pontos */}
         <div className="bg-faceit-darker rounded-lg p-3">
           <p className="text-xs text-text-secondary mb-1">Pontos</p>
-          <p className="text-2xl font-bold text-[#1a1f6e]">
+          <p className="text-2xl font-bold text-[#0EA5E9]">
             {player.rankingPoints}
           </p>
         </div>
@@ -94,7 +94,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-400">🎯 Rival:</span>
-              <span className="text-sm font-semibold text-[#1a1f6e]">
+              <span className="text-sm font-semibold text-[#0EA5E9]">
                 {player.rivalNickname}
               </span>
             </div>
