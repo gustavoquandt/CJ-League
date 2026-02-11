@@ -239,8 +239,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         - totalLosses * RANKING_CONFIG.POINTS_PER_LOSS;
 
       const kd  = totalDeaths > 0 ? parseFloat((totalKills  / totalDeaths).toFixed(2)) : totalKills;
-      const adr = allMatchADRs.length > 0
-        ? parseFloat((allMatchADRs.reduce((s, v) => s + v, 0) / allMatchADRs.length).toFixed(1))
+      
+      // ✅ ADR calculado dos totais (não depende de cache ter matchADRs)
+      const adr = totalRounds > 0
+        ? parseFloat((totalDamage / totalRounds).toFixed(1))
         : cachedPlayer.adr;
 
       const headshotPercentage = totalKills > 0
