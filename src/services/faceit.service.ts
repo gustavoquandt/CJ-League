@@ -522,8 +522,12 @@ class FaceitService {
       
       const newStats = await this.calculateStatsFromMatches(allMatches, playerInfo, nickname);
 
-      // ✅ ACUMULAÇÃO: se tem stats anteriores, somar com as novas partidas
-      if (previousStats && allMatches.length > 0) {
+      // ✅ ACUMULAÇÃO: só acumula se:
+      // 1. Tem stats anteriores (previousStats)
+      // 2. Tem partidas novas (allMatches.length > 0)  
+      // 3. Encontrou o ponto de parada (foundLastMatch) = só partidas realmente novas
+      //    Se lastMatchId era null, foundLastMatch=false → recalcula do zero (correto)
+      if (previousStats && allMatches.length > 0 && foundLastMatch) {
         console.log(`   ⚡ ${nickname}: Acumulando ${allMatches.length} partidas novas com ${previousStats.matchesPlayed} existentes`);
 
         const combinedWins      = previousStats.wins + newStats.wins;
