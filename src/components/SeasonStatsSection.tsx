@@ -94,13 +94,13 @@ export default function SeasonStatsSection({
       >
         <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
           <h2 className="text-lg lg:text-2xl font-bold flex items-center gap-2">
-            <span className="text-faceit-orange">📈</span>
+            <span className="text-[#e31e24]">📈</span>
             <span className="truncate">Destaques - {seasonName}</span>
           </h2>
           
           {/* Tag ao lado do título - esconde no mobile */}
           <div className="hidden lg:inline-flex items-center gap-2 px-3 py-1.5 bg-faceit-dark border border-faceit-light-gray/50 rounded-full">
-            <span className="text-faceit-orange text-xs">ℹ️</span>
+            <span className="text-[#e31e24] text-xs">ℹ️</span>
             <p className="text-xs text-white whitespace-nowrap">
               Estatísticas referentes a toda a season
             </p>
@@ -114,9 +114,9 @@ export default function SeasonStatsSection({
           </span>
           
           {/* Mobile: ícone com fundo redondo */}
-          <div className="lg:hidden w-10 h-10 flex items-center justify-center bg-faceit-orange/20 rounded-full border border-faceit-orange/30">
+          <div className="lg:hidden w-10 h-10 flex items-center justify-center bg-[#e31e24]/20 rounded-full border border-[#e31e24]/30">
             <svg
-              className={`w-5 h-5 text-faceit-orange transition-transform ${
+              className={`w-5 h-5 text-[#e31e24] transition-transform ${
                 isVisible ? 'rotate-180' : ''
               }`}
               fill="none"
@@ -134,7 +134,7 @@ export default function SeasonStatsSection({
           
           {/* Desktop: apenas ícone sem fundo */}
           <svg
-            className={`hidden lg:block w-6 h-6 text-faceit-orange transition-transform ${
+            className={`hidden lg:block w-6 h-6 text-[#e31e24] transition-transform ${
               isVisible ? 'rotate-180' : ''
             }`}
             fill="none"
@@ -171,7 +171,7 @@ export default function SeasonStatsSection({
                   <div className="flex items-center gap-3">
                     {/* Avatar com fallback para inicial */}
                     {stat.leader.avatar ? (
-                      <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-faceit-orange flex-shrink-0">
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#e31e24] flex-shrink-0">
                         <Image
                           src={stat.leader.avatar}
                           alt={stat.leader.nickname}
@@ -181,7 +181,7 @@ export default function SeasonStatsSection({
                         />
                       </div>
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-faceit-light-gray border-2 border-faceit-orange flex items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-faceit-light-gray border-2 border-[#e31e24] flex items-center justify-center flex-shrink-0">
                         <span className="text-xl font-bold text-white">
                           {stat.leader.nickname.charAt(0).toUpperCase()}
                         </span>
@@ -192,7 +192,7 @@ export default function SeasonStatsSection({
                       <p className="font-bold text-white truncate">
                         {stat.leader.nickname}
                       </p>
-                      <p className="text-2xl font-bold text-faceit-orange">
+                      <p className="text-2xl font-bold text-[#e31e24]">
                         {stat.formatter(value)}
                       </p>
                     </div>

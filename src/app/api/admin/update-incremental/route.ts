@@ -234,7 +234,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const allMatchResults = [...delta.matchResults, ...(prevMatchResults || [])];
 
       // ── Stats derivadas ──
-      const rankingPoints = RANKING_CONFIG.INITIAL_POINTS
+      const rankingPoints: number = RANKING_CONFIG.INITIAL_POINTS
         + totalWins   * RANKING_CONFIG.POINTS_PER_WIN
         - totalLosses * RANKING_CONFIG.POINTS_PER_LOSS;
 
@@ -255,8 +255,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const deaths = totalMatches > 0 ? parseFloat((totalDeaths / totalMatches).toFixed(1)) : 0;
 
       // ── Peak points ──
-      let simPoints  = RANKING_CONFIG.INITIAL_POINTS;
-      let peakPoints = simPoints;
+      let simPoints: number  = RANKING_CONFIG.INITIAL_POINTS;
+      let peakPoints: number = simPoints;
       for (const won of [...allMatchResults].reverse()) {
         simPoints += won ? RANKING_CONFIG.POINTS_PER_WIN : -RANKING_CONFIG.POINTS_PER_LOSS;
         if (simPoints > peakPoints) peakPoints = simPoints;
