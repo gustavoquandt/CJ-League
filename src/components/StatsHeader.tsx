@@ -33,7 +33,7 @@ export default function StatsHeader({
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="card">
+      <div className="card h-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Search */}
           <div>
