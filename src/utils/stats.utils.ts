@@ -321,19 +321,24 @@ export function getKDColor(kd: number): string {
 
 /**
  * Retorna cor do Win Rate
+ * Verde: > 50% (bom)
+ * Azul: = 50% (neutro)
+ * Vermelho: < 50% (ruim)
  */
 export function getWinRateColor(winRate: number): string {
-  return getStatColor(winRate, { good: 55, bad: 45 });
+  if (winRate > 50)  return 'text-[#10B981]';  // Verde - Bom
+  if (winRate < 50)  return 'text-[#e31e24]';  // Vermelho - Ruim
+  return 'text-[#0EA5E9]';                     // Azul - Exatamente 50%
 }
 
 /**
  * Retorna cor do ADR com escala específica
  * Verde: > 100 (excelente)
- * Azul: 50-100 (normal)
+ * Amarelo: 50-100 (médio)
  * Vermelho: < 50 (ruim)
  */
 export function getADRColor(adr: number): string {
   if (adr > 100) return 'text-[#10B981]';  // Verde - Excelente
-  if (adr < 50)  return 'text-[#e31e24]';  // Vermelho - Ruim
-  return 'text-[#0EA5E9]';                 // Azul - Normal
+  if (adr >= 50) return 'text-[#F59E0B]';  // Amarelo - Médio
+  return 'text-[#e31e24]';                 // Vermelho - Ruim
 }
