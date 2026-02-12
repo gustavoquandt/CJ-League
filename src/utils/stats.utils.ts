@@ -322,8 +322,13 @@ export function getWinRateColor(winRate: number): string {
 }
 
 /**
- * Retorna cor do ADR
+ * Retorna cor do ADR com escala específica
+ * Verde: > 100 (excelente)
+ * Azul: 50-100 (normal)
+ * Vermelho: < 50 (ruim)
  */
 export function getADRColor(adr: number): string {
-  return getStatColor(adr, { good: 80, bad: 60 });
+  if (adr > 100) return 'text-[#10B981]';  // Verde - Excelente
+  if (adr < 50)  return 'text-[#e31e24]';  // Vermelho - Ruim
+  return 'text-[#0EA5E9]';                 // Azul - Normal
 }

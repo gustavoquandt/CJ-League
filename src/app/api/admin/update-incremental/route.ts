@@ -52,7 +52,6 @@ interface PlayerDelta {
   damage: number;
   rounds: number;
   headshots: number;
-  matchADRs: number[];          // ADR de cada partida nova
   matchResults: boolean[];       // resultado de cada partida nova (true=win)
   lastMatchId: string | null;    // match_id mais recente
 }
@@ -144,7 +143,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           ? parseInt(firstRound.round_stats.Rounds, 10)
           : rounds.length;
 
-        // Todos os players de todos os rounds
+        // ✅ CORRIGIDO: Processar stats por player (uma vez por partida)
+        // Primeiro: acumular stats de TODOS os rounds da partida
+        const playerMatchStats = new Map<string, {
+          kills: number; deaths: number; damage: number; 
+          headshots: number; won: boolean;
+        }>();
+
         for (const round of rounds) {
           const teams: any[] = round.teams || [];
 
@@ -155,34 +160,43 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               const playerId: string = player.player_id;
               const ps = player.player_stats || {};
 
-              const kills     = parseInt(ps.Kills     || '0', 10);
-              const deaths    = parseInt(ps.Deaths    || '0', 10);
-              const damage    = parseInt(ps.Damage    || '0', 10);
-              const headshots = parseInt(ps.Headshots || '0', 10);
-              const won       = ps.Result === '1';
-              const matchADR  = totalRounds > 0 ? damage / totalRounds : 0;
-
-              if (!deltas.has(playerId)) {
-                deltas.set(playerId, {
-                  wins: 0, losses: 0,
-                  kills: 0, deaths: 0, damage: 0, rounds: 0, headshots: 0,
-                  matchADRs: [], matchResults: [],
-                  lastMatchId: null,
+              if (!playerMatchStats.has(playerId)) {
+                playerMatchStats.set(playerId, {
+                  kills: 0, deaths: 0, damage: 0, headshots: 0, won: false
                 });
               }
 
-              const d = deltas.get(playerId)!;
-              d.kills     += kills;
-              d.deaths    += deaths;
-              d.damage    += damage;
-              d.rounds    += totalRounds;
-              d.headshots += headshots;
-              d.matchADRs.push(matchADR);
-              d.matchResults.push(won);
-              if (won) d.wins++; else d.losses++;
-              d.lastMatchId = matchId; // último match processado
+              const matchStats = playerMatchStats.get(playerId)!;
+              matchStats.kills     += parseInt(ps.Kills     || '0', 10);
+              matchStats.deaths    += parseInt(ps.Deaths    || '0', 10);
+              matchStats.damage    += parseInt(ps.Damage    || '0', 10);
+              matchStats.headshots += parseInt(ps.Headshots || '0', 10);
+              matchStats.won       = ps.Result === '1'; // Último round define
             }
           }
+        }
+
+        // Segundo: adicionar aos deltas GLOBAIS (uma vez por player)
+        for (const [playerId, matchStats] of playerMatchStats) {
+          if (!deltas.has(playerId)) {
+            deltas.set(playerId, {
+              wins: 0, losses: 0,
+              kills: 0, deaths: 0, damage: 0, rounds: 0, headshots: 0,
+              matchResults: [],
+              lastMatchId: null,
+            });
+          }
+
+          const d = deltas.get(playerId)!;
+          d.kills     += matchStats.kills;
+          d.deaths    += matchStats.deaths;
+          d.damage    += matchStats.damage;
+          d.rounds    += totalRounds;  // ✅ Só adiciona UMA VEZ por partida
+          d.headshots += matchStats.headshots;
+          d.matchResults.push(matchStats.won);
+          d.lastMatchId = matchId;
+
+          if (matchStats.won) d.wins++; else d.losses++;
         }
 
         // Delay leve entre requests de stats
@@ -226,11 +240,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const totalRounds    = (cachedPlayer.totalRounds    || 0) + delta.rounds;
       const totalHeadshots = (cachedPlayer.totalHeadshots || Math.round((cachedPlayer.headshotPercentage / 100) * (cachedPlayer.kills * oldMatches))) + delta.headshots;
 
-      // ── Histórico (novos primeiro = mais recentes primeiro) ──
-      const prevMatchADRs    = (cachedPlayer as any).matchADRs    as number[]  | undefined;
+      // ── Histórico de resultados (para streaks) ──
       const prevMatchResults = (cachedPlayer as any).matchResults as boolean[] | undefined;
-
-      const allMatchADRs    = [...delta.matchADRs,    ...(prevMatchADRs    || [])];
       const allMatchResults = [...delta.matchResults, ...(prevMatchResults || [])];
 
       // ── Stats derivadas ──
@@ -307,8 +318,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         totalDamage,
         totalRounds,
         totalHeadshots,
-        // novos arrays (não sobrescreve type, só adiciona dinamicamente)
-        ...({ matchADRs: allMatchADRs, matchResults: allMatchResults } as any),
+        // histórico de resultados para streak calculation
+        ...({ matchResults: allMatchResults } as any),
         lastMatchId: delta.lastMatchId || cachedPlayer.lastMatchId,
       };
 
