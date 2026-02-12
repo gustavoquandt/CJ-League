@@ -318,6 +318,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         totalDamage,
         totalRounds,
         totalHeadshots,
+        // ✅ Preservar dados de rival do cache
+        rivalNickname: cachedPlayer.rivalNickname,
+        rivalMatchCount: cachedPlayer.rivalMatchCount,
+        rivalWins: cachedPlayer.rivalWins,
+        rivalLosses: cachedPlayer.rivalLosses,
         // histórico de resultados para streak calculation
         ...({ matchResults: allMatchResults } as any),
         lastMatchId: delta.lastMatchId || cachedPlayer.lastMatchId,
