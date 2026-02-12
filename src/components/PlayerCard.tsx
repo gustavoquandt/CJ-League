@@ -16,6 +16,16 @@ interface PlayerCardProps {
 }
 
 export default function PlayerCard({ player }: PlayerCardProps) {
+  // 🔍 DEBUG - Remove depois de confirmar que funciona
+  console.log('🎯 PlayerCard Rival Debug:', {
+    nickname: player.nickname,
+    rivalNickname: player.rivalNickname,
+    rivalMatchCount: player.rivalMatchCount,
+    rivalWins: player.rivalWins,
+    rivalLosses: player.rivalLosses,
+    shouldShowRival: !!(player.rivalNickname && player.rivalMatchCount && player.rivalMatchCount > 2),
+  });
+
   return (
     <div className="card animate-fade-in">
       {/* Header com Avatar, Nome e Pote */}
