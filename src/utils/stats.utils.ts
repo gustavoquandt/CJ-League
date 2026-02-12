@@ -314,9 +314,14 @@ export function getStatColor(value: number, thresholds: { good: number; bad: num
 
 /**
  * Retorna cor do K/D
+ * Verde: > 1.0 (positivo)
+ * Amarelo: 0.5-1.0 (médio)
+ * Vermelho: < 0.5 (ruim)
  */
 export function getKDColor(kd: number): string {
-  return getStatColor(kd, { good: 1.2, bad: 0.8 });
+  if (kd > 1.0)  return 'text-[#10B981]';  // Verde - Positivo
+  if (kd >= 0.5) return 'text-[#F59E0B]';  // Amarelo - Médio
+  return 'text-[#e31e24]';                 // Vermelho - Ruim
 }
 
 /**
