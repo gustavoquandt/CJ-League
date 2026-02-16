@@ -58,12 +58,7 @@ export default function MapDistributionCard({ mapStats }: MapDistributionCardPro
 
       {/* Conteúdo SEM padding */}
       <div className="relative h-full flex flex-col">
-        {/* Header */}
-        <div className="px-3 py-2 bg-black/30 border-b border-white/5">
-          <p className="text-[10px] font-semibold text-white/90 text-center">
-            DISTRIBUIÇÃO
-          </p>
-        </div>
+       
 
         {/* Heatmap - Barras full width */}
         <div className="flex-1 flex flex-col justify-evenly">
@@ -120,12 +115,7 @@ export default function MapDistributionCard({ mapStats }: MapDistributionCardPro
           })}
         </div>
 
-        {/* Footer */}
-        <div className="px-3 py-1.5 bg-black/30 border-t border-white/5">
-          <p className="text-[9px] text-white/50 text-center">
-            Total: {mapStats.totalMatches}
-          </p>
-        </div>
+       
       </div>
     </div>
   );
