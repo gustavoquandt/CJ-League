@@ -1,8 +1,9 @@
-// MapDistributionCard.tsx - VERSÃO A (Nome dentro da barra)
+// MapDistributionCard.tsx - VERSÃO SEM PADDING (Full Width)
 
 'use client';
 
 import { MapStats } from '@/types/app.types';
+import { useState } from 'react';
 
 interface MapDistributionCardProps {
   mapStats: MapStats | null;
@@ -10,29 +11,43 @@ interface MapDistributionCardProps {
 
 // Cores únicas para cada mapa (gradientes)
 const MAP_COLORS: Record<string, string> = {
-  'de_dust2': 'linear-gradient(135deg, #F59E0B, #D97706)',    // Amarelo/Areia
-  'de_mirage': 'linear-gradient(135deg, #0EA5E9, #0284C7)',   // Azul
-  'de_inferno': 'linear-gradient(135deg, #FF6B35, #EF4444)',  // Vermelho/Fogo
-  'de_nuke': 'linear-gradient(135deg, #10B981, #059669)',     // Verde
-  'de_overpass': 'linear-gradient(135deg, #6B7280, #4B5563)', // Cinza
-  'de_ancient': 'linear-gradient(135deg, #A855F7, #9333EA)',  // Roxo
-  'de_anubis': 'linear-gradient(135deg, #FBBF24, #F59E0B)',   // Dourado
+  'de_dust2': 'linear-gradient(135deg, #F59E0B, #D97706)',
+  'de_mirage': 'linear-gradient(135deg, #0EA5E9, #0284C7)',
+  'de_inferno': 'linear-gradient(135deg, #FF6B35, #EF4444)',
+  'de_nuke': 'linear-gradient(135deg, #10B981, #059669)',
+  'de_overpass': 'linear-gradient(135deg, #6B7280, #4B5563)',
+  'de_ancient': 'linear-gradient(135deg, #A855F7, #9333EA)',
+  'de_anubis': 'linear-gradient(135deg, #FBBF24, #F59E0B)',
 };
 
 const formatMapName = (mapName: string): string => {
   return mapName.replace('de_', '').replace('cs_', '').toUpperCase();
 };
 
+const getMapAbbreviation = (mapName: string): string => {
+  const name = mapName.replace('de_', '').replace('cs_', '');
+  const abbreviations: Record<string, string> = {
+    'dust2': 'D2',
+    'mirage': 'MR',
+    'inferno': 'INF',
+    'nuke': 'NK',
+    'overpass': 'OV',
+    'ancient': 'AN',
+    'anubis': 'AB',
+  };
+  return abbreviations[name] || name.substring(0, 3).toUpperCase();
+};
+
 export default function MapDistributionCard({ mapStats }: MapDistributionCardProps) {
-  // Se não tem dados, não renderizar
+  const [hoveredMap, setHoveredMap] = useState<string | null>(null);
+
   if (!mapStats || !mapStats.mapDistribution) {
     return null;
   }
 
-  // Pegar distribuição e ordenar
   const mapData = Object.entries(mapStats.mapDistribution || {})
     .sort(([, a], [, b]) => b - a)
-    .slice(0, 7); // Top 7 mapas
+    .slice(0, 7);
 
   const maxCount = Math.max(...mapData.map(([, count]) => count));
 
@@ -41,50 +56,76 @@ export default function MapDistributionCard({ mapStats }: MapDistributionCardPro
       {/* Overlay escuro gradiente */}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
 
-      {/* Conteúdo */}
-      <div className="relative h-full flex flex-col p-3">
-       
-        {/* Heatmap - Nome dentro da barra */}
-        <div className="flex-1 flex flex-col justify-center space-y-0.5">
+      {/* Conteúdo SEM padding */}
+      <div className="relative h-full flex flex-col">
+        {/* Header */}
+        <div className="px-3 py-2 bg-black/30 border-b border-white/5">
+          <p className="text-[10px] font-semibold text-white/90 text-center">
+            DISTRIBUIÇÃO
+          </p>
+        </div>
+
+        {/* Heatmap - Barras full width */}
+        <div className="flex-1 flex flex-col justify-evenly">
           {mapData.map(([mapName, count]) => {
             const percentage = (count / maxCount) * 100;
+            const isHovered = hoveredMap === mapName;
+
             return (
-              <div key={mapName} className="flex items-center">
-                {/* Barra com nome e número dentro */}
-                <div className="flex-1 h-4 bg-black/30 rounded-sm overflow-hidden">
+              <div 
+                key={mapName} 
+                className="flex items-stretch h-full relative"
+                onMouseEnter={() => setHoveredMap(mapName)}
+                onMouseLeave={() => setHoveredMap(null)}
+              >
+                {/* Sigla do mapa (lado esquerdo) */}
+                <div className="w-8 flex items-center justify-center bg-black/30 border-r border-white/5">
+                  <span className="text-[8px] text-white/90 font-mono font-semibold">
+                    {getMapAbbreviation(mapName)}
+                  </span>
+                </div>
+
+                {/* Barra (full width do restante) */}
+                <div className="flex-1 relative cursor-pointer overflow-hidden">
                   <div
-                    className="h-full flex items-center px-1.5 gap-1 transition-all"
+                    className="h-full transition-all duration-300"
                     style={{
                       background: MAP_COLORS[mapName] || MAP_COLORS['de_dust2'],
                       width: `${percentage}%`,
+                      opacity: isHovered ? 0.9 : 1,
                     }}
-                  >
-                    {/* Nome do mapa */}
-                    <span className="text-[10px] font-bold text-white/95 whitespace-nowrap drop-shadow-md">
-                      {formatMapName(mapName)}
-                    </span>
-                    
-                    {/* Número (só mostra se tiver espaço - >30%) */}
-                    {percentage > 30 && (
-                      <span className="text-[9px] font-bold text-white/95 ml-auto drop-shadow-md">
-                        {count}
-                      </span>
-                    )}
-                  </div>
+                  />
                 </div>
-                
-                {/* Número fora (fallback para barras pequenas) */}
-                {percentage <= 30 && (
-                  <span className="text-[10px] font-bold text-white/80 ml-1 w-5 text-right">
+
+                {/* Número (lado direito) */}
+                <div className="w-8 flex items-center justify-center bg-black/40 border-l border-white/5">
+                  <span className="text-[9px] font-bold text-white/95">
                     {count}
                   </span>
+                </div>
+
+                {/* Tooltip no hover */}
+                {isHovered && (
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 z-10 pointer-events-none">
+                    <div className="bg-black/90 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap">
+                      {formatMapName(mapName)} - {count} partidas
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2">
+                        <div className="border-4 border-transparent border-t-black/90" />
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             );
           })}
         </div>
 
-        
+        {/* Footer */}
+        <div className="px-3 py-1.5 bg-black/30 border-t border-white/5">
+          <p className="text-[9px] text-white/50 text-center">
+            Total: {mapStats.totalMatches}
+          </p>
+        </div>
       </div>
     </div>
   );
