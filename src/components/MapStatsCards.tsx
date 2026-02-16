@@ -5,7 +5,7 @@
 import { MapStats } from '@/types/app.types';
 
 interface MapDistributionCardProps {
-  mapStats: MapStats;
+  mapStats: MapStats | null;
 }
 
 // Cores únicas para cada mapa (gradientes)
@@ -24,6 +24,11 @@ const formatMapName = (mapName: string): string => {
 };
 
 export default function MapDistributionCard({ mapStats }: MapDistributionCardProps) {
+  // Se não tem dados, não renderizar
+  if (!mapStats || !mapStats.mapDistribution) {
+    return null;
+  }
+
   // Pegar distribuição e ordenar
   const mapData = Object.entries(mapStats.mapDistribution || {})
     .sort(([, a], [, b]) => b - a)
