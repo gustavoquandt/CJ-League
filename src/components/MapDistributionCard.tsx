@@ -84,10 +84,7 @@ export default function MapDistributionCard({ mapStats }: MapDistributionCardPro
           })}
         </div>
 
-        {/* Total */}
-        <p className="text-[10px] text-white/50 text-center mt-2">
-          Total: {mapStats.totalMatches}
-        </p>
+        
       </div>
     </div>
   );
