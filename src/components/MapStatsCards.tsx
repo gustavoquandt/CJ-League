@@ -1,98 +1,119 @@
-// MapDistributionCard.tsx - VERSÃO A (Nome dentro da barra)
-
 'use client';
 
 import { MapStats } from '@/types/app.types';
+import Image from 'next/image';
+import MapDistributionCard from './MapDistributionCard';
 
-interface MapDistributionCardProps {
-  mapStats: MapStats | null;
+interface MapStatsCardsProps {
+    mapStats: MapStats | null;
+    isLoading?: boolean;
+    isVisible?: boolean;
 }
 
-// Cores únicas para cada mapa (gradientes)
-const MAP_COLORS: Record<string, string> = {
-  'de_dust2': 'linear-gradient(135deg, #F59E0B, #D97706)',    // Amarelo/Areia
-  'de_mirage': 'linear-gradient(135deg, #0EA5E9, #0284C7)',   // Azul
-  'de_inferno': 'linear-gradient(135deg, #FF6B35, #EF4444)',  // Vermelho/Fogo
-  'de_nuke': 'linear-gradient(135deg, #10B981, #059669)',     // Verde
-  'de_overpass': 'linear-gradient(135deg, #6B7280, #4B5563)', // Cinza
-  'de_ancient': 'linear-gradient(135deg, #A855F7, #9333EA)',  // Roxo
-  'de_anubis': 'linear-gradient(135deg, #FBBF24, #F59E0B)',   // Dourado
+// REMOVIDO DE_CACHE - Agora são 7 mapas + 1 card de distribuição
+const CS2_MAP_POOL = [
+    'de_dust2',
+    'de_mirage',
+    'de_inferno',
+    'de_nuke',
+    'de_overpass',
+    'de_ancient',
+    'de_anubis',
+];
+
+const MAP_IMAGES: Record<string, string> = {
+    'de_dust2': 'https://assets.faceit-cdn.net/third_party/games/ce652bd4-0abb-4c90-9936-1133965ca38b/assets/votables/7c17caa9-64a6-4496-8a0b-885e0f038d79_1695819126962.jpeg',
+    'de_mirage': 'https://assets.faceit-cdn.net/third_party/games/ce652bd4-0abb-4c90-9936-1133965ca38b/assets/votables/7fb7d725-e44d-4e3c-b557-e1d19b260ab8_1695819144685.jpeg',
+    'de_inferno': 'https://assets.faceit-cdn.net/third_party/games/ce652bd4-0abb-4c90-9936-1133965ca38b/assets/votables/993380de-bb5b-4aa1-ada9-a0c1741dc475_1695819220797.jpeg',
+    'de_nuke': 'https://assets.faceit-cdn.net/third_party/games/ce652bd4-0abb-4c90-9936-1133965ca38b/assets/votables/7197a969-81e4-4fef-8764-55f46c7cec6e_1695819158849.jpeg',
+    'de_overpass': 'https://assets.faceit-cdn.net/third_party/games/ce652bd4-0abb-4c90-9936-1133965ca38b/assets/votables/058c4eb3-dac4-441c-a810-70afa0f3022c_1695819170133.jpeg',
+    'de_ancient': 'https://assets.faceit-cdn.net/third_party/games/ce652bd4-0abb-4c90-9936-1133965ca38b/assets/votables/5b844241-5b15-45bf-a304-ad6df63b5ce5_1695819190976.jpeg',
+    'de_anubis': 'https://assets.faceit-cdn.net/third_party/games/ce652bd4-0abb-4c90-9936-1133965ca38b/assets/votables/31f01daf-e531-43cf-b949-c094ebc9b3ea_1695819235255.jpeg',
+};
+
+const MAP_ICONS: Record<string, string> = {
+    'de_dust2': 'https://developer.valvesoftware.com/w/images/f/f4/De_dust2.png?20220405152933',
+    'de_mirage': 'https://developer.valvesoftware.com/w/images/6/68/De_mirage.png?20220405153133',
+    'de_inferno': 'https://developer.valvesoftware.com/w/images/b/be/De_inferno.png',
+    'de_nuke': 'https://developer.valvesoftware.com/w/images/5/57/De_nuke.png?20220405153156',
+    'de_overpass': 'https://developer.valvesoftware.com/w/images/d/dc/De_overpass.png',
+    'de_ancient': 'https://developer.valvesoftware.com/w/images/9/94/De_ancient.png',
+    'de_anubis': 'https://developer.valvesoftware.com/w/images/5/54/De_anubis.png?20221119084421',
 };
 
 const formatMapName = (mapName: string): string => {
-  return mapName.replace('de_', '').replace('cs_', '').toUpperCase();
+    return mapName.replace('de_', '').replace('cs_', '').toUpperCase();
 };
 
-export default function MapDistributionCard({ mapStats }: MapDistributionCardProps) {
-  // Se não tem dados, não renderizar
-  if (!mapStats || !mapStats.mapDistribution) {
-    return null;
-  }
+export default function MapStatsCards({ mapStats, isLoading = false, isVisible = true }: MapStatsCardsProps) {
+    if (!isVisible) return null;
 
-  // Pegar distribuição e ordenar
-  const mapData = Object.entries(mapStats.mapDistribution || {})
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 7); // Top 7 mapas
-
-  const maxCount = Math.max(...mapData.map(([, count]) => count));
-
-  return (
-    <div className="relative h-40 bg-faceit-dark border border-faceit-light-gray rounded-lg overflow-hidden hover:border-[#0EA5E9] transition-all group">
-      {/* Overlay escuro gradiente */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
-
-      {/* Conteúdo */}
-      <div className="relative h-full flex flex-col p-3">
-        {/* Título */}
-        <p className="text-xs font-semibold text-white/90 mb-2 text-center">
-          DISTRIBUIÇÃO
-        </p>
-
-        {/* Heatmap - Nome dentro da barra */}
-        <div className="flex-1 flex flex-col justify-center space-y-0.5">
-          {mapData.map(([mapName, count]) => {
-            const percentage = (count / maxCount) * 100;
-            return (
-              <div key={mapName} className="flex items-center">
-                {/* Barra com nome e número dentro */}
-                <div className="flex-1 h-4 bg-black/30 rounded-sm overflow-hidden">
-                  <div
-                    className="h-full flex items-center px-1.5 gap-1 transition-all"
-                    style={{
-                      background: MAP_COLORS[mapName] || MAP_COLORS['de_dust2'],
-                      width: `${percentage}%`,
-                    }}
-                  >
-                    {/* Nome do mapa */}
-                    <span className="text-[9px] font-semibold text-white/95 whitespace-nowrap drop-shadow-md">
-                      {formatMapName(mapName)}
-                    </span>
-                    
-                    {/* Número (só mostra se tiver espaço - >30%) */}
-                    {percentage > 30 && (
-                      <span className="text-[9px] font-bold text-white/95 ml-auto drop-shadow-md">
-                        {count}
-                      </span>
-                    )}
-                  </div>
+    if (isLoading) {
+        return (
+            <div className="mb-8">
+                <h2 className="text-2xl font-bold mb-4">Partidas</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                    {[...Array(8)].map((_, i) => (
+                        <div key={i} className="h-40 bg-faceit-dark border border-faceit-light-gray rounded-lg animate-pulse" />
+                    ))}
                 </div>
-                
-                {/* Número fora (fallback para barras pequenas) */}
-                {percentage <= 30 && (
-                  <span className="text-[10px] font-bold text-white/80 ml-1 w-5 text-right">
-                    {count}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
+            </div>
+        );
+    }
 
-        {/* Total */}
-        <p className="text-[10px] text-white/50 text-center mt-2">
-          Total: {mapStats.totalMatches}
-        </p>
-      </div>
-    </div>
-  );
+    if (!mapStats?.mapDistribution) return null;
+
+    const mapData = CS2_MAP_POOL.map((mapName) => ({
+        name: mapName,
+        count: mapStats.mapDistribution[mapName] || 0,
+        image: MAP_IMAGES[mapName],
+        icon: MAP_ICONS[mapName],
+    })).sort((a, b) => b.count - a.count);
+
+    return (
+        <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4">Partidas: {mapStats.totalMatches}</h2>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                {mapData.map((map) => (
+                    <div
+                        key={map.name}
+                        className="relative h-40 bg-faceit-dark border border-faceit-light-gray rounded-lg overflow-hidden hover:border-[#0EA5E9] transition-all group cursor-pointer"
+                    >
+                        {map.image && (
+                            <Image
+                                src={map.image}
+                                alt={formatMapName(map.name)}
+                                fill
+                                className="object-cover opacity-30 group-hover:opacity-50 transition-opacity"
+                                unoptimized
+                            />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
+                        <div className="relative h-full flex flex-col items-center justify-center gap-2 p-3">
+                            {map.icon && (
+                                <div className="w-16 h-16 flex-shrink-0">
+                                    <Image
+                                        src={map.icon}
+                                        alt={formatMapName(map.name)}
+                                        width={64}
+                                        height={64}
+                                        className="w-full h-full object-contain drop-shadow-lg"
+                                        unoptimized
+                                    />
+                                </div>
+                            )}
+                            <p className="text-4xl font-bold text-[#0EA5E9] drop-shadow-lg">{map.count}</p>
+                            <p className="text-xs font-semibold text-white/90 text-center leading-tight drop-shadow-lg">
+                                {formatMapName(map.name)}
+                            </p>
+                        </div>
+                    </div>
+                ))}
+                
+                {/* NOVO: Card de Distribuição */}
+                <MapDistributionCard mapStats={mapStats} />
+            </div>
+        </div>
+    );
 }
