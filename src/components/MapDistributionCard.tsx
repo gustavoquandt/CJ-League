@@ -60,7 +60,7 @@ export default function MapDistributionCard({ mapStats }: MapDistributionCardPro
                     }}
                   >
                     {/* Nome do mapa */}
-                    <span className="text-[9px] font-semibold text-white/95 whitespace-nowrap drop-shadow-md">
+                    <span className="text-[10px] font-bold text-white/95 whitespace-nowrap drop-shadow-md">
                       {formatMapName(mapName)}
                     </span>
                     
