@@ -43,11 +43,7 @@ export default function MapDistributionCard({ mapStats }: MapDistributionCardPro
 
       {/* Conteúdo */}
       <div className="relative h-full flex flex-col p-3">
-        {/* Título */}
-        <p className="text-xs font-semibold text-white/90 mb-2 text-center">
-          DISTRIBUIÇÃO
-        </p>
-
+       
         {/* Heatmap - Nome dentro da barra */}
         <div className="flex-1 flex flex-col justify-center space-y-0.5">
           {mapData.map(([mapName, count]) => {
