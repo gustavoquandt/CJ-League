@@ -23,7 +23,7 @@ import {
 const QUEUE_ID = process.env.NEXT_PUBLIC_COMPETITION_ID || 'f2dec63c-b3c1-4df6-8193-0b83fc6640ef';
 
 // CONFIGURAÇÕES CONSERVADORAS
-const HISTORY_PAGES = 5;              // 5 páginas = 100 partidas
+const HISTORY_PAGES = 10;              // 10 páginas = 200 partidas
 const PARALLEL_MATCHES = 3;           // 3 partidas em paralelo
 const REQUEST_TIMEOUT = 20000;        // 20s timeout
 const MIN_DELAY_BETWEEN_REQUESTS = 1200; // 1.2s entre requests
