@@ -1,7 +1,7 @@
-// src/components/admin/UpdateMapStatsButton.tsx
+// src/components/admin/UpdateMapStatsButton.tsx - CORRIGIDO
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface UpdateMapStatsButtonProps {
   seasonId?: string;
@@ -11,6 +11,32 @@ export default function UpdateMapStatsButton({ seasonId = 'SEASON_1' }: UpdateMa
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [adminSecret, setAdminSecret] = useState<string>('');
+  const [isConfigured, setIsConfigured] = useState(false);
+
+  // Carregar secret do localStorage ao montar
+  useEffect(() => {
+    const saved = localStorage.getItem('admin_secret');
+    if (saved) {
+      setAdminSecret(saved);
+      setIsConfigured(true);
+    }
+  }, []);
+
+  const handleSaveSecret = () => {
+    if (adminSecret.trim()) {
+      localStorage.setItem('admin_secret', adminSecret.trim());
+      setIsConfigured(true);
+    }
+  };
+
+  const handleClearSecret = () => {
+    localStorage.removeItem('admin_secret');
+    setAdminSecret('');
+    setIsConfigured(false);
+    setResult(null);
+    setError(null);
+  };
 
   const handleUpdateMapStats = async () => {
     setIsLoading(true);
@@ -22,6 +48,7 @@ export default function UpdateMapStatsButton({ seasonId = 'SEASON_1' }: UpdateMa
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminSecret}`,
         },
       });
 
@@ -39,9 +66,53 @@ export default function UpdateMapStatsButton({ seasonId = 'SEASON_1' }: UpdateMa
     }
   };
 
+  // Se não está configurado, mostrar input
+  if (!isConfigured) {
+    return (
+      <div className="card p-6">
+        <h2 className="text-2xl font-bold mb-4">🔐 Configuração Necessária</h2>
+        
+        <p className="text-gray-400 mb-4">
+          Digite o ADMIN_SECRET para usar esta funcionalidade:
+        </p>
+
+        <div className="flex gap-2">
+          <input
+            type="password"
+            value={adminSecret}
+            onChange={(e) => setAdminSecret(e.target.value)}
+            placeholder="Digite o ADMIN_SECRET"
+            className="flex-1 px-4 py-2 bg-faceit-darker border border-faceit-light-gray rounded-lg text-white"
+            onKeyPress={(e) => e.key === 'Enter' && handleSaveSecret()}
+          />
+          <button
+            onClick={handleSaveSecret}
+            className="btn-primary"
+            disabled={!adminSecret.trim()}
+          >
+            Salvar
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-500 mt-2">
+          💡 O secret será salvo no localStorage do navegador
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="card p-6">
-      <h2 className="text-2xl font-bold mb-4">🗺️ Atualizar Estatísticas de Mapas</h2>
+      <div className="flex justify-between items-start mb-4">
+        <h2 className="text-2xl font-bold">🗺️ Atualizar Estatísticas de Mapas</h2>
+        <button
+          onClick={handleClearSecret}
+          className="text-xs text-gray-500 hover:text-red-400"
+          title="Limpar ADMIN_SECRET"
+        >
+          🔓 Limpar Secret
+        </button>
+      </div>
       
       <p className="text-gray-400 mb-4">
         Busca as últimas partidas do hub e recalcula a distribuição de mapas.
@@ -104,6 +175,11 @@ export default function UpdateMapStatsButton({ seasonId = 'SEASON_1' }: UpdateMa
         <div className="mt-4 p-4 bg-red-900/20 border border-red-500 rounded-lg">
           <p className="font-bold text-red-400 mb-2">❌ Erro</p>
           <p className="text-sm">{error}</p>
+          {error.includes('Não autorizado') && (
+            <p className="text-xs text-gray-400 mt-2">
+              💡 Clique em "Limpar Secret" e digite o secret correto
+            </p>
+          )}
         </div>
       )}
 
