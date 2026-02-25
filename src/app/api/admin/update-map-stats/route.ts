@@ -1,6 +1,6 @@
 /**
  * Rota: /api/admin/update-map-stats
- * Busca partidas do hub FACEIT, calcula stats de mapa e salva no Redis
+ * ✅ CORRIGIDO: Busca TODAS as partidas (paginação) ao invés de apenas 100
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,12 +12,15 @@ import type { MapStats } from '@/types/app.types';
 const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'default_admin_secret_change_me';
 
+// ✅ NOVO: Configurações para buscar mais partidas
+const MATCHES_PER_PAGE = 100;  // Máximo por página da API
+const MAX_PAGES = 3;            // 3 páginas = até 300 partidas
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   console.log('🗺️ [UPDATE-MAP-STATS] Iniciando...');
   const startTime = Date.now();
 
   try {
-    // 🔐 Autenticação
     const authHeader = request.headers.get('authorization');
     const providedSecret = authHeader?.replace('Bearer ', '');
 
@@ -37,73 +40,80 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const faceitService = getFaceitService(FACEIT_API_KEY);
 
-    // ✅ Buscar partidas do hub (até 100)
-    console.log('   Buscando partidas do hub...');
-    const hubMatches: any = await faceitService['request'](
-      `/hubs/${queueId}/matches?type=past&offset=0&limit=100`
-    );
+    // ✅ NOVO: Buscar múltiplas páginas de partidas
+    console.log(`   Buscando partidas do hub (até ${MAX_PAGES * MATCHES_PER_PAGE} partidas)...`);
+    
+    const allMatches: any[] = [];
+    
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const offset = page * MATCHES_PER_PAGE;
+      
+      try {
+        const hubMatches: any = await faceitService['request'](
+          `/hubs/${queueId}/matches?type=past&offset=${offset}&limit=${MATCHES_PER_PAGE}`
+        );
 
-    const matches = hubMatches.items || [];
-    console.log(`   ${matches.length} partidas encontradas`);
-
-    if (matches.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Nenhuma partida encontrada no hub',
-      }, { status: 404 });
+        const pageMatches = hubMatches.items || [];
+        console.log(`   Página ${page + 1}: ${pageMatches.length} partidas`);
+        
+        allMatches.push(...pageMatches);
+        
+        if (pageMatches.length < MATCHES_PER_PAGE) {
+          console.log(`   ℹ️ Última página alcançada`);
+          break;
+        }
+        
+        if (page < MAX_PAGES - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        console.error(`   ⚠️ Erro ao buscar página ${page + 1}:`, error);
+        break;
+      }
     }
 
-    // ✅ Calcular distribuição de mapas (apenas mapas válidos)
+    console.log(`   ✅ Total de ${allMatches.length} partidas encontradas`);
+
+    if (allMatches.length === 0) {
+      return NextResponse.json({ success: false, error: 'Nenhuma partida encontrada' }, { status: 404 });
+    }
+
+    // Calcular distribuição de mapas
     const mapCounts: Record<string, number> = {};
 
-    for (const match of matches) {
-      // FACEIT retorna o mapa votado em voting.map.pick[0]
-      // Ignorar IDs numéricos como "3437809122"
+    for (const match of allMatches) {
       const mapName = match.voting?.map?.pick?.[0] || null;
       if (mapName && mapName.startsWith('de_')) {
         mapCounts[mapName] = (mapCounts[mapName] || 0) + 1;
       }
     }
 
-    console.log(`   Mapas encontrados: ${Object.keys(mapCounts).join(', ')}`);
-
-    // totalMatches = só partidas com mapa válido
     const totalMatches = Object.values(mapCounts).reduce((sum, n) => sum + n, 0);
     const sortedMaps = Object.entries(mapCounts).sort((a, b) => b[1] - a[1]);
 
-    // ✅ Montar objeto MapStats
     const mapStats: MapStats = {
       mostPlayed: sortedMaps.length > 0
-        ? {
-            map: sortedMaps[0][0],
-            count: sortedMaps[0][1],
-            percentage: parseFloat(((sortedMaps[0][1] / totalMatches) * 100).toFixed(1)),
-          }
+        ? { map: sortedMaps[0][0], count: sortedMaps[0][1], percentage: parseFloat(((sortedMaps[0][1] / totalMatches) * 100).toFixed(1)) }
         : null,
       leastPlayed: sortedMaps.length > 0
-        ? {
-            map: sortedMaps[sortedMaps.length - 1][0],
-            count: sortedMaps[sortedMaps.length - 1][1],
-            percentage: parseFloat(((sortedMaps[sortedMaps.length - 1][1] / totalMatches) * 100).toFixed(1)),
-          }
+        ? { map: sortedMaps[sortedMaps.length - 1][0], count: sortedMaps[sortedMaps.length - 1][1], percentage: parseFloat(((sortedMaps[sortedMaps.length - 1][1] / totalMatches) * 100).toFixed(1)) }
         : null,
       totalMatches,
       mapDistribution: mapCounts,
     };
 
-    // ✅ Salvar no Redis
-    console.log('   Salvando no Redis...');
     await kvCacheService.saveMapStats(mapStats, seasonId);
 
     const duration = Date.now() - startTime;
     console.log(`✅ [UPDATE-MAP-STATS] Concluído em ${(duration / 1000).toFixed(1)}s`);
-    console.log(`   Mapa mais jogado: ${mapStats.mostPlayed?.map} (${mapStats.mostPlayed?.count}x)`);
-    console.log(`   Mapa menos jogado: ${mapStats.leastPlayed?.map} (${mapStats.leastPlayed?.count}x)`);
+    console.log(`   Total de partidas: ${totalMatches}`);
 
     return NextResponse.json({
       success: true,
       seasonId,
       totalMatches,
+      pagesSearched: Math.min(MAX_PAGES, Math.ceil(allMatches.length / MATCHES_PER_PAGE)),
+      matchesFound: allMatches.length,
       mapDistribution: mapCounts,
       mostPlayed: mapStats.mostPlayed,
       leastPlayed: mapStats.leastPlayed,
@@ -121,4 +131,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 30;
+export const maxDuration = 60;
