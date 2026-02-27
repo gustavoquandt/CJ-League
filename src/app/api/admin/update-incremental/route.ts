@@ -351,28 +351,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // ── PASSO 6: Atualizar map stats ────────────────────────────────────────
-    try {
-      const mapCounts: Record<string, number> = {};
-      for (const match of allMatches) {
-        const mapName = match.voting?.map?.pick?.[0] || null;
-        if (mapName && mapName.startsWith('de_')) {
-          mapCounts[mapName] = (mapCounts[mapName] || 0) + 1;
-        }
-      }
-      const totalMapMatches = Object.values(mapCounts).reduce((s, n) => s + n, 0);
-      const sortedMaps = Object.entries(mapCounts).sort((a, b) => b[1] - a[1]);
+    // ✅ CORRIGIDO: MapStats removido - use update-map-stats separadamente
 
-      await kvCacheService.saveMapStats({
-        mostPlayed:  sortedMaps.length > 0 ? { map: sortedMaps[0][0], count: sortedMaps[0][1], percentage: parseFloat(((sortedMaps[0][1] / totalMapMatches) * 100).toFixed(1)) } : null,
-        leastPlayed: sortedMaps.length > 0 ? { map: sortedMaps.at(-1)![0], count: sortedMaps.at(-1)![1], percentage: parseFloat(((sortedMaps.at(-1)![1] / totalMapMatches) * 100).toFixed(1)) } : null,
-        totalMatches: totalMapMatches,
-        mapDistribution: mapCounts,
-      }, seasonId);
-      console.log('🗺️ Map stats atualizadas');
-    } catch (err) {
-      console.error('⚠️ Map stats falhou (não crítico):', err);
-    }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`\n✅ [UPDATE-INCREMENTAL] Concluído em ${duration}s — ${playersUpdated} jogadores atualizados`);
