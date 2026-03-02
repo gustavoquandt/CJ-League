@@ -83,22 +83,20 @@ export const PLAYER_POTS: Record<string, number> = {
   'nollan9': 1,
   'Roxu__': 1,
   'bobz1k4hs': 1,
-  'polippera': 1,  
-  
+  'polippera': 2,  
   'PiMPauMMMM': 1,
   'Pauletovski': 1,
 
   // POT 2
-  'Snoop-D0gg': 2,
+  'Snoop-D0gg': 1,
   'umone1': 2,
   'meneziis': 2,
   'imb4': 2,
   'iAgoLas': 2,
   'LBasqueira': 2,
-  'daftzera': 2,
+  'daftzera': 3,
   'ViniDrMM': 2,
-  'rogeriN-xddd': 2,
-
+  'rogeriN-xddd': 3,
   'tohru_sc': 2,
   'malkava': 2,
 
@@ -106,22 +104,21 @@ export const PLAYER_POTS: Record<string, number> = {
   'dhigo92': 3,
   '_hoTz': 3,
   'Mromanino': 3,
-  'jungee-': 3,
+  'jungee-': 4,
   'gboorges': 3,
-  'caiosergioo': 3,
-  'pedr0bear': 3,
- 
-  'R1tzx': 3,
+  'caiosergioo': 4,
+  'pedr0bear': 3, 
+  'R1tzx': 2,
 
   // POT 4
-  'Jubale': 4,
-  'Cissuu': 4,
+  'Jubale': 3,
+  'Cissuu': 3,
   'QGZERA': 4,
   'zzorkkk': 4,
   'Leo1800': 4,
-  'BReaC': 4,
+  'BReaC': 5,
   'MedzR': 4,
-  'widmann': 4,
+  'widmann': 5,
   
   // ⚠️ REMOVIDOS DO POT 4 (agora são FREE):
   // 'Matheusgsr1': 4,
