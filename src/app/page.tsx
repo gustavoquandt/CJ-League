@@ -43,6 +43,7 @@ function HomePageContent() {
     pot: 'all',
     sortBy: 'rankingPoints',
     sortOrder: 'desc',
+    minMatches: 10,
   });
 
   // Hooks
@@ -229,6 +230,11 @@ function HomePageContent() {
 
     // ✅ Filtrar jogadores com 0 partidas
     result = result.filter(player => player.matchesPlayed > 0);
+
+    // Filtro de mínimo de partidas
+    if (filters.minMatches && filters.minMatches > 0) {
+      result = result.filter(player => player.matchesPlayed >= filters.minMatches!);
+    }
 
     result = filterBySearch(result, filters.searchTerm);
 

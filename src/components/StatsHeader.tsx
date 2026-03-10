@@ -101,6 +101,24 @@ export default function StatsHeader({
             </div>
           </div>
         </div>
+
+        {/* Min Matches Toggle */}
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            onClick={() => onFiltersChange({
+              ...filters,
+              minMatches: filters.minMatches === 10 ? undefined : 10,
+            })}
+            className={`relative w-10 h-5 rounded-full transition-colors ${
+              filters.minMatches === 10 ? 'bg-[#0EA5E9]' : 'bg-faceit-light-gray'
+            }`}
+          >
+            <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+              filters.minMatches === 10 ? 'translate-x-5' : 'translate-x-0.5'
+            }`} />
+          </button>
+          <span className="text-sm text-text-secondary">Apenas jogadores com 10+ partidas</span>
+        </div>
       </div>
   );
 }
