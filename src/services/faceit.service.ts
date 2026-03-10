@@ -27,8 +27,8 @@ const QUEUE_ID = process.env.NEXT_PUBLIC_COMPETITION_ID || 'f2dec63c-b3c1-4df6-8
 const HISTORY_PAGES = 10;              // 10 páginas = 200 partidas
 const PARALLEL_MATCHES = 3;           // 3 partidas em paralelo
 const REQUEST_TIMEOUT = 20000;        // 20s timeout
-const MIN_DELAY_BETWEEN_REQUESTS = 1200; // 1.2s entre requests
-const DELAY_BETWEEN_CHUNKS = 1500;    // 1.5s entre chunks
+const MIN_DELAY_BETWEEN_REQUESTS = 1000; // FACEIT permite 60 req/min = 1000ms exato
+const DELAY_BETWEEN_CHUNKS = 1000;    // 1s entre chunks
 
 interface FaceitServiceConfig {
   apiKey: string;
@@ -516,7 +516,7 @@ class FaceitService {
         offset += limit;
         if (matchesResponse.items.length < limit) break;
         if (!foundLastMatch && allMatches.length < maxMatches) {
-          await this.delay(800);
+          await this.delay(500);
         }
       }
 
