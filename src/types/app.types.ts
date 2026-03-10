@@ -144,7 +144,8 @@ export type SortOption =
   | 'kd'
   | 'adr'
   | 'matchesPlayed'
-  | 'faceitElo';
+  | 'faceitElo'
+  | 'rating';
 
 /**
  * Estado da aplicação

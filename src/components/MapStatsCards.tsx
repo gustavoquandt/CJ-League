@@ -51,8 +51,8 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
         return (
             <div className="mb-8">
                 <h2 className="text-2xl font-bold mb-4">Partidas</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-                    {[...Array(8)].map((_, i) => (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                    {[...Array(7)].map((_, i) => (
                         <div key={i} className="h-40 bg-faceit-dark border border-faceit-light-gray rounded-lg animate-pulse" />
                     ))}
                 </div>
@@ -73,7 +73,7 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
         <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4">Partidas: {mapStats.totalMatches}</h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 {mapData.map((map) => (
                     <div
                         key={map.name}
