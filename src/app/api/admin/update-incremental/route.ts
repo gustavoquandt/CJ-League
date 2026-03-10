@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { kvCacheService } from '@/services/kv-cache.service';
 import { SEASONS, RANKING_CONFIG, type SeasonId } from '@/config/constants';
+import { calculateSimplifiedRating } from '@/utils/rating.utils';
 import type { PlayerStats } from '@/types/app.types';
 
 const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
@@ -318,6 +319,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         totalDamage,
         totalRounds,
         totalHeadshots,
+        rating: calculateSimplifiedRating({ totalKills, totalDeaths, totalDamage, totalRounds, totalHeadshots }),
         // ✅ Preservar dados de rival do cache
         rivalNickname: cachedPlayer.rivalNickname,
         rivalMatchCount: cachedPlayer.rivalMatchCount,

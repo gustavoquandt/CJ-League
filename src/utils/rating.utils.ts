@@ -1,5 +1,5 @@
 // src/utils/rating.utils.ts
-// Cálculo de Rating Simplificado baseado em dados da FACEIT
+// HLTV Rating 2.0 — implementação baseada na fórmula oficial
 
 /**
  * Dados necessários para calcular o rating
@@ -16,70 +16,51 @@ export interface PlayerRatingData {
 }
 
 /**
- * Calcula um Rating Simplificado baseado em estatísticas disponíveis
- * 
- * Componentes:
- * - KPR (40%): Kills per Round
- * - SPR (25%): Survival per Round (aproximado)
- * - DPR (20%): Damage per Round (ADR)
- * - MKF (10%): Multi-Kill Factor
- * - EFF (5%): Efficiency Factor (K/D + HS%)
- * 
- * @param data Dados do jogador
- * @returns Rating entre 0.0 e ~2.0 (média ~1.0)
+ * Calcula o HLTV Rating 2.0 com os dados disponíveis da FACEIT.
+ *
+ * Fórmula oficial:
+ *   Rating = 0.0073×KAST + 0.3591×KPR − 0.5329×DPR + 0.2372×IMPACT + 0.0032×ADR + 0.1587
+ *
+ * Onde:
+ *   KPR    = kills por round
+ *   DPR    = deaths por round
+ *   ADR    = dano por round
+ *   IMPACT = 2.13×KPR − 0.41  (versão sem assists/round, não disponível na API)
+ *   KAST   = estimado via KPR e DPR (a API FACEIT não fornece KAST diretamente)
+ *            Média histórica ~73%; ajustado ±50 pts pelo KPR e ±30 pts pelo DPR
+ *
+ * Referência de escala:
+ *   > 1.20  — muito bom
+ *   1.00–1.20 — acima da média
+ *   0.80–1.00 — abaixo da média
+ *   < 0.80  — ruim
+ *
+ * @returns Rating ≈ 0.6–1.5 para a maioria dos jogadores (médio ~1.0)
  */
 export function calculateSimplifiedRating(data: PlayerRatingData): number {
-  const { 
-    totalKills, 
-    totalDeaths, 
-    totalDamage, 
-    totalRounds, 
-    totalHeadshots, 
-    tripleKills = 0, 
-    quadroKills = 0, 
-    pentaKills = 0 
-  } = data;
+  const { totalKills, totalDeaths, totalDamage, totalRounds } = data;
 
-  // Evitar divisão por zero
   if (totalRounds === 0) return 0;
 
-  // 1. KPR (Kills Per Round) - Quanto mais kills por round, melhor
   const kpr = totalKills / totalRounds;
+  const dpr = totalDeaths / totalRounds;
+  const adr = totalDamage / totalRounds;
 
-  // 2. DPR (Damage Per Round) = ADR
-  const dpr = totalDamage / totalRounds;
+  // KAST estimado: base 73% (média HLTV), ajustado por KPR e DPR
+  // Jogador com mais kills que a média (+KPR) tende a ter KAST maior
+  // Jogador que morre mais que a média (+DPR) tende a ter KAST menor
+  const kast = Math.max(30, Math.min(95, 73 + (kpr - 0.68) * 50 - (dpr - 0.6) * 30));
 
-  // 3. SPR (Survival Per Round) - Aproximado
-  // Assume que cada death = 1 round perdido
-  // Limitado a [0, 1] já que pode ter mais deaths que rounds em situações extremas
-  const spr = Math.max(0, Math.min(1, (totalRounds - totalDeaths) / totalRounds));
+  // IMPACT sem assists/round (APR), que a API não fornece
+  const impact = 2.13 * kpr - 0.41;
 
-  // 4. Multi-Kill Factor (MKF)
-  // Pontos extras por multi-kills
-  // Triple = 0.3, Quadro = 0.5, Penta = 1.0 por round
-  const mkf = (tripleKills * 0.3 + quadroKills * 0.5 + pentaKills * 1.0) / totalRounds;
+  const rating =
+    0.0073  * kast   +
+    0.3591  * kpr    -
+    0.5329  * dpr    +
+    0.2372  * impact +
+    0.0032  * adr    +
+    0.1587;
 
-  // 5. Efficiency Factor (EFF)
-  // Combinação de K/D (limitado a 2.0) e Headshot%
-  const kd = totalDeaths > 0 ? totalKills / totalDeaths : totalKills;
-  const kdNormalized = Math.min(kd, 2) / 2; // 0-1 range
-  const hsPercentage = totalKills > 0 ? (totalHeadshots / totalKills) * 100 : 0;
-  const hsNormalized = hsPercentage / 100; // 0-1 range
-  const eff = kdNormalized * hsNormalized;
-
-  // Fórmula ponderada
-  const rawRating = 
-    (kpr * 0.40) +        // 40% peso em kills por round
-    (spr * 0.25) +        // 25% peso em sobrevivência
-    (dpr / 100 * 0.20) +  // 20% peso em dano (normalizado)
-    (mkf * 0.10) +        // 10% peso em multi-kills
-    (eff * 0.05);         // 5% peso em eficiência
-
-  // Normalizar para ~1.0 sendo médio
-  // Este fator pode ser ajustado baseado nos seus dados reais
-  const NORMALIZATION_FACTOR = 0.85;
-  const normalizedRating = rawRating * NORMALIZATION_FACTOR;
-
-  return parseFloat(normalizedRating.toFixed(2));
+  return parseFloat(Math.max(0, rating).toFixed(2));
 }
-
