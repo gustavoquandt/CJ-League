@@ -185,6 +185,7 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     avatar: player.avatar || '',
     country: player.country || '',
     pot: player.pot,
+    rating: player.rating,
     rankingPoints: player.rankingPoints || 0,
     peakRankingPoints: player.peakRankingPoints,
     position: player.position || 0,
