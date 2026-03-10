@@ -2,7 +2,6 @@
 
 import { MapStats } from '@/types/app.types';
 import Image from 'next/image';
-import MapDistributionCard from './MapDistributionCard';
 
 interface MapStatsCardsProps {
     mapStats: MapStats | null;
@@ -110,9 +109,6 @@ export default function MapStatsCards({ mapStats, isLoading = false, isVisible =
                         </div>
                     </div>
                 ))}
-                
-                {/* NOVO: Card de Distribuição */}
-                <MapDistributionCard mapStats={mapStats} />
             </div>
         </div>
     );
