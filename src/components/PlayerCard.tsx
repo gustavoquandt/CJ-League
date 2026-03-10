@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import type { PlayerStats } from '@/types/app.types';
 import {
-  formatPosition,
   formatStat,
   formatPercentage,
   getKDColor,
@@ -53,7 +52,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
           <div>
             <h3 className="text-lg font-bold">{player.nickname}</h3>
             <p className="text-sm text-text-secondary">
-              {formatPosition(player.position)} lugar
+              #{player.position}
             </p>
           </div>
         </div>
