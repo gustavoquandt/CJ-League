@@ -58,7 +58,13 @@ export const POT_CONFIG: PotConfig[] = [
  * Não aparecem no site (nem cards, nem destaques, nem tabela)
  */
 export const FREE_PLAYERS = [
-  'BITENCOURT96',
+ 'BITENCOURT95',
+  'SnalpinhA',
+  'pablitanus',
+  'Matheusgsr1',
+  'nansch',
+  'NegaoReinert',
+  'JapaMarley',
 ] as const;
 
 /**
@@ -119,16 +125,7 @@ export const PLAYER_POTS: Record<string, number> = {
   'Caopiroto': 5,
   'mateustoto': 5,  
   'VeKasss': 5,
-  'P0K4B4L4': 5,
-
-  // Não Pagantes
-  'BITENCOURT95': 5,
-  'SnalpinhA': 4,
-  'pablitanus' :5,
-  'Matheusgsr1' :4,
-  'nansch' :4,
-  'NegaoReinert' :5,
-  'JapaMarley' :2,
+  'P0K4B4L4': 5, 
 };
 
 /**
