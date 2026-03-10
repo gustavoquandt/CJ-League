@@ -19,6 +19,7 @@ import {
   parsePercentage,
   sanitizePlayer,
 } from '@/utils/stats.utils';
+import { calculateSimplifiedRating } from '@/utils/rating.utils';
 
 const QUEUE_ID = process.env.NEXT_PUBLIC_COMPETITION_ID || 'f2dec63c-b3c1-4df6-8193-0b83fc6640ef';
 
@@ -444,8 +445,18 @@ class FaceitService {
 
     const pot = PLAYER_POTS[nickname];
 
+    // Calcular rating simplificado
+    const rating = calculateSimplifiedRating({
+      totalKills,
+      totalDeaths,
+      totalDamage,
+      totalRounds,
+      totalHeadshots,
+    });
+
     return sanitizePlayer({
       playerId, nickname, avatar, country, pot,
+      rating,  // Rating simplificado
       rankingPoints: points,
       peakRankingPoints,  // ✅ NOVO: Maior pontuação histórica
       position: 0,

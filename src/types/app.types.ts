@@ -19,6 +19,9 @@ export interface PlayerStats {
   // Pote (classificação interna)
   pot?: number;
 
+  // Rating (performance simplificado)
+  rating?: number;
+
   // Ranking no Hub
   rankingPoints: number;
   peakRankingPoints?: number; // ✅ Maior pontuação já alcançada na season

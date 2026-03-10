@@ -57,10 +57,17 @@ export default function PlayerCard({ player }: PlayerCardProps) {
           </div>
         </div>
 
-        {/* Pote Badge no topo direito */}
-        <span className={`badge badge-pot-${player.pot} text-sm`}>
-          Pote {player.pot}
-        </span>
+        {/* Pote Badge e Rating no topo direito */}
+        <div className="flex flex-col items-end gap-1">
+          <span className={`badge badge-pot-${player.pot} text-sm`}>
+            Pote {player.pot}
+          </span>
+          {player.rating && (
+            <div className="px-2 py-0.5 bg-blue-500/20 border border-blue-500 rounded text-xs">
+              <span className="text-blue-400 font-bold">{player.rating.toFixed(2)}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stats Principais - Grid 2x2 */}
