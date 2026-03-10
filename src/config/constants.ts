@@ -123,7 +123,7 @@ export const PLAYER_POTS: Record<string, number> = {
 
   // Não Pagantes
   'BITENCOURT95': 5,
-  'cunh4': 4,
+  'SnalpinhA': 4,
   'pablitanus' :5,
   'Matheusgsr1' :4,
   'nansch' :4,
