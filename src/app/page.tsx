@@ -4,19 +4,15 @@ import { useEffect, useState, useMemo, Suspense } from 'react';
 import type { PlayerStats, HubStatsResponse, PlayerFilters, MapStats } from '@/types/app.types';
 import { storageService } from '@/services/storage.service';
 import { useBackgroundUpdate } from '@/hooks/useBackgroundUpdate';
-import { useAdmin } from '@/hooks/useAdmin';
 import { useUpdateNotification } from '@/hooks/useUpdateNotification';
 import StatsHeader from '@/components/StatsHeader';
-import PrizeCards from '@/components/PrizeCards';
 import PlayerCard from '@/components/PlayerCard';
 import PlayerTable from '@/components/PlayerTable';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 import UpdateToast from '@/components/UpdateToast';
 import UpdateBadge from '@/components/UpdateBadge';
-import AdminPanel from '@/components/AdminPanel';
 import SeasonHeader from '@/components/SeasonHeader';
-import StatsCards from '@/components/StatsCards';
 import MapStatsCards from '@/components/MapStatsCards';
 import SeasonStatsSection from '@/components/SeasonStatsSection';
 import { SEASONS, type SeasonId, isPlayerFree } from '@/config/constants';
@@ -36,7 +32,6 @@ function HomePageContent() {
   const [nextUpdate, setNextUpdate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [showToast, setShowToast] = useState(false);
-  const [isForceUpdating, setIsForceUpdating] = useState(false);
   const [showPlayerManagement, setShowPlayerManagement] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false); // ✅ NOVO
   const [activeSeason, setActiveSeason] = useState<SeasonId>('SEASON_1');
@@ -56,15 +51,7 @@ function HomePageContent() {
   });
 
   // Hook de notificação de novos dados
-  const { hasNewData, markAsRead } = useUpdateNotification(activeSeason);
-
-  const {
-    isAdmin,
-    showAdminModal,
-    setShowAdminModal,
-    adminLogin,
-    adminLogout,
-  } = useAdmin();
+  const { hasNewData } = useUpdateNotification(activeSeason);
 
   // Mostrar toast quando tiver dados novos
   useEffect(() => {
@@ -195,168 +182,6 @@ function HomePageContent() {
     }
   };
 
-  // Admin: Forçar atualização (1 jogador por batch - < 300s)
-  const handleForceUpdate = async (seasonId: SeasonId) => {
-    if (!isAdmin) return;
-
-    // Marcar como lido ao atualizar
-    markAsRead();
-
-    setIsForceUpdating(true);
-    const seasonToUpdate = seasonId; // ✅ Usa a season passada como parâmetro
-    const updateStartTime = Date.now();
-    const startDateTime = new Date().toLocaleString('pt-BR');
-
-    console.log(`\n${'='.repeat(60)}`);
-    console.log(`🎯 [ADMIN] INICIANDO ATUALIZAÇÃO`);
-    console.log(`📅 Início: ${startDateTime}`);
-    console.log(`🏆 Season: ${SEASONS[seasonToUpdate].name}`);
-    console.log(`👥 Total de jogadores: 49`);
-    console.log(`⏱️ Tempo estimado: ~98 minutos (primeira vez) ou ~25 min (atualização)`);
-    console.log(`${'='.repeat(60)}\n`);
-
-    try {
-      const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'admin123';
-
-      let batchNumber = 0;
-      let hasMore = true;
-      let existingPlayers: any[] = [];
-      let totalBatches = 0;
-      let successCount = 0;
-      let errorCount = 0;
-
-      // Processar 1 jogador por batch
-      while (hasMore) {
-        console.log(`\n📦 Processando batch ${batchNumber + 1}...`);
-
-        try {
-          const response = await fetch('/api/admin/batch-update', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${adminSecret}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              batchNumber,
-              existingPlayers,
-              seasonId: seasonToUpdate, // ✅ ADICIONAR season
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-          }
-
-          const data = await response.json();
-
-          if (!data.success) {
-            throw new Error(data.error || `Erro no batch ${batchNumber + 1}`);
-          }
-
-          // Atualizar estado
-          existingPlayers = data.players;
-          hasMore = data.hasMore;
-          totalBatches = data.batch.total;
-          successCount++;
-
-          const currentPlayer = data.batch.currentPlayer || '?';
-          const progress = Math.round((data.batch.totalPlayers / 49) * 100);
-          const timeElapsed = ((Date.now() - updateStartTime) / 1000 / 60).toFixed(1);
-
-          // Barra de progresso visual
-          const barLength = 30;
-          const filled = Math.round((progress / 100) * barLength);
-          const empty = barLength - filled;
-          const progressBar = '█'.repeat(filled) + '░'.repeat(empty);
-
-          console.log(
-            `✅ [${data.batch.current}/${data.batch.total}] ${currentPlayer.padEnd(15)} ` +
-            `| ${progressBar} ${progress}% ` +
-            `| ⏱️ ${timeElapsed}min`
-          );
-
-          // Atualizar preview a cada 5 jogadores
-          if (data.batch.totalPlayers % 5 === 0) {
-            setPlayers(existingPlayers);
-            setLastUpdated(new Date());
-            console.log(`📊 Preview atualizado - ${existingPlayers.length} jogadores no ranking`);
-          }
-
-          // Próximo batch
-          if (hasMore) {
-            batchNumber = data.nextBatch;
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-
-        } catch (err) {
-          console.error(`❌ Erro no batch ${batchNumber + 1}:`, err);
-          errorCount++;
-
-          // Continuar mesmo com erro
-          batchNumber++;
-          if (batchNumber >= 49) {
-            hasMore = false;
-          }
-        }
-      }
-
-      // Buscar dados finais
-      console.log('\n📊 Buscando ranking final...');
-      const finalResponse = await fetch(`/api/faceit/hub-stats?season=${seasonToUpdate}&t=${Date.now()}`);
-      const finalData = await finalResponse.json();
-
-      if (finalData.success && finalData.data) {
-        setPlayers(finalData.data);
-        setLastUpdated(new Date());
-
-        storageService.saveCache({
-          players: finalData.data,
-          lastUpdated: new Date().toISOString(),
-          nextUpdate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          version: '1.0.0',
-        }, seasonToUpdate);
-      }
-
-      const totalDuration = Date.now() - updateStartTime;
-      const durationMinutes = (totalDuration / 1000 / 60).toFixed(1);
-      const endDateTime = new Date().toLocaleString('pt-BR');
-      const playersWithMatches = existingPlayers.filter(p => p.matchesPlayed > 0).length;
-
-      console.log(`\n${'='.repeat(60)}`);
-      console.log(`🎉 ATUALIZAÇÃO CONCLUÍDA!`);
-      console.log(`📅 Término: ${endDateTime}`);
-      console.log(`⏱️ Duração total: ${durationMinutes} minutos`);
-      console.log(`✅ Processados com sucesso: ${successCount}`);
-      console.log(`⚠️ Erros: ${errorCount}`);
-      console.log(`📊 Total processado: ${successCount + errorCount}/49`);
-      console.log(`🎮 Jogadores com partidas: ${playersWithMatches}`);
-      console.log(`${'='.repeat(60)}\n`);
-
-      alert(
-        `✅ Atualização concluída!\n\n` +
-        `⏱️ Tempo: ${durationMinutes} minutos\n` +
-        `✅ Sucesso: ${successCount} jogadores\n` +
-        `⚠️ Erros: ${errorCount}\n` +
-        `🎮 Com partidas: ${playersWithMatches}\n\n` +
-        `Os dados já estão disponíveis!`
-      );
-
-    } catch (err) {
-      const errorDuration = Date.now() - updateStartTime;
-      const errorMinutes = (errorDuration / 1000 / 60).toFixed(1);
-
-      console.error(`\n${'='.repeat(60)}`);
-      console.error(`❌ ERRO FATAL NA ATUALIZAÇÃO`);
-      console.error(`⏱️ Tempo até erro: ${errorMinutes} minutos`);
-      console.error(`📝 Detalhes:`, err);
-      console.error(`${'='.repeat(60)}\n`);
-
-      alert('❌ Erro fatal: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
-    } finally {
-      setIsForceUpdating(false);
-    }
-  };
-
   const handleManagePlayers = () => {
     setShowPlayerManagement(true);
   };
@@ -446,20 +271,7 @@ function HomePageContent() {
   // Render states
   if (loading && players.length === 0) {
     return (
-      <>
-        <LoadingState />
-
-        {/* Admin Panel - Disponível em todos os estados */}
-        <AdminPanel
-          isAdmin={isAdmin}
-          showModal={showAdminModal}
-          onLogin={adminLogin}
-          onClose={() => setShowAdminModal(false)}
-          onLogout={adminLogout}
-          onForceUpdate={handleForceUpdate}
-          isUpdating={isForceUpdating}
-        />
-      </>
+      <LoadingState />
     );
   }
 
@@ -558,37 +370,12 @@ function HomePageContent() {
           </div>
         </div>
 
-        {/* Admin Panel - Disponível no empty state */}
-        <AdminPanel
-          isAdmin={isAdmin}
-          showModal={showAdminModal}
-          onLogin={adminLogin}
-          onClose={() => setShowAdminModal(false)}
-          onLogout={adminLogout}
-          onForceUpdate={handleForceUpdate}
-          isUpdating={isForceUpdating}
-        />
       </div>
     );
   }
 
   if (error && players.length === 0) {
-    return (
-      <>
-        <ErrorState error={error} onRetry={handleRefreshData} />
-
-        {/* Admin Panel - Disponível no error state */}
-        <AdminPanel
-          isAdmin={isAdmin}
-          showModal={showAdminModal}
-          onLogin={adminLogin}
-          onClose={() => setShowAdminModal(false)}
-          onLogout={adminLogout}
-          onForceUpdate={handleForceUpdate}
-          isUpdating={isForceUpdating}
-        />
-      </>
-    );
+    return <ErrorState error={error} onRetry={handleRefreshData} />;
   }
 
   return (
@@ -605,7 +392,7 @@ function HomePageContent() {
         />
 
         {/* Busca, filtros e logo */}
-        <div className="flex gap-4 items-start mb-6">
+        <div className="flex gap-4 items-stretch mb-6">
           {/* Logo CJL */}
           <div className="hidden lg:flex flex-shrink-0 w-[200px] items-center justify-center
                           bg-[var(--bg-card)] border border-[var(--border-default)] rounded-lg overflow-hidden">
@@ -636,8 +423,8 @@ function HomePageContent() {
         {/* Badge de notificação de novos dados */}
         <UpdateBadge
           hasNewData={hasNewData}
-          onRefresh={() => handleForceUpdate(activeSeason)}
-          isUpdating={isForceUpdating}
+          onRefresh={handleRefreshData}
+          isUpdating={isRefreshing}
         />
 
         {/* ✅ Destaques e Mapas - TODAS AS SEASONS */}
@@ -732,17 +519,6 @@ function HomePageContent() {
         show={showToast}
         onApply={handleApplyUpdate}
         onDismiss={handleDismissToast}
-      />
-
-      {/* Admin Panel */}
-      <AdminPanel
-        isAdmin={isAdmin}
-        showModal={showAdminModal}
-        onLogin={adminLogin}
-        onClose={() => setShowAdminModal(false)}
-        onLogout={adminLogout}
-        onForceUpdate={handleForceUpdate}
-        isUpdating={isForceUpdating}
       />
 
       {/* Player Management Panel */}

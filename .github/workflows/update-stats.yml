@@ -45,3 +45,26 @@ jobs:
           echo "👥 Jogadores atualizados: $players_updated"
           echo "⏱️  Duração: $duration"
           echo "🎉 ========================================="
+
+      - name: Run map stats update
+        run: |
+          echo "🗺️ Atualizando estatísticas de mapas..."
+
+          response=$(curl -X POST \
+            "https://www.statscj.com/api/admin/update-map-stats?season=SEASON_1" \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            -s)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "📋 Status: $http_code"
+          echo "$body" | jq '.' || echo "$body"
+
+          if [ "$http_code" != "200" ]; then
+            echo "⚠️ Aviso: falha ao atualizar map stats (não crítico)"
+          else
+            echo "✅ Map stats atualizadas!"
+          fi

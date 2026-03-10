@@ -161,41 +161,6 @@ export function calculateAverage(
   return parseFloat((sum / players.length).toFixed(2));
 }
 
-/**
- * Encontra o jogador com maior valor em uma métrica
- */
-export function findTopPlayer(
-  players: PlayerStats[],
-  metric: keyof PlayerStats
-): PlayerStats | null {
-  if (players.length === 0) return null;
-  
-  return players.reduce((top, player) => {
-    const topValue = top[metric];
-    const playerValue = player[metric];
-    
-    if (typeof topValue === 'number' && typeof playerValue === 'number') {
-      return playerValue > topValue ? player : top;
-    }
-    return top;
-  });
-}
-
-/**
- * Conta distribuição por pote
- */
-export function countByPot(players: PlayerStats[]): Record<number, number> {
-  const distribution: Record<number, number> = {};
-  
-  players.forEach(player => {
-    if (player.pot) {
-      distribution[player.pot] = (distribution[player.pot] || 0) + 1;
-    }
-  });
-  
-  return distribution;
-}
-
 // ==================== VALIDATION UTILITIES ====================
 
 /**

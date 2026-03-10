@@ -83,59 +83,49 @@ export const PLAYER_POTS: Record<string, number> = {
   'nollan9': 1,
   'Roxu__': 1,
   'bobz1k4hs': 1,
-  'polippera': 2,  
   'PiMPauMMMM': 1,
   'Pauletovski': 1,
+  'Snoop-D0gg': 1,
 
   // POT 2
-  'Snoop-D0gg': 1,
+  'polippera': 2,
   'umone1': 2,
   'meneziis': 2,
   'imb4': 2,
   'iAgoLas': 2,
   'LBasqueira': 2,
-  'daftzera': 3,
   'ViniDrMM': 2,
-  'rogeriN-xddd': 3,
   'tohru_sc': 2,
   'malkava': 2,
+  'R1tzx': 2,
 
   // POT 3
+  'daftzera': 3,
+  'rogeriN-xddd': 3,
   'dhigo92': 3,
   '_hoTz': 3,
   'Mromanino': 3,
-  'jungee-': 4,
   'gboorges': 3,
-  'caiosergioo': 4,
-  'pedr0bear': 3, 
-  'R1tzx': 2,
-
-  // POT 4
+  'pedr0bear': 3,
   'Jubale': 3,
   'Cissuu': 3,
+
+  // POT 4
+  'jungee-': 4,
+  'caiosergioo': 4,
   'QGZERA': 4,
   'zzorkkk': 4,
   'Leo1800': 4,
-  'BReaC': 5,
   'MedzR': 4,
-  'widmann': 5,
-  
-  // ⚠️ REMOVIDOS DO POT 4 (agora são FREE):
-  // 'Matheusgsr1': 4,
-  // 'nansch': 4,
 
   // POT 5
- 
+  'BReaC': 5,
+  'widmann': 5,
   'Caopiroto': 5,
   'mateustoto': 5,
   'BITENCOURT95': 5,
   'VeKasss': 5,
   'P0K4B4L4': 5,
-  
-  // ⚠️ REMOVIDOS DO POT 5 (agora são FREE):
-  // 'cunh4': 5,
-  // 'pablitanus': 5,
-  // 'NegaoReinert': 5,
 };
 
 /**

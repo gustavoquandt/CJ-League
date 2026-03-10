@@ -14,7 +14,7 @@ const ADMIN_SECRET = process.env.ADMIN_SECRET || 'default_admin_secret_change_me
 
 // ✅ NOVO: Configurações para buscar mais partidas
 const MATCHES_PER_PAGE = 100;  // Máximo por página da API
-const MAX_PAGES = 3;            // 3 páginas = até 300 partidas
+const MAX_PAGES = 5;            // 5 páginas = até 500 partidas
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   console.log('🗺️ [UPDATE-MAP-STATS] Iniciando...');
