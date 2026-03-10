@@ -313,3 +313,17 @@ export function getADRColor(adr: number): string {
   if (adr >= 50) return 'text-[#F59E0B]';  // Amarelo - Médio
   return 'text-[#e31e24]';                 // Vermelho - Ruim
 }
+
+/**
+ * Cor do Rating (HLTV 2.0)
+ * Verde:   > 1.20 (muito bom)
+ * Azul:    1.00–1.20 (acima da média)
+ * Amarelo: 0.80–1.00 (abaixo da média)
+ * Vermelho: < 0.80 (ruim)
+ */
+export function getRatingColor(rating: number): string {
+  if (rating > 1.20) return 'text-[#10B981]';  // Verde - Muito bom
+  if (rating >= 1.00) return 'text-[#0EA5E9]'; // Azul - Acima da média
+  if (rating >= 0.80) return 'text-[#F59E0B]'; // Amarelo - Abaixo da média
+  return 'text-[#e31e24]';                      // Vermelho - Ruim
+}

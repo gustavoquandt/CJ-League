@@ -9,6 +9,7 @@ import {
   getKDColor,
   getWinRateColor,
   getADRColor,
+  getRatingColor,
 } from '@/utils/stats.utils';
 
 interface PlayerCardProps {
@@ -57,17 +58,10 @@ export default function PlayerCard({ player }: PlayerCardProps) {
           </div>
         </div>
 
-        {/* Pote Badge e Rating no topo direito */}
-        <div className="flex flex-col items-end gap-1">
-          <span className={`badge badge-pot-${player.pot} text-sm leading-none inline-flex items-center`}>
-            Pote {player.pot}
-          </span>
-          {player.rating && (
-            <span className="px-3 py-1 rounded-md text-sm font-semibold leading-none bg-[#7DD3FC] text-black inline-flex items-center">
-              Rating: {player.rating.toFixed(2)}
-            </span>
-          )}
-        </div>
+        {/* Pote Badge */}
+        <span className={`badge badge-pot-${player.pot} text-sm leading-none inline-flex items-center`}>
+          Pote {player.pot}
+        </span>
       </div>
 
       {/* Stats Principais - Grid 2x2 */}
@@ -126,8 +120,16 @@ export default function PlayerCard({ player }: PlayerCardProps) {
       {/* Separator */}
       <div className="border-t border-faceit-dark-lighter my-3"></div>
 
-      {/* Win Rate e Partidas */}
-      <div className="grid grid-cols-2 gap-4 text-center">
+      {/* Rating, Win Rate e Partidas */}
+      <div className="grid grid-cols-3 gap-4 text-center">
+        <div>
+          <p className="text-xs text-text-secondary mb-1">Rating</p>
+          <p className={`text-lg font-bold ${player.rating ? getRatingColor(player.rating) : ''}`}>
+            {player.rating ? player.rating.toFixed(2) : '—'}
+          </p>
+          <p className="text-xs text-text-secondary mt-1">&nbsp;</p>
+        </div>
+
         <div>
           <p className="text-xs text-text-secondary mb-1">Win Rate</p>
           <p className={`text-lg font-bold ${getWinRateColor(player.winRate)}`}>
@@ -137,7 +139,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
             {player.wins}W / {player.losses}L
           </p>
         </div>
-        
+
         <div>
           <p className="text-xs text-text-secondary mb-1">Partidas</p>
           <p className="text-lg font-bold">{player.matchesPlayed}</p>
