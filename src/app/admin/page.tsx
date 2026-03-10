@@ -167,6 +167,76 @@ function UpdateMapStatsCard({ adminSecret }: { adminSecret: string }) {
   );
 }
 
+// ── Card: Update Ratings ──────────────────────────────────────────────────────
+
+function UpdateRatingsCard({ adminSecret }: { adminSecret: string }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<ActionResult | null>(null);
+
+  const handleUpdate = async () => {
+    setIsLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/admin/update-ratings?season=SEASON_1', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${adminSecret}` },
+      });
+      const data = await res.json();
+      if (res.status === 401) {
+        setResult({ success: false, error: 'Senha incorreta.' });
+      } else {
+        setResult(data);
+      }
+    } catch {
+      setResult({ success: false, error: 'Erro de conexão.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="card p-6">
+      <h2 className="text-xl font-bold mb-1">Recalcular Ratings</h2>
+      <p className="text-sm text-text-secondary mb-4">
+        Recalcula o rating de todos os jogadores usando os dados já no cache. Sem chamadas à FACEIT — instantâneo.
+      </p>
+
+      <button
+        onClick={handleUpdate}
+        disabled={isLoading}
+        className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+      >
+        {isLoading && (
+          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        )}
+        {isLoading ? 'Calculando...' : 'Recalcular Ratings'}
+      </button>
+
+      {result && (
+        <div className={`mt-4 p-4 rounded-lg border text-sm space-y-1 ${result.success ? 'bg-green-900/20 border-green-500' : 'bg-red-900/20 border-red-500'}`}>
+          {result.success ? (
+            <>
+              <p className="font-bold text-green-400">Concluído</p>
+              {typeof result.updated === 'number' && <p>Atualizados: <strong>{result.updated as number}</strong></p>}
+              {typeof result.skipped === 'number' && result.skipped > 0 && <p className="text-text-secondary">Pulados (sem dados): <strong>{result.skipped as number}</strong></p>}
+              {typeof result.total === 'number' && <p>Total no cache: <strong>{result.total as number}</strong></p>}
+              {typeof result.duration === 'string' && <p>Duração: <strong>{result.duration as string}</strong></p>}
+            </>
+          ) : (
+            <>
+              <p className="font-bold text-red-400">Erro</p>
+              <p>{result.error as string}</p>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Card: Batch Update (Full Refresh) ─────────────────────────────────────────
 
 function BatchUpdateCard({ adminSecret }: { adminSecret: string }) {
@@ -332,6 +402,7 @@ export default function AdminPage() {
         <div className="grid gap-6">
           <UpdateIncrementalCard adminSecret={password} />
           <UpdateMapStatsCard adminSecret={password} />
+          <UpdateRatingsCard adminSecret={password} />
           <BatchUpdateCard adminSecret={password} />
         </div>
       </div>
