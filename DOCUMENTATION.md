@@ -21,14 +21,17 @@
 4. [Sistema de Ranking](#sistema-de-ranking)
 5. [API Routes](#api-routes)
 6. [Página Admin](#página-admin-admin)
-7. [Componentes](#componentes)
-8. [Serviços](#serviços)
-9. [Hooks](#hooks)
-10. [Tipos](#tipos)
-11. [Utilitários](#utilitários)
-12. [Configuração](#configuração)
-13. [Fluxo de Dados](#fluxo-de-dados)
-14. [GitHub Actions](#github-actions)
+7. [Página de Jogador](#página-de-jogador-playerid)
+8. [Mocks](#mocks-srcmocksplayersts)
+9. [Componentes](#componentes)
+10. [Serviços](#serviços)
+11. [Hooks](#hooks)
+12. [Tipos](#tipos)
+13. [Utilitários](#utilitários)
+14. [Configuração](#configuração)
+15. [Fluxo de Dados](#fluxo-de-dados)
+16. [GitHub Actions](#github-actions)
+17. [Como ir ao ar (Deploy)](#como-ir-ao-ar-deploy)
 
 ---
 
@@ -54,8 +57,13 @@ CJ-League/
 │   │   │   └── faceit/
 │   │   │       ├── hub-stats/route.ts
 │   │   │       └── map-stats/route.ts
+│   │   ├── player/
+│   │   │   └── [id]/
+│   │   │       └── page.tsx
 │   │   ├── layout.tsx
 │   │   └── page.tsx
+│   ├── mocks/
+│   │   └── players.ts
 │   ├── components/
 │   │   ├── admin/
 │   │   │   └── UpdateMapStatsButton.tsx
@@ -380,6 +388,73 @@ Retorna metadados sobre o estado atual do cache.
 | Atualização Completa (Batch) | `POST /api/admin/batch-update` | Reprocessa todos os jogadores do zero (~25–98 min) |
 
 O card de Batch Update exibe um log em tempo real com o progresso de cada jogador processado.
+
+---
+
+## Página de Jogador (`/player/[id]`)
+
+`src/app/player/[id]/page.tsx` — página detalhada de um jogador individual (client component).
+
+**Roteamento:** Aceita `id` como `playerId` ou `nickname` (case-insensitive).
+
+**Modo desenvolvimento:** Usa `getMockPlayerById(id)` de `src/mocks/players.ts`. Em produção, deve ser substituído por fetch real via `/api/faceit/hub-stats`.
+
+### Layout
+
+A página é dividida em duas colunas com alturas iguais:
+- **Coluna esquerda (2/3):** cards de performance principal
+- **Coluna direita (1/3):** cards de contexto e comparação
+
+Ambas usam `[&>*:last-child]:flex-1 [&>*:last-child>div]:h-full` para que o último card se expanda e preencha o espaço restante sem deixar vazio.
+
+### Seções exibidas
+
+| Seção | Dados |
+|---|---|
+| Hero | Avatar, nickname, badge de pote, posição, FACEIT ELO, forma recente (8 partidas), rating |
+| Quick Stats | K/D, ADR, HS%, Win Rate, KAST, Aces |
+| Rating por Partida | Gráfico AreaChart (verde=vitória, vermelho=derrota, linha de referência em 1.0) |
+| Entry Performance | Tentativas, entry kills, entry deaths, taxa de sucesso |
+| Suporte & Impacto | MVPs, flash assists, dano utility |
+| Clutch | Breakdown 1v1→1v5 com barras de progresso e label HARD para 1v4/1v5 |
+| Desempenho na Season | Pontos, peak, partidas, barra W/L, barra de peak vs teto (1500) |
+| Estatísticas Detalhadas | Por Jogo (K/D/A) + Totais na Season (8 stats: kills, deaths, assists, headshots, rounds, dano, triple kills, quad kills) |
+| Comparar com | Select para comparar métricas lado a lado com barras bidirecionais |
+| Pote X / N jogadores | Rank do jogador no pote por Rating, K/D, ADR, KAST, Win Rate (com valor, média e `#rank`) |
+| ADR por Partida | Gráfico BarChart (azul=acima da média, cinza=abaixo) |
+| Posição na Liga | Gráfico LineChart (eixo Y invertido, pontos coloridos por resultado) |
+| Vitórias & Derrotas | Donut chart com win rate central |
+| Sequência | Streak atual e maior sequência de vitórias |
+| Maior Rival | Adversário mais frequente com W/L e barra proporcional |
+| Amuleto | Melhor parceiro (maior win rate juntos) em verde |
+| Kriptonita | Pior parceiro (menor win rate juntos) em vermelho |
+
+### Cores de acento por pote
+
+| Pote | Cor |
+|---|---|
+| 1 | `#FCA5A5` (rosa) |
+| 2 | `#D8B4FE` (lilás) |
+| 3 | `#86EFAC` (verde) |
+| 4 | `#FDBA74` (laranja) |
+| 5 | `#FDE68A` (amarelo) |
+
+---
+
+## Mocks (`src/mocks/players.ts`)
+
+Dados fictícios para desenvolvimento local. Contém 9 jogadores distribuídos em 3 potes:
+
+- **Pote 1:** `CrunchyTaco` (mock-001), `xSniper99` (mock-002), `LaserFocus` (mock-003), `ShadowBlade` (mock-004), `VoidStriker` (mock-005)
+- **Pote 2:** `NightOwl` (mock-006), `CrimsonAce` (mock-007)
+- **Pote 3:** `IronSight` (mock-008), `StormBreaker` (mock-009)
+
+Os 3 primeiros jogadores possuem dados completos incluindo: rival, amuleto, kriptonita, histórico de partidas, gráficos e estatísticas avançadas.
+
+```typescript
+export function getMockPlayerById(id: string): PlayerStats | undefined
+// Aceita playerId ou nickname (case-insensitive)
+```
 
 ---
 
@@ -726,7 +801,7 @@ interface PlayerStats {
 
   // Ranking
   rankingPoints: number;
-  peakRankingPoints?: number; // Maior pontuação já atingida
+  peakRankingPoints?: number; // Maior pontuação já atingida na season
   position: number;
 
   // Partidas
@@ -748,8 +823,10 @@ interface PlayerStats {
   totalDamage?: number;
   totalRounds?: number;
   totalHeadshots?: number;
-  matchResults?: boolean[];   // Histórico de vitórias/derrotas
+  matchResults?: boolean[];   // Histórico de vitórias/derrotas (mais recente primeiro)
   matchADRs?: number[];       // ADR por partida
+  matchRatings?: number[];    // Rating por partida (para gráfico de tendência)
+  matchPositions?: number[];  // Posição na liga após cada partida (últimas 10)
 
   // FACEIT
   faceitElo: number;
@@ -759,11 +836,40 @@ interface PlayerStats {
   currentStreak: number;
   longestWinStreak: number;
 
-  // Rival
+  // Rival (adversário mais frequente)
   rivalNickname?: string;
   rivalMatchCount?: number;
   rivalWins?: number;
   rivalLosses?: number;
+
+  // Amuleto (melhor parceiro) / Kriptonita (pior parceiro)
+  amuletoNickname?: string;    // Maior win rate jogando junto
+  amuletoWinRate?: number;
+  amuletoMatchCount?: number;
+  kriptoniaNickname?: string;  // Menor win rate jogando junto
+  kritoniaWinRate?: number;    // Nota: prefixo "kritonia" (sem 'p')
+  kritoniaMatchCount?: number;
+
+  // Estatísticas avançadas
+  kast?: number;               // KAST % médio
+  matchKASTs?: number[];
+  entryKills?: number;
+  entryDeaths?: number;
+  entrySuccessRate?: number;
+  clutchAttempts?: number;
+  clutchWins?: number;
+  clutchRate?: number;
+  clutch1v1?: number;  clutch1v1Attempts?: number;
+  clutch1v2?: number;  clutch1v2Attempts?: number;
+  clutch1v3?: number;  clutch1v3Attempts?: number;
+  clutch1v4?: number;  clutch1v4Attempts?: number;
+  clutch1v5?: number;  clutch1v5Attempts?: number;
+  tripleKills?: number;
+  quadroKills?: number;
+  pentaKills?: number;
+  mvps?: number;
+  flashAssists?: number;
+  utilityDamage?: number;
 
   // Meta
   lastMatch?: Date;
@@ -803,7 +909,8 @@ type SortOption =
   | 'kd'
   | 'adr'
   | 'matchesPlayed'
-  | 'faceitElo';
+  | 'faceitElo'
+  | 'rating';
 ```
 
 ### Tipos da FACEIT API
@@ -1005,3 +1112,67 @@ npm run start        # Servidor de produção
 npm run lint         # ESLint
 npm run type-check   # TypeScript sem emit
 ```
+
+---
+
+## Como ir ao ar (Deploy)
+
+### 1. Configurar variáveis de ambiente
+
+Crie `.env.local` na raiz com:
+
+```env
+# Obrigatórias (server-side)
+FACEIT_API_KEY=seu_bearer_token_faceit
+ADMIN_SECRET=senha_segura_do_admin
+KV_REST_API_URL=https://xxx.upstash.io
+KV_REST_API_TOKEN=token_do_upstash
+
+# Opcionais (client-side)
+NEXT_PUBLIC_HUB_ID=id_do_hub_faceit
+NEXT_PUBLIC_APP_URL=https://seu-dominio.vercel.app
+```
+
+### 2. Verificar o build localmente
+
+```bash
+npm run type-check   # Zero erros esperado
+npm run build        # Build de produção
+```
+
+### 3. Deploy na Vercel
+
+1. Push para o GitHub (branch `main`)
+2. Vercel detecta automaticamente Next.js e faz deploy
+3. Adicionar as variáveis de ambiente no painel da Vercel (Settings → Environment Variables)
+
+### 4. Popular o Redis (primeira vez)
+
+Após o deploy:
+1. Acessar `https://seu-dominio.vercel.app/admin`
+2. Autenticar com `ADMIN_SECRET`
+3. Clicar em **Atualização Completa (Batch)** — processa todos os jogadores do zero (~25–98 min)
+4. Após concluir, verificar o ranking na página principal
+
+### 5. Configurar GitHub Actions
+
+No repositório GitHub → Settings → Secrets and variables → Actions:
+
+| Secret | Valor |
+|---|---|
+| `ADMIN_SECRET` | Mesma senha do `.env.local` |
+| `APP_URL` | URL pública da Vercel (ex: `https://cj-league.vercel.app`) |
+
+Isso habilita as atualizações automáticas a cada 2 horas.
+
+### 6. Integrar a página de jogador com dados reais
+
+Atualmente `src/app/player/[id]/page.tsx` usa mock em desenvolvimento:
+
+```typescript
+// TODO: substituir por fetch real quando sair do ambiente de testes
+const player: PlayerStats | undefined =
+  process.env.NODE_ENV === 'development' ? getMockPlayerById(id) : undefined;
+```
+
+Para produção, substituir por uma chamada a `/api/faceit/hub-stats` filtrando pelo `id` recebido.

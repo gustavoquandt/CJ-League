@@ -48,6 +48,8 @@ export interface PlayerStats {
   totalHeadshots?: number;    // Total acumulado (para HS% incremental)
   matchResults?: boolean[];   // Histórico de resultados (true=win)
   matchADRs?: number[];       // ADR por partida (para média incremental)
+  matchRatings?: number[];    // Rating por partida (para gráfico de tendência)
+  matchPositions?: number[];  // Posição na liga após cada partida (últimas 10, mais recente primeiro)
 
   // Faceit Info
   faceitElo: number;
@@ -62,6 +64,40 @@ export interface PlayerStats {
   rivalMatchCount?: number;    // Vezes que jogou contra
   rivalWins?: number;          // Vitórias contra o rival
   rivalLosses?: number;        // Derrotas contra o rival
+
+  // Amuleto (melhor parceiro) / Kriptonita (pior parceiro)
+  amuletoNickname?: string;    // Melhor parceiro (maior win rate juntos)
+  amuletoWinRate?: number;     // Win rate % com o amuleto
+  amuletoMatchCount?: number;  // Partidas juntos
+  kriptoniaNickname?: string;  // Pior parceiro (menor win rate juntos)
+  kritoniaWinRate?: number;    // Win rate % com a kriptonita
+  kritoniaMatchCount?: number; // Partidas juntos
+
+  // Estatísticas avançadas
+  kast?: number;              // KAST % médio (Kill, Assist, Survive, or Trade)
+  matchKASTs?: number[];      // KAST por partida (para média incremental)
+  entryKills?: number;        // Total de entry kills (first kills)
+  entryDeaths?: number;       // Total de entry deaths (first deaths)
+  entrySuccessRate?: number;  // % de sucesso nos entries (entryKills / attempts)
+  clutchAttempts?: number;    // Total de situações 1vX
+  clutchWins?: number;        // Total de clutches ganhos
+  clutchRate?: number;        // % de clutches ganhos
+  clutch1v1?: number;         // Clutches 1v1 ganhos
+  clutch1v2?: number;         // Clutches 1v2 ganhos
+  clutch1v3?: number;         // Clutches 1v3 ganhos
+  clutch1v4?: number;         // Clutches 1v4 ganhos
+  clutch1v5?: number;         // Clutches 1v5 ganhos
+  clutch1v1Attempts?: number;
+  clutch1v2Attempts?: number;
+  clutch1v3Attempts?: number;
+  clutch1v4Attempts?: number;
+  clutch1v5Attempts?: number;
+  tripleKills?: number;       // Total de triple kills
+  quadroKills?: number;       // Total de quadro kills
+  pentaKills?: number;        // Total de penta kills
+  mvps?: number;              // Total de MVPs
+  flashAssists?: number;      // Total de flash assists (enemies flashed)
+  utilityDamage?: number;     // Dano total de utilidades
 
   // Meta
   lastMatch?: Date;
