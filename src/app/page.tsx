@@ -43,7 +43,7 @@ function HomePageContent() {
     pot: 'all',
     sortBy: 'rankingPoints',
     sortOrder: 'desc',
-    minMatches: 10,
+    minMatches: 0,
   });
 
   // Hooks
@@ -227,9 +227,6 @@ function HomePageContent() {
 
     // ✅ PRIMEIRO: Remover jogadores "Free" (não aparecem no site)
     result = result.filter(player => !isPlayerFree(player.nickname));
-
-    // ✅ Filtrar jogadores com 0 partidas
-    result = result.filter(player => player.matchesPlayed > 0);
 
     // Filtro de mínimo de partidas
     if (filters.minMatches && filters.minMatches > 0) {

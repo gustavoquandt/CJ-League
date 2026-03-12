@@ -16,7 +16,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
 import { kvCacheService } from '@/services/kv-cache.service';
 import { SEASONS, RANKING_CONFIG, type SeasonId } from '@/config/constants';
 import { calculateSimplifiedRating } from '@/utils/rating.utils';
@@ -54,6 +53,8 @@ interface PlayerDelta {
   rounds: number;
   headshots: number;
   matchResults: boolean[];       // resultado de cada partida nova (true=win)
+  matchADRs: number[];           // ADR por partida nova
+  matchRatings: number[];        // rating por partida nova
   lastMatchId: string | null;    // match_id mais recente
 }
 
@@ -126,9 +127,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // mapa: playerId → PlayerDelta
     const deltas = new Map<string, PlayerDelta>();
 
-    // match_id mais recente por jogador (para salvar lastMatchId)
-    const latestMatchByPlayer = new Map<string, string>();
-
     for (const match of newMatches) {
       const matchId: string = match.match_id;
       console.log(`   🔍 Processando match ${matchId.substring(0, 8)}...`);
@@ -183,7 +181,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             deltas.set(playerId, {
               wins: 0, losses: 0,
               kills: 0, deaths: 0, damage: 0, rounds: 0, headshots: 0,
-              matchResults: [],
+              matchResults: [], matchADRs: [], matchRatings: [],
               lastMatchId: null,
             });
           }
@@ -192,9 +190,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           d.kills     += matchStats.kills;
           d.deaths    += matchStats.deaths;
           d.damage    += matchStats.damage;
-          d.rounds    += totalRounds;  // ✅ Só adiciona UMA VEZ por partida
+          d.rounds    += totalRounds;
           d.headshots += matchStats.headshots;
           d.matchResults.push(matchStats.won);
+          d.matchADRs.push(totalRounds > 0 ? matchStats.damage / totalRounds : 0);
+          d.matchRatings.push(calculateSimplifiedRating({
+            totalKills: matchStats.kills, totalDeaths: matchStats.deaths,
+            totalDamage: matchStats.damage, totalRounds, totalHeadshots: matchStats.headshots,
+          }));
           d.lastMatchId = matchId;
 
           if (matchStats.won) d.wins++; else d.losses++;
@@ -277,20 +280,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
 
       // ── Streak ──
-      let currentStreak  = 0;
-      let longestStreak  = 0;
-      let runningStreak  = 0;
+      let longestStreak = 0;
+      let runningStreak = 0;
       for (const won of allMatchResults) {
-        if (won) {
-          runningStreak  = runningStreak >= 0 ? runningStreak + 1 : 1;
-          currentStreak  = allMatchResults.indexOf(won) === 0 ? runningStreak : currentStreak;
-        } else {
-          runningStreak  = runningStreak <= 0 ? runningStreak - 1 : -1;
-          currentStreak  = allMatchResults.indexOf(won) === 0 ? runningStreak : currentStreak;
-        }
+        runningStreak = won ? (runningStreak >= 0 ? runningStreak + 1 : 1)
+                            : (runningStreak <= 0 ? runningStreak - 1 : -1);
         if (runningStreak > longestStreak) longestStreak = runningStreak;
       }
-      // currentStreak = streak atual (positivo = wins seguidas, negativo = losses seguidas)
       let streak = 0;
       for (const won of allMatchResults) {
         if (streak === 0) { streak = won ? 1 : -1; continue; }
@@ -325,8 +321,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         rivalMatchCount: cachedPlayer.rivalMatchCount,
         rivalWins: cachedPlayer.rivalWins,
         rivalLosses: cachedPlayer.rivalLosses,
-        // histórico de resultados para streak calculation
-        ...({ matchResults: allMatchResults } as any),
+        matchResults: allMatchResults,
+        matchADRs:    [...delta.matchADRs,    ...(cachedPlayer.matchADRs    || [])],
+        matchRatings: [...delta.matchRatings, ...(cachedPlayer.matchRatings || [])],
         lastMatchId: delta.lastMatchId || cachedPlayer.lastMatchId,
       };
 
@@ -338,7 +335,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .sort((a, b) => {
         if (a.rankingPoints !== b.rankingPoints) return b.rankingPoints - a.rankingPoints;
         if (a.wins !== b.wins) return b.wins - a.wins;
-        return b.matchesPlayed - a.matchesPlayed;
+        return a.matchesPlayed - b.matchesPlayed; // menos partidas = melhor
       })
       .map((p, i) => ({ ...p, position: i + 1 }));
 

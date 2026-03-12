@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find 'c:/Users/gusta/Documents/CJ League' -maxdepth 2 -name *.md)"
     ]
   }
 }

@@ -26,12 +26,7 @@ const fadeUp = (delay = 0) => ({
 });
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
-function getKASTColor(v: number) {
-  if (v >= 73) return 'text-[#10B981]';
-  if (v >= 65) return 'text-[#0EA5E9]';
-  if (v >= 55) return 'text-[#F59E0B]';
-  return 'text-[#e31e24]';
-}
+
 function getClutchRateColor(v: number) {
   if (v >= 45) return 'text-[#10B981]';
   if (v >= 35) return 'text-[#0EA5E9]';
@@ -205,14 +200,13 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   }
 
   // ── Chart data ──────────────────────────────────────────────────────────────
-  const allRatings = [...(player.matchRatings ?? [])].reverse();
-  const allResults = [...(player.matchResults ?? [])].reverse();
+  const allRatings = [...(player.matchRatings ?? [])];
+  const allResults = [...(player.matchResults ?? [])];
   const ratingChartData = allRatings.map((rating, i) => ({
     match: i + 1, rating, won: allResults[i] ?? false,
   }));
 
   const adrChartData = [...(player.matchADRs ?? [])]
-    .reverse()
     .slice(0, 15)
     .map((adr, i) => ({ match: i + 1, adr: Math.round(adr), aboveAvg: adr >= player.adr }));
 
@@ -239,7 +233,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
     { label: 'Rating',   rank: potRank(p => p.rating ?? 0), value: player.rating ?? 0,       avg: potAvg(p => p.rating ?? 0),   fmt: (v: number) => v.toFixed(2) },
     { label: 'K/D',      rank: potRank(p => p.kd),          value: player.kd,                avg: potAvg(p => p.kd),             fmt: (v: number) => v.toFixed(2) },
     { label: 'ADR',      rank: potRank(p => p.adr),         value: player.adr,               avg: potAvg(p => p.adr),            fmt: (v: number) => v.toFixed(1) },
-    { label: 'KAST',     rank: potRank(p => p.kast ?? 0),   value: player.kast ?? 0,         avg: potAvg(p => p.kast ?? 0),      fmt: (v: number) => `${v.toFixed(1)}%` },
     { label: 'Win Rate', rank: potRank(p => p.winRate),     value: player.winRate,           avg: potAvg(p => p.winRate),        fmt: (v: number) => `${v.toFixed(1)}%` },
   ];
 
@@ -338,9 +331,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
             <StatBox label="HS%" value={`${player.headshotPercentage.toFixed(1)}%`} />
             <StatBox label="Win Rate" value={`${player.winRate.toFixed(1)}%`}
               sub={`${player.wins}W / ${player.losses}L`} colorClass={getWinRateColor(player.winRate)} />
-            {player.kast != null && (
-              <StatBox label="KAST" value={`${player.kast.toFixed(1)}%`} />
-            )}
+          
             <StatBox
               label="Aces"
               value={player.pentaKills ?? 0}
@@ -491,13 +482,10 @@ export default function PlayerPage({ params }: PlayerPageProps) {
               <div className="grid grid-cols-2 gap-3">
                 <StatTile label="Kills"        size="sm" value={(player.totalKills   ?? 0).toLocaleString('pt-BR')} colorClass="text-[#10B981]" />
                 <StatTile label="Deaths"       size="sm" value={(player.totalDeaths  ?? 0).toLocaleString('pt-BR')} colorClass="text-[#e31e24]" />
-                <StatTile label="Assists"      size="sm" value={Math.round(player.assists * player.matchesPlayed).toLocaleString('pt-BR')} colorClass="text-[#F59E0B]" />
                 <StatTile label="Headshots"    size="sm" value={(player.totalHeadshots ?? 0).toLocaleString('pt-BR')} />
                 <StatTile label="Rounds"       size="sm" value={(player.totalRounds  ?? 0).toLocaleString('pt-BR')} />
                 <StatTile label="Dano Total"   size="sm" value={(player.totalDamage  ?? 0).toLocaleString('pt-BR')} />
-                <StatTile label="Triple Kills" size="sm" value={(player.tripleKills  ?? 0).toLocaleString('pt-BR')} colorClass={(player.tripleKills  ?? 0) > 0 ? 'text-[#F59E0B]' : undefined} />
-                <StatTile label="Quad Kills"   size="sm" value={(player.quadroKills  ?? 0).toLocaleString('pt-BR')} colorClass={(player.quadroKills  ?? 0) > 0 ? 'text-[#F97316]' : undefined} />
-              </div>
+                             </div>
             </Card>
           </motion.div>
 
@@ -539,7 +527,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                  
                   { label: 'HS%',      a: player.headshotPercentage,   b: comparePlayer.headshotPercentage,   fmt: (v: number) => `${v.toFixed(1)}%` },
                   { label: 'Win Rate', a: player.winRate,              b: comparePlayer.winRate,              fmt: (v: number) => `${v.toFixed(1)}%` },
-                  { label: 'Clutch%',  a: player.clutchRate ?? 0,      b: comparePlayer.clutchRate ?? 0,      fmt: (v: number) => `${v.toFixed(1)}%` },
                 ];
                 return (
                   <div>

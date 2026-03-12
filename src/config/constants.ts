@@ -11,25 +11,7 @@ export const FACEIT_API = {
   ENDPOINTS: {
     PLAYERS: '/players',
     PLAYER_STATS: '/players/{player_id}/stats/cs2',
-    HUB: '/hubs/{hub_id}',
-    HUB_MEMBERS: '/hubs/{hub_id}/members',
-    HUB_MATCHES: '/hubs/{hub_id}/matches',
-    HUB_STATS: '/leaderboards/hubs/{hub_id}',
-    MATCH_STATS: '/matches/{match_id}/stats',
   },
-  RATE_LIMIT: {
-    REQUESTS_PER_MINUTE: 60,
-    DELAY_MS: 1000,
-  },
-} as const;
-
-// ==================== HUB CONFIGURATION ====================
-
-export const HUB_CONFIG = {
-  HUB_ID: process.env.NEXT_PUBLIC_HUB_ID || 'SEU_HUB_ID_AQUI',
-  HUB_NAME: 'Mix Dez 2025',
-  GAME: 'cs2',
-  REGION: 'SA',
 } as const;
 
 // ==================== CACHE CONFIGURATION ====================
@@ -175,57 +157,3 @@ export const QUEUE_ID = ACTIVE_SEASON.id;
 export type SeasonId = keyof typeof SEASONS;
 export type Season = typeof SEASONS[SeasonId];
 
-// ==================== UI CONFIGURATION ====================
-
-export const UI_CONFIG = {
-  ITEMS_PER_PAGE: 20,
-  DEBOUNCE_DELAY: 300,
-  ANIMATION_DURATION: 200,
-  TOAST_DURATION: 5000,
-} as const;
-
-// ==================== ERROR MESSAGES ====================
-
-export const ERROR_MESSAGES = {
-  NETWORK_ERROR: 'Erro de conexão. Verifique sua internet.',
-  API_ERROR: 'Erro ao buscar dados da FACEIT.',
-  CACHE_ERROR: 'Erro ao salvar/carregar cache.',
-  PLAYER_NOT_FOUND: 'Jogador não encontrado.',
-  INVALID_HUB: 'Hub inválido ou não encontrado.',
-  RATE_LIMIT: 'Limite de requisições atingido. Aguarde um momento.',
-  UNKNOWN_ERROR: 'Erro desconhecido. Tente novamente.',
-} as const;
-
-// ==================== SUCCESS MESSAGES ====================
-
-export const SUCCESS_MESSAGES = {
-  DATA_UPDATED: 'Dados atualizados com sucesso!',
-  CACHE_CLEARED: 'Cache limpo com sucesso!',
-} as const;
-
-// ==================== METADATA ====================
-
-export const APP_METADATA = {
-  TITLE: 'FACEIT Hub Stats - Mix Dez 2025',
-  DESCRIPTION: 'Estatísticas e ranking dos jogadores do hub Mix Dez 2025',
-  URL: process.env.NEXT_PUBLIC_APP_URL || 'https://faceit-hub-stats.vercel.app',
-  TWITTER_HANDLE: '@faceit_hub_stats',
-} as const;
-
-// ==================== EXPORT ALL ====================
-
-export const CONFIG = {
-  FACEIT_API,
-  HUB_CONFIG,
-  CACHE_CONFIG,
-  POT_CONFIG,
-  PLAYER_POTS,
-  PLAYER_NICKNAMES,
-  RANKING_CONFIG,
-  UI_CONFIG,
-  ERROR_MESSAGES,
-  SUCCESS_MESSAGES,
-  APP_METADATA,
-  FREE_PLAYERS,
-  isPlayerFree,
-} as const;

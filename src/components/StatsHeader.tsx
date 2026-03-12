@@ -107,7 +107,7 @@ export default function StatsHeader({
           <button
             onClick={() => onFiltersChange({
               ...filters,
-              minMatches: filters.minMatches === 10 ? undefined : 10,
+              minMatches: filters.minMatches === 10 ? 0 : 10,
             })}
             className={`relative w-10 h-5 rounded-full transition-colors overflow-hidden ${
               filters.minMatches === 10 ? 'bg-[#0EA5E9]' : 'bg-faceit-light-gray'

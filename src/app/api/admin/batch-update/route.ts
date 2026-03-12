@@ -165,7 +165,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     existingPlayers.sort((a: any, b: any) => {
       if (a.rankingPoints !== b.rankingPoints) return b.rankingPoints - a.rankingPoints;
       if (a.wins !== b.wins) return b.wins - a.wins;
-      return b.matchesPlayed - a.matchesPlayed;
+      return a.matchesPlayed - b.matchesPlayed; // menos partidas = melhor
     });
 
     existingPlayers.forEach((player: any, index: number) => {

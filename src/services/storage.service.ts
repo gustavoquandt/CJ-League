@@ -153,22 +153,6 @@ class StorageService {
     }
   }
 
-  /**
-   * Verifica se existe cache válido (com season)
-   */
-  hasValidCache(seasonId: SeasonId = 'SEASON_1'): boolean {
-    const cache = this.getCache(seasonId);
-    if (!cache) return false;
-
-    // Valida estrutura básica
-    return !!(
-      cache.players &&
-      Array.isArray(cache.players) &&
-      cache.lastUpdated &&
-      cache.version
-    );
-  }
-
   // ==================== USER PREFERENCES METHODS ====================
 
   /**
@@ -232,46 +216,6 @@ class StorageService {
     return this.getLastVisit() === null;
   }
 
-  // ==================== UTILITY METHODS ====================
-
-  /**
-   * Obtém tamanho usado no localStorage (aproximado)
-   */
-  getUsedSpace(): number {
-    if (!this.isAvailable) return 0;
-
-    let total = 0;
-    Object.values(StorageKeys).forEach(key => {
-      const item = window.localStorage.getItem(key);
-      if (item) {
-        total += item.length;
-      }
-    });
-
-    return total;
-  }
-
-  /**
-   * Formata tamanho em bytes para string legível
-   */
-  formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-  }
-
-  /**
-   * Debug: mostra informações do storage
-   */
-  debug(): void {
-    console.log('📦 Storage Debug:', {
-      available: this.isAvailable,
-      hasCache: this.hasValidCache(),
-      cacheSize: this.formatSize(this.getUsedSpace()),
-      lastVisit: this.getLastVisit(),
-      preferences: this.getPreferences(),
-    });
-  }
 }
 
 // ==================== SINGLETON INSTANCE ====================
@@ -282,36 +226,3 @@ class StorageService {
  */
 export const storageService = new StorageService();
 
-// ==================== HOOKS HELPER (para React) ====================
-
-/**
- * Helper para usar storage em componentes React
- * Garante que só roda no cliente
- */
-export function useStorage() {
-  if (typeof window === 'undefined') {
-    // SSR fallback
-    return {
-      saveCache: () => false,
-      getCache: () => null,
-      clearCache: () => false,
-      hasValidCache: () => false,
-      savePreferences: () => false,
-      getPreferences: () => null,
-      getPreferencesWithDefaults: () => ({
-        defaultSort: 'rankingPoints' as const,
-        defaultSortOrder: 'desc' as const,
-        viewMode: 'cards' as const,
-        theme: 'dark' as const,
-        autoRefresh: true,
-      }),
-      saveLastVisit: () => false,
-      getLastVisit: () => null,
-      isFirstVisit: () => true,
-      clear: () => false,
-      debug: () => {},
-    };
-  }
-
-  return storageService;
-}

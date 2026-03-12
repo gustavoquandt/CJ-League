@@ -161,12 +161,12 @@ RANKING_CONFIG = {
 ### Critérios de Desempate (Season 1)
 1. Pontos de ranking
 2. Quantidade de vitórias
-3. Total de partidas jogadas
+3. Menos partidas jogadas (quem chegou ao mesmo ponto com menos partidas está à frente)
 
 ### Jogadores Livres (Free)
-Os seguintes nicknames são excluídos do ranking:
+Os seguintes nicknames são excluídos do ranking (definidos em `FREE_PLAYERS` em `constants.ts`):
 ```
-cunh4, pablitanus, Matheusgsr1, nansch, NegaoReinert, JapaMarley
+BITENCOURT95, SnalpinhA, pablitanus, Matheusgsr1, nansch, NegaoReinert, JapaMarley
 ```
 
 ### Potes (Classificação)
@@ -297,7 +297,9 @@ Processa todos os jogadores em lotes de 1 por vez para não ultrapassar o timeou
 
 Atualização delta: busca apenas as novas partidas e aplica incrementos nas estatísticas existentes. Mais rápido que o batch-update completo.
 
-**Deltas calculados:** kills, deaths, damage, headshots, assists, tripleKills, quadroKills, pentaKills, matchKASTs, wins/losses
+**Deltas calculados:** kills, deaths, damage, headshots, wins/losses, `matchADRs` (ADR por partida), `matchRatings` (rating por partida), `matchResults` (resultado por partida)
+
+> Os arrays de histórico por partida (`matchADRs`, `matchRatings`, `matchResults`) são atualizados incrementalmente — novas partidas são acrescentadas ao início do array, mantendo o histórico existente.
 
 **Resposta:**
 ```json
@@ -413,13 +415,13 @@ As colunas não têm altura forçada — cada uma ocupa o espaço necessário pe
 |---|---|
 | Hero | Avatar, nickname, badge de pote, posição, nível FACEIT, forma recente (8 partidas), rating |
 | Quick Stats | K/D, ADR, HS%, Win Rate, KAST, Aces |
-| Rating por Partida | Gráfico AreaChart (verde=vitória, vermelho=derrota, linha de referência em 1.0) — requer `matchRatings` coletado no batch |
+| Rating por Partida | Gráfico AreaChart (verde=vitória, vermelho=derrota, linha de referência em 1.0) — alimentado por `matchRatings` (batch popula histórico; incremental mantém atualizado) |
 | Clutch | Breakdown 1v1→1v5 com barras de progresso e label HARD para 1v4/1v5 |
 | Desempenho na Season | Pontos, peak, partidas, barra W/L, barra de peak vs teto (1500) |
 | Estatísticas Detalhadas | Por Jogo (K/D/A) + Totais na Season (8 stats: kills, deaths, assists, headshots, rounds, dano, triple kills, quad kills) |
 | Comparar com | Select para comparar métricas lado a lado com barras bidirecionais (laranja=jogador atual, azul=comparado) |
 | Pote X / N jogadores | Rank do jogador no pote por Rating, K/D, ADR, KAST, Win Rate (com valor, média e `#rank`) |
-| ADR por Partida | Gráfico BarChart (azul=acima da média, cinza=abaixo) — requer `matchADRs` coletado no batch |
+| ADR por Partida | Gráfico BarChart (azul=acima da média, cinza=abaixo) — alimentado por `matchADRs` (batch popula histórico; incremental mantém atualizado) |
 | Vitórias & Derrotas | Donut chart com win rate central |
 | Sequência | Streak atual e maior sequência de vitórias |
 | Maior Rival | Adversário mais frequente com W/L e barra proporcional |
@@ -619,7 +621,6 @@ Camada de integração com a FACEIT API v4.
 
 #### Constantes de configuração
 ```typescript
-HISTORY_PAGES = 10          // 10 páginas = 200 partidas
 PARALLEL_MATCHES = 3        // 3 requisições paralelas de match stats
 REQUEST_TIMEOUT = 20000     // 20s timeout
 MIN_DELAY_BETWEEN_REQUESTS = 1200   // 1.2s entre requisições
@@ -634,21 +635,13 @@ Busca informações do jogador (ID, avatar, ELO, skill level).
 **`getPlayerStats(playerId)`**
 Busca estatísticas lifetime do jogador na FACEIT.
 
-**`getPlayerMatchesInQueue(playerId, nickname)`**
-Busca até 200 partidas (10 páginas × 20 matches) em uma queue específica.
-Calcula: vitórias, derrotas, kills, deaths, damage, rounds.
-Rastreia o maior rival (oponente com mais partidas).
-
-> **Nota sobre ADR:** A FACEIT API não retorna o campo `Damage` nos player stats. O campo disponível é `ADR` (Average Damage per Round, pré-calculado). O `totalDamage` é derivado como `Math.round(ADR * matchRounds)` para poder recalcular ADR corretamente no cache incremental.
-
 **`fetchPlayerWithMatches(nickname, maxMatches?, lastMatchId?, queueId?, previousStats?)`**
 Versão incremental: se `lastMatchId` for encontrado, acumula stats sobre os dados anteriores. Caso contrário, recalcula do zero.
 
 **`calculateStatsFromMatches(matches, playerInfo, nickname)`**
-Processa uma lista de partidas e retorna um `PlayerStats` completo com K/D, ADR, win rate, streaks, peak points e rivais.
+Processa uma lista de partidas e retorna um `PlayerStats` completo com K/D, ADR, win rate, streaks, peak points, matchRatings, matchADRs, matchResults e rivais.
 
-**`fetchPlayersBatch(playerNicknames, onProgress?)`**
-Processa múltiplos jogadores sequencialmente com callback de progresso.
+> **Nota sobre ADR:** A FACEIT API não retorna o campo `Damage` nos player stats. O campo disponível é `ADR` (Average Damage per Round, pré-calculado). O `totalDamage` é derivado como `Math.round(ADR * matchRounds)` para poder recalcular ADR corretamente no cache incremental.
 
 #### Singleton
 ```typescript
@@ -700,7 +693,6 @@ Wrapper sobre `localStorage` para cache client-side com fallback.
 - `saveCache(data, seasonId)` — Salva no localStorage
 - `getCache(seasonId)` — Recupera do localStorage
 - `clearCache(seasonId)` — Limpa cache
-- `hasValidCache(seasonId)` — Valida a estrutura do cache
 
 **Preferências:**
 - `savePreferences(preferences)` — Salva preferências do usuário
@@ -827,7 +819,7 @@ interface PlayerStats {
   totalDamage?: number;
   totalRounds?: number;
   totalHeadshots?: number;
-  matchResults?: boolean[];   // Histórico de vitórias/derrotas (mais recente primeiro)
+  matchResults?: boolean[];   // Histórico de vitórias/derrotas (mais antigo primeiro — índice 0 = primeira partida)
   matchADRs?: number[];       // ADR por partida
   matchRatings?: number[];    // Rating por partida (para gráfico de tendência)
 
@@ -1165,12 +1157,4 @@ Isso habilita as atualizações automáticas a cada 2 horas.
 
 ### 6. Integrar a página de jogador com dados reais
 
-Atualmente `src/app/player/[id]/page.tsx` usa mock em desenvolvimento:
-
-```typescript
-// TODO: substituir por fetch real quando sair do ambiente de testes
-const player: PlayerStats | undefined =
-  process.env.NODE_ENV === 'development' ? getMockPlayerById(id) : undefined;
-```
-
-Para produção, substituir por uma chamada a `/api/faceit/hub-stats` filtrando pelo `id` recebido.
+A página `src/app/player/[id]/page.tsx` usa mock em desenvolvimento. Em produção, busca os dados do Redis via `/api/faceit/hub-stats` e filtra pelo `id` (aceita `playerId` ou `nickname` case-insensitive).

@@ -12,12 +12,10 @@ import type { PlayerStats } from '@/types/app.types';
 import {
   FACEIT_API,
   PLAYER_POTS,
-  PLAYER_NICKNAMES,
   RANKING_CONFIG,
 } from '@/config/constants';
 import {
   parseStatValue,
-  parsePercentage,
   sanitizePlayer,
 } from '@/utils/stats.utils';
 import { calculateSimplifiedRating } from '@/utils/rating.utils';
@@ -25,7 +23,6 @@ import { calculateSimplifiedRating } from '@/utils/rating.utils';
 const QUEUE_ID = process.env.NEXT_PUBLIC_COMPETITION_ID || 'f2dec63c-b3c1-4df6-8193-0b83fc6640ef';
 
 // CONFIGURAÇÕES CONSERVADORAS
-const HISTORY_PAGES = 10;              // 10 páginas = 200 partidas
 const PARALLEL_MATCHES = 3;           // 3 partidas em paralelo
 const REQUEST_TIMEOUT = 20000;        // 20s timeout
 const MIN_DELAY_BETWEEN_REQUESTS = 1200; // 1.2s entre requests
@@ -35,15 +32,6 @@ interface FaceitServiceConfig {
   apiKey: string;
   baseUrl?: string;
 }
-
-interface FetchProgress {
-  total: number;
-  current: number;
-  currentPlayer: string;
-  percentage: number;
-}
-
-type ProgressCallback = (progress: FetchProgress) => void;
 
 interface QueuePlayerStats {
   wins: number;
@@ -167,218 +155,6 @@ class FaceitService {
     }
   }
 
-  async getPlayerMatchesInQueue(playerId: string, nickname: string): Promise<QueuePlayerStats> {
-    let wins = 0;
-    let losses = 0;
-    let totalKills = 0;
-    let totalDeaths = 0;
-    let totalDamage = 0;
-    let totalRounds = 0;
-    let lastMatchId: string | undefined = undefined;
-    let totalHeadshots = 0;  // ✅ NOVO
-    let matchADRs: number[] = [];  // ✅ NOVO
-    let matchRatings: number[] = [];  // ✅ NOVO
-    let matchResults: boolean[] = [];  // ✅ NOVO
-
-    // ✅ NOVO: Rastrear oponentes (maior rival)
-    const opponentMap = new Map<string, {
-      nickname: string;
-      count: number;
-      wins: number;
-      losses: number;
-    }>();
-
-    try {
-      // Buscar páginas SEQUENCIALMENTE
-      const allMatches = [];
-      for (let page = 0; page < HISTORY_PAGES; page++) {
-        const offset = page * 20;
-        const endpoint = `/players/${playerId}/history?game=cs2&offset=${offset}&limit=20`;
-        const result: any = await this.request(endpoint);
-        allMatches.push(...(result.items || []));
-        
-        if (page < HISTORY_PAGES - 1) {
-          await this.delay(600);
-        }
-      }
-      
-      if (allMatches.length === 0) {
-        return {
-          wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
-          totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
-          totalHeadshots: 0, matchADRs: [], matchRatings: [], matchResults: [],
-        };
-      }
-
-      const queueMatches = allMatches.filter((match: any) => match.competition_id === QUEUE_ID);
-
-      if (queueMatches.length === 0) {
-        return {
-          wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
-          totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
-          totalHeadshots: 0, matchADRs: [], matchRatings: [], matchResults: [],
-        };
-      }
-
-      lastMatchId = queueMatches[0]?.match_id;
-
-      // Processar partidas em chunks
-      const chunks = [];
-      for (let i = 0; i < queueMatches.length; i += PARALLEL_MATCHES) {
-        chunks.push(queueMatches.slice(i, i + PARALLEL_MATCHES));
-      }
-
-      for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
-        const chunk = chunks[chunkIndex];
-        
-        const matchStatsPromises = chunk.map(async (match: any) => {
-          try {
-            const matchStats: any = await this.request(`/matches/${match.match_id}/stats`);
-            
-            let matchKills = 0;
-            let matchDeaths = 0;
-            let matchDamage = 0;
-            let matchHeadshots = 0;  // ✅ NOVO
-            
-            const rounds = matchStats.rounds || [];
-            const firstRound = rounds[0];
-            const matchRounds = firstRound?.round_stats?.Rounds 
-              ? parseInt(firstRound.round_stats.Rounds) 
-              : rounds.length;
-            
-            for (const round of rounds) {
-              const allPlayers = [
-                ...(round.teams?.[0]?.players || []),
-                ...(round.teams?.[1]?.players || [])
-              ];
-              
-              const playerStats = allPlayers.find((p: any) => p.player_id === playerId);
-              
-              if (playerStats) {
-                matchKills += parseInt(playerStats.player_stats?.Kills || '0');
-                matchDeaths += parseInt(playerStats.player_stats?.Deaths || '0');
-                matchDamage += Math.round(parseFloat(playerStats.player_stats?.ADR || '0') * matchRounds);
-                matchHeadshots += parseInt(playerStats.player_stats?.Headshots || '0');  // ✅ NOVO
-              }
-            }
-
-            const playerTeam = match.teams?.faction1?.players?.some((p: any) => p.player_id === playerId)
-              ? 'faction1'
-              : 'faction2';
-            
-            const won = match.results?.winner === playerTeam;
-
-            // ✅ NOVO: Rastrear oponentes desta partida
-            const opponentTeam = playerTeam === 'faction1' ? 'faction2' : 'faction1';
-            const opponents = match.teams?.[opponentTeam]?.players || [];
-            
-            for (const opponent of opponents) {
-              const oppNickname = opponent.nickname;
-              
-              if (!opponentMap.has(oppNickname)) {
-                opponentMap.set(oppNickname, {
-                  nickname: oppNickname,
-                  count: 0,
-                  wins: 0,
-                  losses: 0
-                });
-              }
-              
-              const rivalStats = opponentMap.get(oppNickname)!;
-              rivalStats.count++;
-              
-              if (won) {
-                rivalStats.wins++;
-              } else {
-                rivalStats.losses++;
-              }
-            }
-
-            // ✅ NOVO: Calcular ADR da partida
-            const matchADR = matchRounds > 0 ? matchDamage / matchRounds : 0;
-            
-            return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, adr: matchADR, won };  // ✅ MODIFICADO
-            
-          } catch (error) {
-            return null;
-          }
-        });
-
-        const chunkResults = await Promise.all(matchStatsPromises);
-        
-        for (const result of chunkResults) {
-          if (result) {
-            totalKills += result.kills;
-            totalDeaths += result.deaths;
-            totalDamage += result.damage;
-            totalRounds += result.rounds;
-            totalHeadshots += result.headshots;
-            matchADRs.push(result.adr);
-            matchRatings.push(calculateSimplifiedRating({ totalKills: result.kills, totalDeaths: result.deaths, totalDamage: result.damage, totalRounds: result.rounds, totalHeadshots: result.headshots }));
-            matchResults.push(result.won);
-            if (result.won) wins++;
-            else losses++;
-          }
-        }
-
-        if (chunkIndex < chunks.length - 1) {
-          await this.delay(DELAY_BETWEEN_CHUNKS);
-        }
-      }
-
-      const matchesPlayed = wins + losses;
-      const points = RANKING_CONFIG.INITIAL_POINTS + (wins * 3) - (losses * 3);
-
-      // ✅ NOVO: Encontrar maior rival (com desempate por ordem alfabética)
-      let biggestRival = null;
-      for (const rival of opponentMap.values()) {
-        if (!biggestRival ||
-            rival.count > biggestRival.count ||
-            (rival.count === biggestRival.count && rival.nickname < biggestRival.nickname)) {
-          biggestRival = rival;
-        }
-      }
-
-      console.log(`   ✅ ${nickname}: ${wins}W/${losses}L (${queueMatches.length} partidas)`);
-
-      return {
-        wins, losses, matchesPlayed, points, lastMatchId,
-        totalKills, totalDeaths, totalDamage, totalRounds,
-        totalHeadshots, matchADRs, matchRatings, matchResults,
-        rivalNickname: biggestRival?.nickname,
-        rivalMatchCount: biggestRival?.count || 0,
-        rivalWins: biggestRival?.wins || 0,
-        rivalLosses: biggestRival?.losses || 0,
-      };
-
-    } catch (error) {
-      console.error(`   ❌ ${nickname}: Erro`);
-      return {
-        wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
-        totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
-        totalHeadshots: 0, matchADRs: [], matchRatings: [], matchResults: [],
-        rivalNickname: undefined,
-        rivalMatchCount: 0,
-        rivalWins: 0,
-        rivalLosses: 0,
-      };
-    }
-  }
-
-  async getConsolidatedPlayerData(nickname: string): Promise<PlayerStats | null> {
-    try {
-      const playerInfo = await this.getPlayerByNickname(nickname);
-      if (!playerInfo) return null;
-
-      const queueStats = await this.getPlayerMatchesInQueue(playerInfo.player_id, nickname);
-      const stats = await this.getPlayerStats(playerInfo.player_id);
-
-      return this.buildPlayerStats(nickname, playerInfo, queueStats, stats);
-    } catch (error) {
-      return null;
-    }
-  }
-
   private buildPlayerStats(
     nickname: string,
     player: FaceitPlayer,
@@ -431,8 +207,8 @@ class FaceitService {
     let currentPoints: number = RANKING_CONFIG.INITIAL_POINTS; // 1000
     let peakPoints: number = currentPoints;
     
-    // Assume que matchResults está em ordem cronológica (mais antiga → mais recente)
-    for (const won of matchResults.reverse()) { // Reverse porque API retorna mais recente primeiro
+    // matchResults está mais-recente-primeiro; iterar ao contrário para simulação cronológica
+    for (const won of [...matchResults].reverse()) {
       currentPoints += won ? 3 : -3;
       peakPoints = Math.max(peakPoints, currentPoints);
     }
@@ -787,49 +563,6 @@ class FaceitService {
     }, null);
   }
 
-  /**
-   * PROCESSAR UM BATCH DE JOGADORES
-   * Retorna os jogadores processados
-   */
-  async fetchPlayersBatch(
-    playerNicknames: string[],
-    onProgress?: ProgressCallback
-  ): Promise<PlayerStats[]> {
-    console.log(`📦 Processando batch de ${playerNicknames.length} jogadores`);
-    
-    const players: PlayerStats[] = [];
-
-    for (let i = 0; i < playerNicknames.length; i++) {
-      const nickname = playerNicknames[i];
-      
-      console.log(`   [${i + 1}/${playerNicknames.length}] ${nickname}`);
-
-      if (onProgress) {
-        onProgress({
-          total: playerNicknames.length,
-          current: i + 1,
-          currentPlayer: nickname,
-          percentage: Math.round(((i + 1) / playerNicknames.length) * 100),
-        });
-      }
-
-      const player = await this.getConsolidatedPlayerData(nickname);
-      
-      if (player) {
-        players.push(player);
-      }
-    }
-
-    return players;
-  }
-
-  getRequestCount(): number {
-    return this.requestCount;
-  }
-
-  resetRequestCount(): void {
-    this.requestCount = 0;
-  }
 }
 
 let faceitServiceInstance: FaceitService | null = null;
@@ -845,4 +578,4 @@ export function getFaceitService(apiKey?: string): FaceitService {
 }
 
 export { FaceitService };
-export type { FaceitServiceConfig, FetchProgress, ProgressCallback };
+export type { FaceitServiceConfig };
