@@ -254,11 +254,11 @@ class FaceitService {
               if (playerStats) {
                 matchKills += parseInt(playerStats.player_stats?.Kills || '0');
                 matchDeaths += parseInt(playerStats.player_stats?.Deaths || '0');
-                matchDamage += parseInt(playerStats.player_stats?.Damage || '0');
+                matchDamage += Math.round(parseFloat(playerStats.player_stats?.ADR || '0') * matchRounds);
                 matchHeadshots += parseInt(playerStats.player_stats?.Headshots || '0');  // ✅ NOVO
               }
             }
-            
+
             const playerTeam = match.teams?.faction1?.players?.some((p: any) => p.player_id === playerId)
               ? 'faction1'
               : 'faction2';
@@ -692,7 +692,7 @@ class FaceitService {
             if (playerStats) {
               matchKills += parseInt(playerStats.player_stats?.Kills || '0');
               matchDeaths += parseInt(playerStats.player_stats?.Deaths || '0');
-              matchDamage += parseInt(playerStats.player_stats?.Damage || '0');
+              matchDamage += Math.round(parseFloat(playerStats.player_stats?.ADR || '0') * matchRounds);
               matchHeadshots += parseInt(playerStats.player_stats?.Headshots || '0');  // ✅ NOVO
             }
           }

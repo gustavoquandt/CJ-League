@@ -170,7 +170,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               const matchStats = playerMatchStats.get(playerId)!;
               matchStats.kills     += parseInt(ps.Kills     || '0', 10);
               matchStats.deaths    += parseInt(ps.Deaths    || '0', 10);
-              matchStats.damage    += parseInt(ps.Damage    || '0', 10);
+              matchStats.damage    += Math.round(parseFloat(ps.ADR || '0') * totalRounds);
               matchStats.headshots += parseInt(ps.Headshots || '0', 10);
               matchStats.won       = ps.Result === '1'; // Último round define
             }

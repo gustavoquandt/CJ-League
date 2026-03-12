@@ -401,17 +401,17 @@ O card de Batch Update exibe um log em tempo real com o progresso de cada jogado
 
 ### Layout
 
-A página é dividida em duas colunas com alturas iguais:
+A página é dividida em duas colunas que crescem naturalmente conforme o conteúdo:
 - **Coluna esquerda (2/3):** cards de performance principal
 - **Coluna direita (1/3):** cards de contexto e comparação
 
-Ambas usam `[&>*:last-child]:flex-1 [&>*:last-child>div]:h-full` para que o último card se expanda e preencha o espaço restante sem deixar vazio.
+As colunas não têm altura forçada — cada uma ocupa o espaço necessário pelo seu conteúdo, sem espaço sobrando.
 
 ### Seções exibidas
 
 | Seção | Dados |
 |---|---|
-| Hero | Avatar, nickname, badge de pote, posição, FACEIT ELO, forma recente (8 partidas), rating |
+| Hero | Avatar, nickname, badge de pote, posição, nível FACEIT, forma recente (8 partidas), rating |
 | Quick Stats | K/D, ADR, HS%, Win Rate, KAST, Aces |
 | Rating por Partida | Gráfico AreaChart (verde=vitória, vermelho=derrota, linha de referência em 1.0) |
 | Entry Performance | Tentativas, entry kills, entry deaths, taxa de sucesso |
@@ -636,6 +636,8 @@ Busca estatísticas lifetime do jogador na FACEIT.
 Busca até 200 partidas (10 páginas × 20 matches) em uma queue específica.
 Calcula: vitórias, derrotas, kills, deaths, damage, rounds.
 Rastreia o maior rival (oponente com mais partidas).
+
+> **Nota sobre ADR:** A FACEIT API não retorna o campo `Damage` nos player stats. O campo disponível é `ADR` (Average Damage per Round, pré-calculado). O `totalDamage` é derivado como `Math.round(ADR * matchRounds)` para poder recalcular ADR corretamente no cache incremental.
 
 **`fetchPlayerWithMatches(nickname, maxMatches?, lastMatchId?, queueId?, previousStats?)`**
 Versão incremental: se `lastMatchId` for encontrado, acumula stats sobre os dados anteriores. Caso contrário, recalcula do zero.

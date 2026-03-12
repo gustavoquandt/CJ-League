@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { PlayerStats, SortOption } from '@/types/app.types';
 import {
@@ -18,6 +19,7 @@ interface PlayerTableProps {
 }
 
 export default function PlayerTable({ players }: PlayerTableProps) {
+  const router = useRouter();
   const [sortBy, setSortBy] = useState<SortOption>('rankingPoints');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -103,7 +105,7 @@ export default function PlayerTable({ players }: PlayerTableProps) {
         <tbody>
           {sortedPlayers.map((player, index) => {
             return (
-              <tr key={player.playerId}>
+              <tr key={player.playerId} onClick={() => router.push(`/player/${player.playerId}`)} className="cursor-pointer hover:bg-[#2D2D3D] transition-colors">
                 {/* Position */}
                 <td className="sticky-col left-0 bg-faceit-gray z-10">
                   <div className="flex items-center gap-2">

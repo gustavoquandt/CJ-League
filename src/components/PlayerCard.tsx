@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import type { PlayerStats } from '@/types/app.types';
 import {
   formatStat,
@@ -27,7 +28,8 @@ export default function PlayerCard({ player }: PlayerCardProps) {
   });
 
   return (
-    <div className="card animate-fade-in">
+    <Link href={`/player/${player.playerId}`} className="block">
+    <div className="card animate-fade-in hover:border-[#0EA5E9] transition-colors cursor-pointer">
       {/* Header com Avatar, Nome e Pote */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -146,5 +148,6 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         </div>
       </div>
     </div>
+    </Link>
   );
 }

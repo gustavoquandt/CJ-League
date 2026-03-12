@@ -187,6 +187,9 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   const [player, setPlayer] = useState<PlayerStats | undefined>(
     process.env.NODE_ENV === 'development' ? getMockPlayerById(id) : undefined
   );
+  const [allPlayers, setAllPlayers] = useState<PlayerStats[]>(
+    process.env.NODE_ENV === 'development' ? mockPlayers : []
+  );
   const [loading, setLoading] = useState(
     process.env.NODE_ENV !== 'development'
   );
@@ -197,6 +200,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
       .then(r => r.json())
       .then(data => {
         if (data.success && data.data) {
+          setAllPlayers(data.data);
           const found: PlayerStats | undefined = data.data.find(
             (p: PlayerStats) =>
               p.playerId === id ||
@@ -254,10 +258,10 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   ];
 
   // ── Comparação ──────────────────────────────────────────────────────────────
-  const comparePlayer = compareId ? getMockPlayerById(compareId) : null;
+  const comparePlayer = compareId ? allPlayers.find(p => p.playerId === compareId) : null;
 
   // ── Ranking no pote ──────────────────────────────────────────────────────────
-  const allSamePot = mockPlayers.filter(p => p.pot === player.pot);
+  const allSamePot = allPlayers.filter(p => p.pot === player.pot);
   const potRank = (fn: (p: PlayerStats) => number) => {
     const sorted = [...allSamePot].sort((a, b) => fn(b) - fn(a));
     return sorted.findIndex(p => p.playerId === player.playerId) + 1;
@@ -331,8 +335,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
               <div className="flex flex-wrap items-center gap-4 text-sm text-[#9CA3AF] mb-4">
                 <span>{player.country}</span>
                 <span className="text-[#2D2D3D]">|</span>
-                <span>FACEIT ELO <span className="text-[#FF6B35] font-semibold">{player.faceitElo}</span></span>
-                <span className="text-[#2D2D3D]">|</span>
                 <span>Nível <span className="text-white font-semibold">{player.skillLevel}</span></span>
               </div>
 
@@ -361,7 +363,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
       <div className="max-w-5xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* ── LEFT COLUMN (2/3) ─────────────────────────────────────────── */}
-        <div className="lg:col-span-2 flex flex-col gap-6 h-full [&>*:last-child]:flex-1 [&>*:last-child>div]:h-full">
+        <div className="lg:col-span-2 flex flex-col gap-6">
 
           {/* Quick stats */}
           <motion.div {...fadeUp(0)} className="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -608,7 +610,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
         </div>
 
         {/* ── RIGHT COLUMN (1/3) ────────────────────────────────────────── */}
-        <div className="flex flex-col gap-6 h-full [&>*:last-child]:flex-1 [&>*:last-child>div]:h-full">
+        <div className="flex flex-col gap-6">
 
           {/* Comparação de jogadores */}
           <motion.div {...fadeUp(0.04)}>
@@ -628,7 +630,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                 className="w-full bg-[#13131A] border border-[#2D2D3D] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#0EA5E9] mb-4"
               >
                 <option value="">Selecione um jogador...</option>
-                {mockPlayers.filter(p => p.playerId !== player.playerId).map(p => (
+                {allPlayers.filter(p => p.playerId !== player.playerId).map(p => (
                   <option key={p.playerId} value={p.playerId}>
                     {p.nickname} — Pote {p.pot} · Rating {p.rating?.toFixed(2)}
                   </option>
