@@ -90,34 +90,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const startTime = Date.now();
 
     try {
-      // ✅ Verificar cache do jogador (com season)
-      const cachedPlayer = await kvCacheService.getPlayerCache(nickname, seasonId);
-      const lastMatchId = cachedPlayer?.lastMatchId || null;
-
-      console.log(`   Cache: ${cachedPlayer ? '✅ Encontrado' : '⚠️ Não encontrado'}`);
-      if (lastMatchId) {
-        console.log(`   Último match: ${lastMatchId.substring(0, 8)}...`);
-      }
-
-      // 🔍 DEBUG: Log antes de buscar
       console.log(`   🔍 Buscando dados para ${nickname}...`);
       console.log(`   🔍 Queue ID: ${queueId}`);
       console.log(`   🔍 Max matches: ${MAX_MATCHES_PER_PLAYER}`);
-      if (cachedPlayer) {
-        console.log(`   🔍 Cache anterior: ${cachedPlayer.matchesPlayed} partidas`);
-      }
 
-      // ✅ Buscar dados atualizados
-      // 🚨 CORRIGIDO: Para Season 1, NUNCA passar previousStats (forçar recalculo do zero)
-      const isIncremental = lastMatchId !== null;
-      console.log(`   🔧 Modo: ${isIncremental ? `INCREMENTAL (${seasonId})` : `FULL REFRESH (${seasonId} - primeiro processamento)`}`);
+      // Batch-update sempre recalcula do zero (últimas MAX_MATCHES partidas)
+      // Não usa previousStats para evitar inconsistências de ordenação nos arrays
+      console.log(`   🔧 Modo: FULL REFRESH (${seasonId})`);
 
       const playerData = await faceitService.fetchPlayerWithMatches(
         nickname,
         MAX_MATCHES_PER_PLAYER,
-        lastMatchId,
+        null,
         queueId,
-        cachedPlayer
+        null
       );
 
       // 🔍 DEBUG: Log resultado
