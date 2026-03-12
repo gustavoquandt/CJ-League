@@ -819,7 +819,7 @@ interface PlayerStats {
   totalDamage?: number;
   totalRounds?: number;
   totalHeadshots?: number;
-  matchResults?: boolean[];   // Histórico de vitórias/derrotas (mais antigo primeiro — índice 0 = primeira partida)
+  matchResults?: boolean[];   // Histórico de vitórias/derrotas (mais recente primeiro — índice 0 = partida mais recente)
   matchADRs?: number[];       // ADR por partida
   matchRatings?: number[];    // Rating por partida (para gráfico de tendência)
 

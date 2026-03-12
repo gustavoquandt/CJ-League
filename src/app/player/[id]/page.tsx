@@ -200,14 +200,15 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   }
 
   // ── Chart data ──────────────────────────────────────────────────────────────
-  const allRatings = [...(player.matchRatings ?? [])];
-  const allResults = [...(player.matchResults ?? [])];
+  const allRatings = [...(player.matchRatings ?? [])].reverse();
+  const allResults = [...(player.matchResults ?? [])].reverse();
   const ratingChartData = allRatings.map((rating, i) => ({
     match: i + 1, rating, won: allResults[i] ?? false,
   }));
 
   const adrChartData = [...(player.matchADRs ?? [])]
     .slice(0, 15)
+    .reverse()
     .map((adr, i) => ({ match: i + 1, adr: Math.round(adr), aboveAvg: adr >= player.adr }));
 
   const clutchBreakdown = [
