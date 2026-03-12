@@ -200,8 +200,8 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   }
 
   // ── Chart data ──────────────────────────────────────────────────────────────
-  const allRatings = [...(player.matchRatings ?? [])].reverse();
-  const allResults = [...(player.matchResults ?? [])].reverse();
+  const allRatings = [...(player.matchRatings ?? [])].slice(0, 50).reverse();
+  const allResults = [...(player.matchResults ?? [])].slice(0, 50).reverse();
   const ratingChartData = allRatings.map((rating, i) => ({
     match: i + 1, rating, won: allResults[i] ?? false,
   }));

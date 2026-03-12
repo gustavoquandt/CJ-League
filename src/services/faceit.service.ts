@@ -43,11 +43,12 @@ interface QueuePlayerStats {
   totalDeaths: number;
   totalDamage: number;
   totalRounds: number;
-  totalHeadshots: number;      // ✅ NOVO
-  matchADRs: number[];          // ✅ NOVO
-  matchRatings: number[];       // ✅ NOVO
-  matchResults: boolean[];      // ✅ NOVO
-  rivalNickname?: string;       // ✅ NOVO: Maior rival
+  totalHeadshots: number;
+  totalPentaKills: number;
+  matchADRs: number[];
+  matchRatings: number[];
+  matchResults: boolean[];
+  rivalNickname?: string;
   rivalMatchCount?: number;     // ✅ NOVO
   rivalWins?: number;           // ✅ NOVO
   rivalLosses?: number;         // ✅ NOVO
@@ -168,9 +169,9 @@ class FaceitService {
     const skillLevel = player.skill_level || 0;
 
     const { 
-      wins, losses, matchesPlayed, points, lastMatchId, 
+      wins, losses, matchesPlayed, points, lastMatchId,
       totalKills, totalDeaths, totalDamage, totalRounds,
-      totalHeadshots, matchADRs, matchRatings, matchResults,
+      totalHeadshots, totalPentaKills, matchADRs, matchRatings, matchResults,
       rivalNickname, rivalMatchCount, rivalWins, rivalLosses
     } = queueStats;
     
@@ -244,7 +245,8 @@ class FaceitService {
       kills, deaths, assists, kd, kr, adr,
       headshotPercentage, faceitElo, skillLevel,
       currentStreak, longestWinStreak, lastMatchId,
-      totalKills, totalDeaths, totalDamage, totalRounds,
+      totalKills, totalDeaths, totalDamage, totalRounds, totalHeadshots,
+      pentaKills: totalPentaKills,
       rivalNickname, rivalMatchCount, rivalWins, rivalLosses,
       matchResults, matchADRs, matchRatings,
     });
@@ -428,7 +430,7 @@ class FaceitService {
     nickname: string
   ): Promise<PlayerStats> {
     let totalKills = 0, totalDeaths = 0, totalDamage = 0, totalRounds = 0, wins = 0, losses = 0;
-    let totalHeadshots = 0;
+    let totalHeadshots = 0, totalPentaKills = 0;
     let matchADRs: number[] = [];
     let matchRatings: number[] = [];
     let matchResults: boolean[] = [];
@@ -445,7 +447,7 @@ class FaceitService {
       return this.buildPlayerStats(nickname, playerInfo, {
         wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
         totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
-        totalHeadshots: 0, matchADRs: [], matchRatings: [], matchResults: [],
+        totalHeadshots: 0, totalPentaKills: 0, matchADRs: [], matchRatings: [], matchResults: [],
         rivalNickname: undefined,
         rivalMatchCount: 0,
         rivalWins: 0,
@@ -463,7 +465,7 @@ class FaceitService {
       const matchStatsPromises = chunk.map(async (match: any) => {
         try {
           const matchStats: any = await this.request(`/matches/${match.match_id}/stats`);
-          let matchKills = 0, matchDeaths = 0, matchDamage = 0, matchHeadshots = 0;  // ✅ NOVO
+          let matchKills = 0, matchDeaths = 0, matchDamage = 0, matchHeadshots = 0, matchPentaKills = 0;
           const rounds = matchStats.rounds || [];
           const firstRound = rounds[0];
           const matchRounds = firstRound?.round_stats?.Rounds 
@@ -477,10 +479,11 @@ class FaceitService {
             ];
             const playerStats = allPlayers.find((p: any) => p.player_id === playerInfo.player_id);
             if (playerStats) {
-              matchKills += parseInt(playerStats.player_stats?.Kills || '0');
-              matchDeaths += parseInt(playerStats.player_stats?.Deaths || '0');
-              matchDamage += Math.round(parseFloat(playerStats.player_stats?.ADR || '0') * matchRounds);
-              matchHeadshots += parseInt(playerStats.player_stats?.Headshots || '0');  // ✅ NOVO
+              matchKills      += parseInt(playerStats.player_stats?.Kills         || '0');
+              matchDeaths     += parseInt(playerStats.player_stats?.Deaths        || '0');
+              matchDamage     += Math.round(parseFloat(playerStats.player_stats?.ADR || '0') * matchRounds);
+              matchHeadshots  += parseInt(playerStats.player_stats?.Headshots     || '0');
+              matchPentaKills += parseInt(playerStats.player_stats?.['Penta Kills'] || '0');
             }
           }
           
@@ -517,7 +520,7 @@ class FaceitService {
           // ✅ NOVO: Calcular ADR da partida
           const matchADR = matchRounds > 0 ? matchDamage / matchRounds : 0;
           
-          return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, adr: matchADR, won };  // ✅ MODIFICADO
+          return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, pentaKills: matchPentaKills, adr: matchADR, won };
         } catch (error) {
           return null;
         }
@@ -526,11 +529,12 @@ class FaceitService {
       const chunkResults = await Promise.all(matchStatsPromises);
       for (const result of chunkResults) {
         if (result) {
-          totalKills += result.kills;
-          totalDeaths += result.deaths;
-          totalDamage += result.damage;
-          totalRounds += result.rounds;
-          totalHeadshots += result.headshots;
+          totalKills      += result.kills;
+          totalDeaths     += result.deaths;
+          totalDamage     += result.damage;
+          totalRounds     += result.rounds;
+          totalHeadshots  += result.headshots;
+          totalPentaKills += result.pentaKills;
           matchADRs.push(result.adr);
           matchRatings.push(calculateSimplifiedRating({ totalKills: result.kills, totalDeaths: result.deaths, totalDamage: result.damage, totalRounds: result.rounds, totalHeadshots: result.headshots }));
           matchResults.push(result.won);
@@ -555,7 +559,7 @@ class FaceitService {
 
     return this.buildPlayerStats(nickname, playerInfo, {
       wins, losses, matchesPlayed, points, totalKills, totalDeaths, totalDamage, totalRounds,
-      totalHeadshots, matchADRs, matchRatings, matchResults,
+      totalHeadshots, totalPentaKills, matchADRs, matchRatings, matchResults,
       rivalNickname: biggestRival?.nickname,
       rivalMatchCount: biggestRival?.count || 0,
       rivalWins: biggestRival?.wins || 0,

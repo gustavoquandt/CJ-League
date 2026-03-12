@@ -205,10 +205,12 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     currentStreak: player.currentStreak || 0,
     longestWinStreak: player.longestWinStreak || 0,
     lastMatch: player.lastMatch,
-    totalKills: player.totalKills,      // ✅ ADICIONADO
-    totalDeaths: player.totalDeaths,    // ✅ ADICIONADO
-    totalDamage: player.totalDamage,    // ✅ ADICIONADO
-    totalRounds: player.totalRounds,    // ✅ ADICIONADO
+    totalKills: player.totalKills,
+    totalDeaths: player.totalDeaths,
+    totalDamage: player.totalDamage,
+    totalRounds: player.totalRounds,
+    totalHeadshots: player.totalHeadshots,
+    pentaKills: player.pentaKills,
     // ✅ RIVAL DATA
     rivalNickname: player.rivalNickname,
     rivalMatchCount: player.rivalMatchCount,
