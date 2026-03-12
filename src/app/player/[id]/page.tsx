@@ -536,7 +536,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                   { label: 'Rating',   a: player.rating ?? 0,          b: comparePlayer.rating ?? 0,          fmt: (v: number) => v.toFixed(2) },
                   { label: 'K/D',      a: player.kd,                   b: comparePlayer.kd,                   fmt: (v: number) => v.toFixed(2) },
                   { label: 'ADR',      a: player.adr,                  b: comparePlayer.adr,                  fmt: (v: number) => v.toFixed(1) },
-                  { label: 'KAST',     a: player.kast ?? 0,            b: comparePlayer.kast ?? 0,            fmt: (v: number) => `${v.toFixed(1)}%` },
+                 
                   { label: 'HS%',      a: player.headshotPercentage,   b: comparePlayer.headshotPercentage,   fmt: (v: number) => `${v.toFixed(1)}%` },
                   { label: 'Win Rate', a: player.winRate,              b: comparePlayer.winRate,              fmt: (v: number) => `${v.toFixed(1)}%` },
                   { label: 'Clutch%',  a: player.clutchRate ?? 0,      b: comparePlayer.clutchRate ?? 0,      fmt: (v: number) => `${v.toFixed(1)}%` },
