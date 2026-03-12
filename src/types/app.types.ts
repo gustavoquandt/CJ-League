@@ -49,7 +49,6 @@ export interface PlayerStats {
   matchResults?: boolean[];   // Histórico de resultados (true=win)
   matchADRs?: number[];       // ADR por partida (para média incremental)
   matchRatings?: number[];    // Rating por partida (para gráfico de tendência)
-  matchPositions?: number[];  // Posição na liga após cada partida (últimas 10, mais recente primeiro)
 
   // Faceit Info
   faceitElo: number;
@@ -76,9 +75,6 @@ export interface PlayerStats {
   // Estatísticas avançadas
   kast?: number;              // KAST % médio (Kill, Assist, Survive, or Trade)
   matchKASTs?: number[];      // KAST por partida (para média incremental)
-  entryKills?: number;        // Total de entry kills (first kills)
-  entryDeaths?: number;       // Total de entry deaths (first deaths)
-  entrySuccessRate?: number;  // % de sucesso nos entries (entryKills / attempts)
   clutchAttempts?: number;    // Total de situações 1vX
   clutchWins?: number;        // Total de clutches ganhos
   clutchRate?: number;        // % de clutches ganhos
@@ -96,8 +92,6 @@ export interface PlayerStats {
   quadroKills?: number;       // Total de quadro kills
   pentaKills?: number;        // Total de penta kills
   mvps?: number;              // Total de MVPs
-  flashAssists?: number;      // Total de flash assists (enemies flashed)
-  utilityDamage?: number;     // Dano total de utilidades
 
   // Meta
   lastMatch?: Date;

@@ -1,6 +1,7 @@
 /**
- * VERSÃO COM PROCESSAMENTO EM BATCHES
- * Processa 5 jogadores por vez para evitar timeout
+ * FaceitService — integração com a FACEIT API v4
+ * Batch: 1 jogador por request (300s timeout Vercel)
+ * Incremental: acumula partidas novas sobre o cache existente
  */
 
 import type {
@@ -56,6 +57,7 @@ interface QueuePlayerStats {
   totalRounds: number;
   totalHeadshots: number;      // ✅ NOVO
   matchADRs: number[];          // ✅ NOVO
+  matchRatings: number[];       // ✅ NOVO
   matchResults: boolean[];      // ✅ NOVO
   rivalNickname?: string;       // ✅ NOVO: Maior rival
   rivalMatchCount?: number;     // ✅ NOVO
@@ -175,8 +177,9 @@ class FaceitService {
     let lastMatchId: string | undefined = undefined;
     let totalHeadshots = 0;  // ✅ NOVO
     let matchADRs: number[] = [];  // ✅ NOVO
+    let matchRatings: number[] = [];  // ✅ NOVO
     let matchResults: boolean[] = [];  // ✅ NOVO
-    
+
     // ✅ NOVO: Rastrear oponentes (maior rival)
     const opponentMap = new Map<string, {
       nickname: string;
@@ -184,7 +187,7 @@ class FaceitService {
       wins: number;
       losses: number;
     }>();
-    
+
     try {
       // Buscar páginas SEQUENCIALMENTE
       const allMatches = [];
@@ -203,7 +206,7 @@ class FaceitService {
         return {
           wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
           totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
-          totalHeadshots: 0, matchADRs: [], matchResults: []  // ✅ NOVO
+          totalHeadshots: 0, matchADRs: [], matchRatings: [], matchResults: [],
         };
       }
 
@@ -213,7 +216,7 @@ class FaceitService {
         return {
           wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
           totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
-          totalHeadshots: 0, matchADRs: [], matchResults: []  // ✅ NOVO
+          totalHeadshots: 0, matchADRs: [], matchRatings: [], matchResults: [],
         };
       }
 
@@ -309,14 +312,15 @@ class FaceitService {
             totalDeaths += result.deaths;
             totalDamage += result.damage;
             totalRounds += result.rounds;
-            totalHeadshots += result.headshots;  // ✅ NOVO
-            matchADRs.push(result.adr);  // ✅ NOVO
-            matchResults.push(result.won);  // ✅ NOVO
+            totalHeadshots += result.headshots;
+            matchADRs.push(result.adr);
+            matchRatings.push(calculateSimplifiedRating({ totalKills: result.kills, totalDeaths: result.deaths, totalDamage: result.damage, totalRounds: result.rounds, totalHeadshots: result.headshots }));
+            matchResults.push(result.won);
             if (result.won) wins++;
             else losses++;
           }
         }
-        
+
         if (chunkIndex < chunks.length - 1) {
           await this.delay(DELAY_BETWEEN_CHUNKS);
         }
@@ -328,7 +332,7 @@ class FaceitService {
       // ✅ NOVO: Encontrar maior rival (com desempate por ordem alfabética)
       let biggestRival = null;
       for (const rival of opponentMap.values()) {
-        if (!biggestRival || 
+        if (!biggestRival ||
             rival.count > biggestRival.count ||
             (rival.count === biggestRival.count && rival.nickname < biggestRival.nickname)) {
           biggestRival = rival;
@@ -337,22 +341,22 @@ class FaceitService {
 
       console.log(`   ✅ ${nickname}: ${wins}W/${losses}L (${queueMatches.length} partidas)`);
 
-      return { 
+      return {
         wins, losses, matchesPlayed, points, lastMatchId,
         totalKills, totalDeaths, totalDamage, totalRounds,
-        totalHeadshots, matchADRs, matchResults,  // ✅ NOVO
+        totalHeadshots, matchADRs, matchRatings, matchResults,
         rivalNickname: biggestRival?.nickname,
         rivalMatchCount: biggestRival?.count || 0,
         rivalWins: biggestRival?.wins || 0,
         rivalLosses: biggestRival?.losses || 0,
       };
-      
+
     } catch (error) {
       console.error(`   ❌ ${nickname}: Erro`);
-      return { 
+      return {
         wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
         totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
-        totalHeadshots: 0, matchADRs: [], matchResults: [],  // ✅ NOVO
+        totalHeadshots: 0, matchADRs: [], matchRatings: [], matchResults: [],
         rivalNickname: undefined,
         rivalMatchCount: 0,
         rivalWins: 0,
@@ -390,8 +394,8 @@ class FaceitService {
     const { 
       wins, losses, matchesPlayed, points, lastMatchId, 
       totalKills, totalDeaths, totalDamage, totalRounds,
-      totalHeadshots, matchADRs, matchResults,  // ✅ NOVO
-      rivalNickname, rivalMatchCount, rivalWins, rivalLosses  // ✅ NOVO: Rival
+      totalHeadshots, matchADRs, matchRatings, matchResults,
+      rivalNickname, rivalMatchCount, rivalWins, rivalLosses
     } = queueStats;
     
     const kd = totalDeaths > 0 ? parseFloat((totalKills / totalDeaths).toFixed(2)) : 0;
@@ -464,8 +468,9 @@ class FaceitService {
       kills, deaths, assists, kd, kr, adr,
       headshotPercentage, faceitElo, skillLevel,
       currentStreak, longestWinStreak, lastMatchId,
-      totalKills, totalDeaths, totalDamage, totalRounds,  // ✅ ADICIONADO para salvar no Redis
-      rivalNickname, rivalMatchCount, rivalWins, rivalLosses,  // ✅ NOVO: Maior rival
+      totalKills, totalDeaths, totalDamage, totalRounds,
+      rivalNickname, rivalMatchCount, rivalWins, rivalLosses,
+      matchResults, matchADRs, matchRatings,
     });
   }
 
@@ -559,6 +564,10 @@ class FaceitService {
           ...(newStats.matchADRs || []),
           ...(previousStats.matchADRs || []),
         ];
+        const combinedMatchRatings = [
+          ...(newStats.matchRatings || []),
+          ...(previousStats.matchRatings || []),
+        ];
 
         // Recalcular stats derivadas
         const rankingPoints = RANKING_CONFIG.INITIAL_POINTS + (combinedWins * 3) - (combinedLosses * 3);
@@ -611,6 +620,7 @@ class FaceitService {
           totalHeadshots: combinedHeadshots,
           longestWinStreak: longestStreak,
           matchADRs:     combinedMatchADRs,
+          matchRatings:  combinedMatchRatings,
           matchResults:  combinedMatchResults,
           lastMatchId:   allMatches[0].match_id,
           // Rival mantém o do cache (tem histórico completo)
@@ -642,10 +652,11 @@ class FaceitService {
     nickname: string
   ): Promise<PlayerStats> {
     let totalKills = 0, totalDeaths = 0, totalDamage = 0, totalRounds = 0, wins = 0, losses = 0;
-    let totalHeadshots = 0;  // ✅ NOVO
-    let matchADRs: number[] = [];  // ✅ NOVO
-    let matchResults: boolean[] = [];  // ✅ NOVO
-    
+    let totalHeadshots = 0;
+    let matchADRs: number[] = [];
+    let matchRatings: number[] = [];
+    let matchResults: boolean[] = [];
+
     // ✅ NOVO: Rastrear oponentes (maior rival)
     const opponentMap = new Map<string, {
       nickname: string;
@@ -658,7 +669,7 @@ class FaceitService {
       return this.buildPlayerStats(nickname, playerInfo, {
         wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
         totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
-        totalHeadshots: 0, matchADRs: [], matchResults: [],  // ✅ NOVO
+        totalHeadshots: 0, matchADRs: [], matchRatings: [], matchResults: [],
         rivalNickname: undefined,
         rivalMatchCount: 0,
         rivalWins: 0,
@@ -743,9 +754,10 @@ class FaceitService {
           totalDeaths += result.deaths;
           totalDamage += result.damage;
           totalRounds += result.rounds;
-          totalHeadshots += result.headshots;  // ✅ NOVO
-          matchADRs.push(result.adr);  // ✅ NOVO
-          matchResults.push(result.won);  // ✅ NOVO
+          totalHeadshots += result.headshots;
+          matchADRs.push(result.adr);
+          matchRatings.push(calculateSimplifiedRating({ totalKills: result.kills, totalDeaths: result.deaths, totalDamage: result.damage, totalRounds: result.rounds, totalHeadshots: result.headshots }));
+          matchResults.push(result.won);
           if (result.won) wins++; else losses++;
         }
       }
@@ -758,7 +770,7 @@ class FaceitService {
     // ✅ NOVO: Encontrar maior rival (com desempate por ordem alfabética)
     let biggestRival = null;
     for (const rival of opponentMap.values()) {
-      if (!biggestRival || 
+      if (!biggestRival ||
           rival.count > biggestRival.count ||
           (rival.count === biggestRival.count && rival.nickname < biggestRival.nickname)) {
         biggestRival = rival;
@@ -767,7 +779,7 @@ class FaceitService {
 
     return this.buildPlayerStats(nickname, playerInfo, {
       wins, losses, matchesPlayed, points, totalKills, totalDeaths, totalDamage, totalRounds,
-      totalHeadshots, matchADRs, matchResults,  // ✅ NOVO
+      totalHeadshots, matchADRs, matchRatings, matchResults,
       rivalNickname: biggestRival?.nickname,
       rivalMatchCount: biggestRival?.count || 0,
       rivalWins: biggestRival?.wins || 0,

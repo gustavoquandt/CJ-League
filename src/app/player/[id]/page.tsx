@@ -9,7 +9,6 @@ import {
   CartesianGrid, ReferenceLine,
   PieChart, Pie, Cell, Label,
   BarChart, Bar,
-  LineChart, Line,
 } from 'recharts';
 import { getMockPlayerById, mockPlayers } from '@/mocks/players';
 import { getRatingColor, getKDColor, getADRColor, getWinRateColor } from '@/utils/stats.utils';
@@ -31,12 +30,6 @@ function getKASTColor(v: number) {
   if (v >= 73) return 'text-[#10B981]';
   if (v >= 65) return 'text-[#0EA5E9]';
   if (v >= 55) return 'text-[#F59E0B]';
-  return 'text-[#e31e24]';
-}
-function getEntryRateColor(v: number) {
-  if (v >= 55) return 'text-[#10B981]';
-  if (v >= 45) return 'text-[#0EA5E9]';
-  if (v >= 35) return 'text-[#F59E0B]';
   return 'text-[#e31e24]';
 }
 function getClutchRateColor(v: number) {
@@ -75,25 +68,6 @@ function ADRTooltip({ active, payload }: any) {
     </div>
   );
 }
-
-function PositionTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-  return (
-    <div className="bg-[#13131A] border border-[#2D2D3D] rounded-lg px-3 py-2 shadow-xl text-xs">
-      <p className="text-[#9CA3AF] mb-1">Partida {d.match}</p>
-      <p className="font-bold text-sm text-[#0EA5E9]">#{d.position} na liga</p>
-      <p className={d.won ? 'text-[#10B981]' : 'text-[#e31e24]'}>{d.won ? '✓ Vitória' : '✗ Derrota'}</p>
-    </div>
-  );
-}
-
-// Custom dot: green for win, red for loss (shared across charts)
-const WLDot = (props: any) => {
-  const { cx, cy, payload } = props;
-  if (!cx || !cy) return null;
-  return <circle cx={cx} cy={cy} r={4} fill={payload.won ? '#10B981' : '#e31e24'} stroke="#0A0A0F" strokeWidth={1.5} />;
-};
 
 const RatingDot = (props: any) => {
   const { cx, cy, payload } = props;
@@ -242,13 +216,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
     .slice(0, 15)
     .map((adr, i) => ({ match: i + 1, adr: Math.round(adr), aboveAvg: adr >= player.adr }));
 
-  const posChartData = [...(player.matchPositions ?? [])].reverse().map((position, i) => ({
-    match: i + 1,
-    position,
-    won: [...(player.matchResults ?? [])].slice(0, (player.matchPositions ?? []).length).reverse()[i] ?? false,
-  }));
-  const maxPos = Math.max(...(player.matchPositions ?? [player.position]), player.position);
-
   const clutchBreakdown = [
     { label: '1v1', wins: player.clutch1v1 ?? 0, attempts: player.clutch1v1Attempts ?? 0, color: '#10B981', hard: false },
     { label: '1v2', wins: player.clutch1v2 ?? 0, attempts: player.clutch1v2Attempts ?? 0, color: '#0EA5E9', hard: false },
@@ -283,7 +250,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
 
   // ── Derived values ──────────────────────────────────────────────────────────
   const accentColor = POT_ACCENT[player.pot ?? 0] ?? '#0EA5E9';
-  const entryAttempts = (player.entryKills ?? 0) + (player.entryDeaths ?? 0);
   const winPct = player.winRate;
   const lossPct = 100 - winPct;
   const peakRef = 1500;
@@ -416,78 +382,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block" /> Vitória</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#e31e24] inline-block" /> Derrota</span>
                   <span className="flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-[#6B7280] inline-block" /> Média (1.00)</span>
-                </div>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Entry Performance */}
-          {(player.entryKills != null || player.entryDeaths != null) && (
-            <motion.div {...fadeUp(0.09)}>
-              <Card>
-                <SectionTitle>Entry Performance</SectionTitle>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                  <div className="text-center">
-                    <p className="text-xs text-[#9CA3AF] mb-1">Tentativas</p>
-                    <p className="text-2xl font-bold">{entryAttempts}</p>
-                    <p className="text-xs text-[#9CA3AF] mt-1">
-                      {player.matchesPlayed > 0 ? (entryAttempts / player.matchesPlayed).toFixed(1) : '—'}/partida
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-[#9CA3AF] mb-1">Entry Kills</p>
-                    <p className="text-2xl font-bold text-[#10B981]">{player.entryKills ?? 0}</p>
-                    <p className="text-xs text-[#9CA3AF] mt-1">first frags</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-[#9CA3AF] mb-1">Entry Deaths</p>
-                    <p className="text-2xl font-bold text-[#e31e24]">{player.entryDeaths ?? 0}</p>
-                    <p className="text-xs text-[#9CA3AF] mt-1">first deaths</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-[#9CA3AF] mb-1">Taxa de Sucesso</p>
-                    <p className={`text-2xl font-bold ${getEntryRateColor(player.entrySuccessRate ?? 0)}`}>
-                      {player.entrySuccessRate != null ? `${player.entrySuccessRate.toFixed(1)}%` : '—'}
-                    </p>
-                    <p className={`text-xs mt-1 ${
-                      (player.entryKills ?? 0) >= (player.entryDeaths ?? 0) ? 'text-[#10B981]' : 'text-[#e31e24]'
-                    }`}>
-                      {(player.entryKills ?? 0) >= (player.entryDeaths ?? 0) ? '+' : ''}
-                      {(player.entryKills ?? 0) - (player.entryDeaths ?? 0)} diferença
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Suporte & Impacto */}
-          {(player.mvps != null || player.flashAssists != null || player.utilityDamage != null) && (
-            <motion.div {...fadeUp(0.13)}>
-              <Card>
-                <SectionTitle>Suporte & Impacto</SectionTitle>
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  {player.mvps != null && (
-                    <div className="text-center">
-                      <p className="text-xs text-[#9CA3AF] mb-1">MVPs</p>
-                      <p className="text-2xl font-bold text-[#F59E0B]">{player.mvps}</p>
-                      <p className="text-xs text-[#9CA3AF] mt-1">{player.matchesPlayed > 0 ? (player.mvps / player.matchesPlayed).toFixed(2) : '0'}/p</p>
-                    </div>
-                  )}
-                  {player.flashAssists != null && (
-                    <div className="text-center">
-                      <p className="text-xs text-[#9CA3AF] mb-1">Flash Assists</p>
-                      <p className="text-2xl font-bold">{player.flashAssists}</p>
-                      <p className="text-xs text-[#9CA3AF] mt-1">{player.matchesPlayed > 0 ? (player.flashAssists / player.matchesPlayed).toFixed(1) : '0'}/p</p>
-                    </div>
-                  )}
-                  {player.utilityDamage != null && (
-                    <div className="text-center">
-                      <p className="text-xs text-[#9CA3AF] mb-1">Dano Utility</p>
-                      <p className="text-2xl font-bold">{player.utilityDamage.toLocaleString('pt-BR')}</p>
-                      <p className="text-xs text-[#9CA3AF] mt-1">{player.matchesPlayed > 0 ? Math.round(player.utilityDamage / player.matchesPlayed) : 0}/p</p>
-                    </div>
-                  )}
                 </div>
               </Card>
             </motion.div>
@@ -673,13 +567,15 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                             <p className="text-[10px] text-[#6B7280] uppercase tracking-wider text-center mb-1">{label}</p>
                             <div className="flex items-center gap-2">
                               <span className={`text-sm font-bold w-12 text-right tabular-nums ${aWins ? 'text-white' : 'text-[#6B7280]'}`}>{fmt(a)}</span>
-                              <div className="flex-1 flex items-center h-2 gap-px">
-                                <div className="flex-1 flex justify-end">
-                                  <div className="h-full rounded-l-full" style={{ width: `${pctA}%`, backgroundColor: aWins ? '#0EA5E9' : '#374151' }} />
+                              <div className="flex-1 flex items-center h-3 gap-px">
+                                <div className="flex-1 flex justify-end h-full">
+                                  <div className="h-full rounded-l-full transition-all duration-500"
+                                    style={{ width: `${pctA}%`, backgroundColor: aWins ? '#FF5500' : '#7C2D12' }} />
                                 </div>
-                                <div className="w-px h-3 bg-[#2D2D3D]" />
-                                <div className="flex-1">
-                                  <div className="h-full rounded-r-full" style={{ width: `${pctB}%`, backgroundColor: !aWins ? '#0EA5E9' : '#374151' }} />
+                                <div className="w-px h-4 bg-[#2D2D3D]" />
+                                <div className="flex-1 h-full">
+                                  <div className="h-full rounded-r-full transition-all duration-500"
+                                    style={{ width: `${pctB}%`, backgroundColor: !aWins ? '#0EA5E9' : '#164E63' }} />
                                 </div>
                               </div>
                               <span className={`text-sm font-bold w-12 tabular-nums ${!aWins ? 'text-white' : 'text-[#6B7280]'}`}>{fmt(b)}</span>
@@ -745,31 +641,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                       ))}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Posição na Liga chart */}
-          {posChartData.length > 0 && (
-            <motion.div {...fadeUp(0.11)}>
-              <Card>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest">Posição na Liga</h2>
-                  <span className="text-xs text-[#9CA3AF]">Últimas {posChartData.length} partidas</span>
-                </div>
-                <ResponsiveContainer width="100%" height={130}>
-                  <LineChart data={posChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2D2D3D" vertical={false} />
-                    <XAxis dataKey="match" tick={{ fill: '#6B7280', fontSize: 10 }} tickLine={false} axisLine={false} />
-                    <YAxis reversed domain={[1, maxPos + 1]} allowDecimals={false}
-                      tick={{ fill: '#6B7280', fontSize: 10 }} tickLine={false} axisLine={false}
-                      tickFormatter={(v) => `#${v}`} />
-                    <Tooltip content={<PositionTooltip />} cursor={{ stroke: '#2D2D3D' }} />
-                    <ReferenceLine y={player.position} stroke="#6B7280" strokeDasharray="4 4" />
-                    <Line type="monotone" dataKey="position" stroke="#0EA5E9" strokeWidth={2}
-                      dot={<WLDot />} activeDot={{ r: 6, fill: '#0EA5E9' }} />
-                  </LineChart>
                 </ResponsiveContainer>
               </Card>
             </motion.div>

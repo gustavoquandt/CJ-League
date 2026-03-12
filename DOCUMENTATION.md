@@ -413,21 +413,23 @@ As colunas não têm altura forçada — cada uma ocupa o espaço necessário pe
 |---|---|
 | Hero | Avatar, nickname, badge de pote, posição, nível FACEIT, forma recente (8 partidas), rating |
 | Quick Stats | K/D, ADR, HS%, Win Rate, KAST, Aces |
-| Rating por Partida | Gráfico AreaChart (verde=vitória, vermelho=derrota, linha de referência em 1.0) |
-| Entry Performance | Tentativas, entry kills, entry deaths, taxa de sucesso |
-| Suporte & Impacto | MVPs, flash assists, dano utility |
+| Rating por Partida | Gráfico AreaChart (verde=vitória, vermelho=derrota, linha de referência em 1.0) — requer `matchRatings` coletado no batch |
 | Clutch | Breakdown 1v1→1v5 com barras de progresso e label HARD para 1v4/1v5 |
 | Desempenho na Season | Pontos, peak, partidas, barra W/L, barra de peak vs teto (1500) |
 | Estatísticas Detalhadas | Por Jogo (K/D/A) + Totais na Season (8 stats: kills, deaths, assists, headshots, rounds, dano, triple kills, quad kills) |
-| Comparar com | Select para comparar métricas lado a lado com barras bidirecionais |
+| Comparar com | Select para comparar métricas lado a lado com barras bidirecionais (laranja=jogador atual, azul=comparado) |
 | Pote X / N jogadores | Rank do jogador no pote por Rating, K/D, ADR, KAST, Win Rate (com valor, média e `#rank`) |
-| ADR por Partida | Gráfico BarChart (azul=acima da média, cinza=abaixo) |
-| Posição na Liga | Gráfico LineChart (eixo Y invertido, pontos coloridos por resultado) |
+| ADR por Partida | Gráfico BarChart (azul=acima da média, cinza=abaixo) — requer `matchADRs` coletado no batch |
 | Vitórias & Derrotas | Donut chart com win rate central |
 | Sequência | Streak atual e maior sequência de vitórias |
 | Maior Rival | Adversário mais frequente com W/L e barra proporcional |
 | Amuleto | Melhor parceiro (maior win rate juntos) em verde |
 | Kriptonita | Pior parceiro (menor win rate juntos) em vermelho |
+
+> **Seções removidas (dados indisponíveis na API da FACEIT):**
+> - **Entry Performance** — entryKills/entryDeaths não são expostos pela API do FACEIT para CS2
+> - **Suporte & Impacto** — flashAssists e utilityDamage não disponíveis na API; MVPs disponível mas ainda não coletado no batch
+> - **Posição na Liga** — exigiria snapshot de todos os jogadores a cada partida; histórico perdido, inviável retroativamente
 
 ### Cores de acento por pote
 
@@ -828,7 +830,6 @@ interface PlayerStats {
   matchResults?: boolean[];   // Histórico de vitórias/derrotas (mais recente primeiro)
   matchADRs?: number[];       // ADR por partida
   matchRatings?: number[];    // Rating por partida (para gráfico de tendência)
-  matchPositions?: number[];  // Posição na liga após cada partida (últimas 10)
 
   // FACEIT
   faceitElo: number;
@@ -855,9 +856,6 @@ interface PlayerStats {
   // Estatísticas avançadas
   kast?: number;               // KAST % médio
   matchKASTs?: number[];
-  entryKills?: number;
-  entryDeaths?: number;
-  entrySuccessRate?: number;
   clutchAttempts?: number;
   clutchWins?: number;
   clutchRate?: number;
@@ -870,8 +868,6 @@ interface PlayerStats {
   quadroKills?: number;
   pentaKills?: number;
   mvps?: number;
-  flashAssists?: number;
-  utilityDamage?: number;
 
   // Meta
   lastMatch?: Date;

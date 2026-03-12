@@ -214,6 +214,10 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     rivalMatchCount: player.rivalMatchCount,
     rivalWins: player.rivalWins,
     rivalLosses: player.rivalLosses,
+    // ✅ MATCH HISTORY
+    matchResults: player.matchResults,
+    matchADRs: player.matchADRs,
+    matchRatings: player.matchRatings,
   };
 }
 
