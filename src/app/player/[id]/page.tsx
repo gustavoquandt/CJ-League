@@ -89,9 +89,9 @@ function StatBox({ label, value, sub, colorClass }: {
   );
 }
 
-function StatTile({ label, value, colorClass, barPct, barColor, size = 'md' }: {
+function StatTile({ label, value, colorClass, barPct, barColor, size = 'md', sub }: {
   label: string; value: string | number; colorClass?: string;
-  barPct?: number; barColor?: string; size?: 'lg' | 'md' | 'sm';
+  barPct?: number; barColor?: string; size?: 'lg' | 'md' | 'sm'; sub?: string;
 }) {
   return (
     <div className="bg-[#13131A] rounded-xl p-4 flex flex-col gap-0.5">
@@ -101,6 +101,7 @@ function StatTile({ label, value, colorClass, barPct, barColor, size = 'md' }: {
       } ${colorClass ?? 'text-white'}`}>
         {value}
       </span>
+      {sub && <span className="text-[10px] text-[#6B7280] mt-0.5">{sub}</span>}
       {barPct !== undefined && (
         <div className="mt-2.5 w-full bg-[#2D2D3D] rounded-full h-1 overflow-hidden">
           <div style={{
@@ -116,7 +117,7 @@ function StatTile({ label, value, colorClass, barPct, barColor, size = 'md' }: {
 function RecentForm({ results }: { results: boolean[] }) {
   return (
     <div className="flex gap-1.5">
-      {results.slice(0, 8).map((won, i) => (
+      {[...results.slice(0, 8)].reverse().map((won, i) => (
         <div key={i} title={won ? 'Vitória' : 'Derrota'}
           className={`w-6 h-6 rounded-sm flex items-center justify-center text-[10px] font-bold ${
             won ? 'bg-[#10B981] text-black' : 'bg-[#e31e24] text-white'
@@ -543,7 +544,41 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                 <StatTile label="Headshots"    size="sm" value={(player.totalHeadshots ?? 0).toLocaleString('pt-BR')} />
                 <StatTile label="Rounds"       size="sm" value={(player.totalRounds  ?? 0).toLocaleString('pt-BR')} />
                 <StatTile label="Dano Total"   size="sm" value={(player.totalDamage  ?? 0).toLocaleString('pt-BR')} />
-                             </div>
+              </div>
+
+              <div className="border-t border-[#2D2D3D] my-4" />
+
+              <p className="text-[10px] text-[#6B7280] uppercase tracking-widest mb-2">Especialidades</p>
+              <div className="grid grid-cols-2 gap-3">
+                <StatTile
+                  label="First Kills"
+                  size="sm"
+                  value={(player.totalFirstKills ?? 0).toLocaleString('pt-BR')}
+                  colorClass="text-[#10B981]"
+                  sub={player.matchesPlayed > 0 ? `${((player.totalFirstKills ?? 0) / player.matchesPlayed).toFixed(2)}/jogo` : undefined}
+                />
+                <StatTile
+                  label="First Deaths"
+                  size="sm"
+                  value={(player.totalFirstDeaths ?? 0).toLocaleString('pt-BR')}
+                  colorClass="text-[#e31e24]"
+                  sub={player.matchesPlayed > 0 ? `${((player.totalFirstDeaths ?? 0) / player.matchesPlayed).toFixed(2)}/jogo` : undefined}
+                />
+                <StatTile
+                  label="Flash Successes"
+                  size="sm"
+                  value={(player.totalFlashSuccesses ?? 0).toLocaleString('pt-BR')}
+                  colorClass="text-[#0EA5E9]"
+                  sub={player.matchesPlayed > 0 ? `${((player.totalFlashSuccesses ?? 0) / player.matchesPlayed).toFixed(1)}/jogo` : undefined}
+                />
+                <StatTile
+                  label="Knife Kills"
+                  size="sm"
+                  value={(player.totalKnifeKills ?? 0).toLocaleString('pt-BR')}
+                  colorClass="text-[#F59E0B]"
+                  sub={(player.totalKnifeKills ?? 0) > 0 ? `1/${(player.matchesPlayed / player.totalKnifeKills!).toFixed(0)}p` : undefined}
+                />
+              </div>
             </Card>
           </motion.div>
 

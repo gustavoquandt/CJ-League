@@ -211,6 +211,10 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     totalRounds: player.totalRounds,
     totalHeadshots: player.totalHeadshots,
     pentaKills: player.pentaKills,
+    totalFirstKills: player.totalFirstKills,
+    totalFirstDeaths: player.totalFirstDeaths,
+    totalFlashSuccesses: player.totalFlashSuccesses,
+    totalKnifeKills: player.totalKnifeKills,
     // RIVAL DATA
     rivalNickname: player.rivalNickname,
     rivalMatchCount: player.rivalMatchCount,

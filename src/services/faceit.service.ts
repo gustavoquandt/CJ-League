@@ -45,6 +45,11 @@ interface QueuePlayerStats {
   totalRounds: number;
   totalHeadshots: number;
   totalPentaKills: number;
+  totalAssists: number;
+  totalFirstKills: number;
+  totalFirstDeaths: number;
+  totalFlashSuccesses: number;
+  totalKnifeKills: number;
   matchADRs: number[];
   matchRatings: number[];
   matchResults: boolean[];
@@ -177,7 +182,9 @@ class FaceitService {
     const {
       wins, losses, matchesPlayed, points, lastMatchId,
       totalKills, totalDeaths, totalDamage, totalRounds,
-      totalHeadshots, totalPentaKills, matchADRs, matchRatings, matchResults,
+      totalHeadshots, totalPentaKills, totalAssists,
+      totalFirstKills, totalFirstDeaths, totalFlashSuccesses, totalKnifeKills,
+      matchADRs, matchRatings, matchResults,
       rivalNickname, rivalMatchCount, rivalWins, rivalLosses,
       amuletoNickname, amuletoWinRate, amuletoMatchCount,
       kriptoniaNickname, kritoniaWinRate, kritoniaMatchCount,
@@ -224,7 +231,7 @@ class FaceitService {
     const peakRankingPoints = peakPoints;
 
     const lifetime = stats?.lifetime as any;
-    const assists = parseStatValue(lifetime?.['Average Assists']) || 0;
+    const assists = matchesPlayed > 0 ? parseFloat((totalAssists / matchesPlayed).toFixed(1)) : 0;
     const kr = parseStatValue(lifetime?.['K/R Ratio']) || 0;
     const currentStreak = parseStatValue(lifetime?.['Current Win Streak']) || 0;
 
@@ -255,6 +262,7 @@ class FaceitService {
       currentStreak, longestWinStreak, lastMatchId,
       totalKills, totalDeaths, totalDamage, totalRounds, totalHeadshots,
       pentaKills: totalPentaKills,
+      totalFirstKills, totalFirstDeaths, totalFlashSuccesses, totalKnifeKills,
       rivalNickname, rivalMatchCount, rivalWins, rivalLosses,
       amuletoNickname, amuletoWinRate, amuletoMatchCount,
       kriptoniaNickname, kritoniaWinRate, kritoniaMatchCount,
@@ -406,6 +414,10 @@ class FaceitService {
           totalDamage:    combinedDamage,
           totalRounds:    combinedRounds,
           totalHeadshots: combinedHeadshots,
+          totalFirstKills:     (previousStats.totalFirstKills     || 0) + (newStats.totalFirstKills     || 0),
+          totalFirstDeaths:    (previousStats.totalFirstDeaths    || 0) + (newStats.totalFirstDeaths    || 0),
+          totalFlashSuccesses: (previousStats.totalFlashSuccesses || 0) + (newStats.totalFlashSuccesses || 0),
+          totalKnifeKills:     (previousStats.totalKnifeKills     || 0) + (newStats.totalKnifeKills     || 0),
           longestWinStreak: longestStreak,
           matchADRs:     combinedMatchADRs,
           matchRatings:  combinedMatchRatings,
@@ -446,7 +458,8 @@ class FaceitService {
     nickname: string
   ): Promise<PlayerStats> {
     let totalKills = 0, totalDeaths = 0, totalDamage = 0, totalRounds = 0, wins = 0, losses = 0;
-    let totalHeadshots = 0, totalPentaKills = 0;
+    let totalHeadshots = 0, totalPentaKills = 0, totalAssists = 0;
+    let totalFirstKills = 0, totalFirstDeaths = 0, totalFlashSuccesses = 0, totalKnifeKills = 0;
     let matchADRs: number[] = [];
     let matchRatings: number[] = [];
     let matchResults: boolean[] = [];
@@ -470,7 +483,9 @@ class FaceitService {
       return this.buildPlayerStats(nickname, playerInfo, {
         wins: 0, losses: 0, matchesPlayed: 0, points: RANKING_CONFIG.INITIAL_POINTS,
         totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
-        totalHeadshots: 0, totalPentaKills: 0, matchADRs: [], matchRatings: [], matchResults: [],
+        totalHeadshots: 0, totalPentaKills: 0, totalAssists: 0,
+        totalFirstKills: 0, totalFirstDeaths: 0, totalFlashSuccesses: 0, totalKnifeKills: 0,
+        matchADRs: [], matchRatings: [], matchResults: [],
         rivalNickname: undefined,
         rivalMatchCount: 0,
         rivalWins: 0,
@@ -488,7 +503,8 @@ class FaceitService {
       const matchStatsPromises = chunk.map(async (match: any) => {
         try {
           const matchStats: any = await this.request(`/matches/${match.match_id}/stats`);
-          let matchKills = 0, matchDeaths = 0, matchDamage = 0, matchHeadshots = 0, matchPentaKills = 0;
+          let matchKills = 0, matchDeaths = 0, matchDamage = 0, matchHeadshots = 0, matchPentaKills = 0, matchAssists = 0;
+          let matchFirstKills = 0, matchFirstDeaths = 0, matchFlashSuccesses = 0, matchKnifeKills = 0;
           const rounds = matchStats.rounds || [];
           const firstRound = rounds[0];
           const matchRounds = firstRound?.round_stats?.Rounds 
@@ -502,11 +518,16 @@ class FaceitService {
             ];
             const playerStats = allPlayers.find((p: any) => p.player_id === playerInfo.player_id);
             if (playerStats) {
-              matchKills      += parseInt(playerStats.player_stats?.Kills         || '0');
-              matchDeaths     += parseInt(playerStats.player_stats?.Deaths        || '0');
-              matchDamage     += Math.round(parseFloat(playerStats.player_stats?.ADR || '0') * matchRounds);
-              matchHeadshots  += parseInt(playerStats.player_stats?.Headshots     || '0');
-              matchPentaKills += parseInt(playerStats.player_stats?.['Penta Kills'] || '0');
+              matchKills          += parseInt(playerStats.player_stats?.Kills               || '0');
+              matchDeaths         += parseInt(playerStats.player_stats?.Deaths              || '0');
+              matchAssists        += parseInt(playerStats.player_stats?.Assists             || '0');
+              matchDamage         += Math.round(parseFloat(playerStats.player_stats?.ADR   || '0') * matchRounds);
+              matchHeadshots      += parseInt(playerStats.player_stats?.Headshots           || '0');
+              matchPentaKills     += parseInt(playerStats.player_stats?.['Penta Kills']     || '0');
+              matchFirstKills     += parseInt(playerStats.player_stats?.['First Kills']     || '0');
+              matchFirstDeaths    += parseInt(playerStats.player_stats?.['First Deaths']    || '0');
+              matchFlashSuccesses += parseInt(playerStats.player_stats?.['Flash Successes'] || '0');
+              matchKnifeKills     += parseInt(playerStats.player_stats?.['Knife Kills']     || '0');
             }
           }
           
@@ -543,7 +564,7 @@ class FaceitService {
           // ✅ NOVO: Calcular ADR da partida
           const matchADR = matchRounds > 0 ? matchDamage / matchRounds : 0;
           
-          return { kills: matchKills, deaths: matchDeaths, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, pentaKills: matchPentaKills, adr: matchADR, won };
+          return { kills: matchKills, deaths: matchDeaths, assists: matchAssists, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, pentaKills: matchPentaKills, firstKills: matchFirstKills, firstDeaths: matchFirstDeaths, flashSuccesses: matchFlashSuccesses, knifeKills: matchKnifeKills, adr: matchADR, won };
         } catch (error) {
           return null;
         }
@@ -557,7 +578,12 @@ class FaceitService {
           totalDamage     += result.damage;
           totalRounds     += result.rounds;
           totalHeadshots  += result.headshots;
-          totalPentaKills += result.pentaKills;
+          totalPentaKills     += result.pentaKills;
+          totalAssists        += result.assists;
+          totalFirstKills     += result.firstKills;
+          totalFirstDeaths    += result.firstDeaths;
+          totalFlashSuccesses += result.flashSuccesses;
+          totalKnifeKills     += result.knifeKills;
           matchADRs.push(result.adr);
           matchRatings.push(calculateSimplifiedRating({ totalKills: result.kills, totalDeaths: result.deaths, totalDamage: result.damage, totalRounds: result.rounds, totalHeadshots: result.headshots }));
           matchResults.push(result.won);
@@ -597,7 +623,9 @@ class FaceitService {
 
     return this.buildPlayerStats(nickname, playerInfo, {
       wins, losses, matchesPlayed, points, totalKills, totalDeaths, totalDamage, totalRounds,
-      totalHeadshots, totalPentaKills, matchADRs, matchRatings, matchResults,
+      totalHeadshots, totalPentaKills, totalAssists,
+      totalFirstKills, totalFirstDeaths, totalFlashSuccesses, totalKnifeKills,
+      matchADRs, matchRatings, matchResults,
       rivalNickname: biggestRival?.nickname,
       rivalMatchCount: biggestRival?.count || 0,
       rivalWins: biggestRival?.wins || 0,

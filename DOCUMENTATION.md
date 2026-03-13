@@ -297,7 +297,7 @@ Processa todos os jogadores em lotes de 1 por vez para não ultrapassar o timeou
 
 Atualização delta: busca apenas as novas partidas e aplica incrementos nas estatísticas existentes. Mais rápido que o batch-update completo.
 
-**Deltas calculados:** kills, deaths, damage, headshots, wins/losses, `matchADRs` (ADR por partida), `matchRatings` (rating por partida), `matchResults` (resultado por partida)
+**Deltas calculados:** kills, deaths, assists, damage, headshots, wins/losses, `matchADRs`, `matchRatings`, `matchResults`, `totalFirstKills`, `totalFirstDeaths`, `totalFlashSuccesses`, `totalKnifeKills`
 
 > Os arrays de histórico por partida (`matchADRs`, `matchRatings`, `matchResults`) são atualizados incrementalmente — novas partidas são acrescentadas ao início do array, mantendo o histórico existente.
 
@@ -413,12 +413,12 @@ As colunas não têm altura forçada — cada uma ocupa o espaço necessário pe
 
 | Seção | Dados |
 |---|---|
-| Hero | Avatar, nickname, badge de pote, posição, nível FACEIT, forma recente (8 partidas), rating |
+| Hero | Avatar, nickname, badge de pote, posição, forma recente (8 partidas), rating |
 | Quick Stats | K/D, ADR, HS%, Win Rate, KAST, Aces |
 | Rating por Partida | Gráfico AreaChart (verde=vitória, vermelho=derrota, linha de referência em 1.0) — alimentado por `matchRatings` (batch popula histórico; incremental mantém atualizado) |
 | Clutch | Breakdown 1v1→1v5 com barras de progresso e label HARD para 1v4/1v5 |
 | Desempenho na Season | Pontos, peak, partidas, barra W/L, barra de peak vs teto (1500) |
-| Estatísticas Detalhadas | Por Jogo (K/D/A) + Totais na Season (8 stats: kills, deaths, assists, headshots, rounds, dano, triple kills, quad kills) |
+| Estatísticas Detalhadas | Por Jogo (K/D/A) + Totais na Season (kills, deaths, headshots, rounds, dano) + Especialidades (First Kills, First Deaths, Flash Successes, Knife Kills — com média por jogo) |
 | Comparar com | Select para comparar métricas lado a lado com barras bidirecionais (laranja=jogador atual, azul=comparado) |
 | Pote X / N jogadores | Rank do jogador no pote por Rating, K/D, ADR, KAST, Win Rate (com valor, média e `#rank`) |
 | ADR por Partida | Gráfico BarChart (azul=acima da média, cinza=abaixo) — alimentado por `matchADRs` (batch popula histórico; incremental mantém atualizado) |
@@ -639,9 +639,28 @@ Busca estatísticas lifetime do jogador na FACEIT.
 Versão incremental: se `lastMatchId` for encontrado, acumula stats sobre os dados anteriores. Caso contrário, recalcula do zero.
 
 **`calculateStatsFromMatches(matches, playerInfo, nickname)`**
-Processa uma lista de partidas e retorna um `PlayerStats` completo com K/D, ADR, win rate, streaks, peak points, matchRatings, matchADRs, matchResults e rivais.
+Processa uma lista de partidas e retorna um `PlayerStats` completo com K/D, ADR, assists, win rate, streaks, peak points, matchRatings, matchADRs, matchResults, rivais e as quatro estatísticas especializadas abaixo.
+
+**Campos coletados por partida via `/matches/{id}/stats`:**
+
+| Campo FACEIT API | Campo interno | Descrição |
+|---|---|---|
+| `Kills` | `totalKills` | Kills totais na season |
+| `Deaths` | `totalDeaths` | Deaths totais na season |
+| `Assists` | `assists` (per-game) | Média calculada das partidas |
+| `ADR` | `adr`, `matchADRs` | ADR por partida |
+| `Headshots` | `totalHeadshots` | Headshots totais |
+| `Penta Kills` | `pentaKills` | Aces (penta kills) totais |
+| `First Kills` | `totalFirstKills` | First kills totais na season |
+| `First Deaths` | `totalFirstDeaths` | First deaths totais na season |
+| `Flash Successes` | `totalFlashSuccesses` | Flashes que acertaram inimigos |
+| `Knife Kills` | `totalKnifeKills` | Kills de faca totais |
 
 > **Nota sobre ADR:** A FACEIT API não retorna o campo `Damage` nos player stats. O campo disponível é `ADR` (Average Damage per Round, pré-calculado). O `totalDamage` é derivado como `Math.round(ADR * matchRounds)` para poder recalcular ADR corretamente no cache incremental.
+
+> **Nota sobre Assists:** `assists` (per-game) é calculado diretamente das partidas coletadas (`totalAssists / matchesPlayed`), não dos stats lifetime da FACEIT API.
+
+> **Nota sobre batch-update:** O batch-update sempre passa `null` como `previousStats`, forçando recálculo completo do zero. Isso garante consistência nos arrays de histórico. O update-incremental acumula sobre o cache existente quando encontra o `lastMatchId`.
 
 #### Singleton
 ```typescript
@@ -860,6 +879,10 @@ interface PlayerStats {
   quadroKills?: number;
   pentaKills?: number;
   mvps?: number;
+  totalFirstKills?: number;    // First kills totais
+  totalFirstDeaths?: number;   // First deaths totais
+  totalFlashSuccesses?: number; // Flashes que acertaram inimigos
+  totalKnifeKills?: number;    // Kills de faca totais
 
   // Meta
   lastMatch?: Date;

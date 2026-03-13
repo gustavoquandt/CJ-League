@@ -92,6 +92,10 @@ export interface PlayerStats {
   quadroKills?: number;       // Total de quadro kills
   pentaKills?: number;        // Total de penta kills
   mvps?: number;              // Total de MVPs
+  totalFirstKills?: number;   // Total de first kills na season
+  totalFirstDeaths?: number;  // Total de first deaths na season
+  totalFlashSuccesses?: number; // Total de flashes que acertaram inimigos
+  totalKnifeKills?: number;   // Total de kills de faca
 
   // Meta
   lastMatch?: Date;
