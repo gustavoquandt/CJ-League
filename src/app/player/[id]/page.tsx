@@ -213,6 +213,7 @@ function PlayerSwitcher({ current, players }: { current: PlayerStats; players: P
 export default function PlayerPage({ params }: PlayerPageProps) {
   const { id } = use(params);
   const [compareId, setCompareId] = useState<string | null>(null);
+  const [compareSort, setCompareSort] = useState<'pot' | 'alpha'>('pot');
   const [player, setPlayer] = useState<PlayerStats | undefined>(
     process.env.NODE_ENV === 'development' ? getMockPlayerById(id) : undefined
   );
@@ -333,9 +334,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                   {player.nickname.charAt(0).toUpperCase()}
                 </div>
               )}
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#FF6B35] flex items-center justify-center text-xs font-bold text-white border-2 border-[#0A0A0F]">
-                {player.skillLevel}
-              </div>
+
             </div>
 
             {/* Info */}
@@ -563,12 +562,28 @@ export default function PlayerPage({ params }: PlayerPageProps) {
             <Card>
               <div className="flex items-center justify-between mb-4">
                 <SectionTitle>Comparar com</SectionTitle>
-                {comparePlayer && (
-                  <button onClick={() => setCompareId(null)}
-                    className="text-xs text-[#9CA3AF] hover:text-[#e31e24] transition-colors">
-                    ✕ limpar
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  <div className="flex rounded-lg overflow-hidden border border-[#2D2D3D] text-xs">
+                    <button
+                      onClick={() => setCompareSort('pot')}
+                      className={`px-2 py-1 transition-colors ${compareSort === 'pot' ? 'bg-[#0EA5E9] text-white' : 'bg-[#13131A] text-[#9CA3AF] hover:text-white'}`}
+                    >
+                      Pote
+                    </button>
+                    <button
+                      onClick={() => setCompareSort('alpha')}
+                      className={`px-2 py-1 transition-colors ${compareSort === 'alpha' ? 'bg-[#0EA5E9] text-white' : 'bg-[#13131A] text-[#9CA3AF] hover:text-white'}`}
+                    >
+                      A–Z
+                    </button>
+                  </div>
+                  {comparePlayer && (
+                    <button onClick={() => setCompareId(null)}
+                      className="text-xs text-[#9CA3AF] hover:text-[#e31e24] transition-colors">
+                      ✕ limpar
+                    </button>
+                  )}
+                </div>
               </div>
               <select
                 value={compareId ?? ''}
@@ -576,11 +591,17 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                 className="w-full bg-[#13131A] border border-[#2D2D3D] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#0EA5E9] mb-4"
               >
                 <option value="">Selecione um jogador...</option>
-                {allPlayers.filter(p => p.playerId !== player.playerId).map(p => (
-                  <option key={p.playerId} value={p.playerId}>
-                    {p.nickname} — Pote {p.pot} · Rating {p.rating?.toFixed(2)}
-                  </option>
-                ))}
+                {allPlayers
+                  .filter(p => p.playerId !== player.playerId)
+                  .sort((a, b) => compareSort === 'alpha'
+                    ? a.nickname.localeCompare(b.nickname)
+                    : (a.pot ?? 99) - (b.pot ?? 99) || (a.position ?? 99) - (b.position ?? 99)
+                  )
+                  .map(p => (
+                    <option key={p.playerId} value={p.playerId}>
+                      {p.nickname} — Pote {p.pot} · Rating {p.rating?.toFixed(2)}
+                    </option>
+                  ))}
               </select>
 
               {comparePlayer && (() => {
