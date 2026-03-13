@@ -179,7 +179,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               matchStats.damage         += Math.round(parseFloat(ps.ADR  || '0') * totalRounds);
               matchStats.headshots      += parseInt(ps.Headshots          || '0', 10);
               matchStats.firstKills     += parseInt(ps['First Kills']     || '0', 10);
-              matchStats.firstDeaths    += parseInt(ps['First Deaths']    || '0', 10);
+              // FACEIT API não tem "First Deaths" — calcular como Entry Count - Entry Wins
+              const entryCount = parseInt(ps['Entry Count'] || '0', 10);
+              const entryWins  = parseInt(ps['Entry Wins']  || '0', 10);
+              matchStats.firstDeaths    += Math.max(0, entryCount - entryWins);
               matchStats.flashSuccesses += parseInt(ps['Flash Successes'] || '0', 10);
               matchStats.knifeKills     += parseInt(ps['Knife Kills']     || '0', 10);
               matchStats.won             = ps.Result === '1';

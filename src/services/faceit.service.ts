@@ -501,22 +501,20 @@ class FaceitService {
             ];
             const playerStats = allPlayers.find((p: any) => p.player_id === playerInfo.player_id);
             if (playerStats) {
-              // Debug: log all player_stats keys once
-              if (!(globalThis as any).__faceitStatsLogged) {
-                (globalThis as any).__faceitStatsLogged = true;
-                console.log(`🔍 [FACEIT] player_stats keys:`, Object.keys(playerStats.player_stats || {}));
-                console.log(`🔍 [FACEIT] player_stats sample:`, JSON.stringify(playerStats.player_stats));
-              }
-              matchKills          += parseInt(playerStats.player_stats?.Kills               || '0');
-              matchDeaths         += parseInt(playerStats.player_stats?.Deaths              || '0');
-              matchAssists        += parseInt(playerStats.player_stats?.Assists             || '0');
-              matchDamage         += Math.round(parseFloat(playerStats.player_stats?.ADR   || '0') * matchRounds);
-              matchHeadshots      += parseInt(playerStats.player_stats?.Headshots           || '0');
-              matchPentaKills     += parseInt(playerStats.player_stats?.['Penta Kills']     || '0');
-              matchFirstKills     += parseInt(playerStats.player_stats?.['First Kills']     || '0');
-              matchFirstDeaths    += parseInt(playerStats.player_stats?.['First Deaths']    || '0');
-              matchFlashSuccesses += parseInt(playerStats.player_stats?.['Flash Successes'] || '0');
-              matchKnifeKills     += parseInt(playerStats.player_stats?.['Knife Kills']     || '0');
+              const ps = playerStats.player_stats || {};
+              matchKills          += parseInt(ps.Kills               || '0');
+              matchDeaths         += parseInt(ps.Deaths              || '0');
+              matchAssists        += parseInt(ps.Assists             || '0');
+              matchDamage         += Math.round(parseFloat(ps.ADR   || '0') * matchRounds);
+              matchHeadshots      += parseInt(ps.Headshots           || '0');
+              matchPentaKills     += parseInt(ps['Penta Kills']     || '0');
+              matchFirstKills     += parseInt(ps['First Kills']     || '0');
+              // FACEIT API não tem "First Deaths" — calcular como Entry Count - Entry Wins
+              const entryCount = parseInt(ps['Entry Count'] || '0');
+              const entryWins  = parseInt(ps['Entry Wins']  || '0');
+              matchFirstDeaths += Math.max(0, entryCount - entryWins);
+              matchFlashSuccesses += parseInt(ps['Flash Successes'] || '0');
+              matchKnifeKills     += parseInt(ps['Knife Kills']     || '0');
             }
           }
           
