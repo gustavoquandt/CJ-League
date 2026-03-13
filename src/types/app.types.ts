@@ -49,7 +49,6 @@ export interface PlayerStats {
   matchResults?: boolean[];   // Histórico de resultados (true=win)
   matchADRs?: number[];       // ADR por partida (para média incremental)
   matchRatings?: number[];    // Rating por partida (para gráfico de tendência)
-  matchIds?: string[];        // IDs das partidas (para link ao FACEIT)
 
   // Faceit Info
   faceitElo: number;

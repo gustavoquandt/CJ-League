@@ -45,7 +45,6 @@ interface QueuePlayerStats {
   matchADRs: number[];
   matchRatings: number[];
   matchResults: boolean[];
-  matchIds: string[];
   rivalNickname?: string;
   rivalMatchCount?: number;
   rivalWins?: number;
@@ -447,7 +446,6 @@ class FaceitService {
     let matchADRs: number[] = [];
     let matchRatings: number[] = [];
     let matchResults: boolean[] = [];
-    let matchIds: string[] = [];
 
     // Track opponents to find the biggest rival
     const opponentMap = new Map<string, {
@@ -470,7 +468,7 @@ class FaceitService {
         totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
         totalHeadshots: 0, totalPentaKills: 0, totalAssists: 0,
         totalFirstKills: 0, totalFirstDeaths: 0, totalFlashSuccesses: 0, totalKnifeKills: 0,
-        matchADRs: [], matchRatings: [], matchResults: [], matchIds: [],
+        matchADRs: [], matchRatings: [], matchResults: [],
         rivalNickname: undefined,
         rivalMatchCount: 0,
         rivalWins: 0,
@@ -552,7 +550,7 @@ class FaceitService {
 
           const matchADR = matchRounds > 0 ? matchDamage / matchRounds : 0;
           
-          return { matchId: match.match_id, kills: matchKills, deaths: matchDeaths, assists: matchAssists, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, pentaKills: matchPentaKills, firstKills: matchFirstKills, firstDeaths: matchFirstDeaths, flashSuccesses: matchFlashSuccesses, knifeKills: matchKnifeKills, adr: matchADR, won };
+          return { kills: matchKills, deaths: matchDeaths, assists: matchAssists, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, pentaKills: matchPentaKills, firstKills: matchFirstKills, firstDeaths: matchFirstDeaths, flashSuccesses: matchFlashSuccesses, knifeKills: matchKnifeKills, adr: matchADR, won };
         } catch (error) {
           return null;
         }
@@ -575,7 +573,6 @@ class FaceitService {
           matchADRs.push(result.adr);
           matchRatings.push(calculateSimplifiedRating({ totalKills: result.kills, totalDeaths: result.deaths, totalDamage: result.damage, totalRounds: result.rounds, totalHeadshots: result.headshots }));
           matchResults.push(result.won);
-          matchIds.push(result.matchId);
           if (result.won) wins++; else losses++;
         }
       }

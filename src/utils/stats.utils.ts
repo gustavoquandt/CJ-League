@@ -231,7 +231,6 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     matchResults: player.matchResults,
     matchADRs: player.matchADRs,
     matchRatings: player.matchRatings,
-    matchIds: player.matchIds,
     // Meta
     lastMatchId: player.lastMatchId,
   };
