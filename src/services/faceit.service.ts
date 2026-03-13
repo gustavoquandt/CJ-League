@@ -501,6 +501,12 @@ class FaceitService {
             ];
             const playerStats = allPlayers.find((p: any) => p.player_id === playerInfo.player_id);
             if (playerStats) {
+              // Debug: log all player_stats keys once
+              if (!(globalThis as any).__faceitStatsLogged) {
+                (globalThis as any).__faceitStatsLogged = true;
+                console.log(`🔍 [FACEIT] player_stats keys:`, Object.keys(playerStats.player_stats || {}));
+                console.log(`🔍 [FACEIT] player_stats sample:`, JSON.stringify(playerStats.player_stats));
+              }
               matchKills          += parseInt(playerStats.player_stats?.Kills               || '0');
               matchDeaths         += parseInt(playerStats.player_stats?.Deaths              || '0');
               matchAssists        += parseInt(playerStats.player_stats?.Assists             || '0');
