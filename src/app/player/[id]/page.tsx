@@ -1,6 +1,7 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -149,6 +150,65 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 
+// ── Player switcher dropdown ──────────────────────────────────────────────────
+function PlayerSwitcher({ current, players }: { current: PlayerStats; players: PlayerStats[] }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const sorted = [...players]
+    .filter(p => p.playerId !== current.playerId)
+    .sort((a, b) => (a.pot ?? 99) - (b.pot ?? 99) || (a.position ?? 99) - (b.position ?? 99));
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1F1F2E] border border-[#2D2D3D] text-[#9CA3AF] hover:text-white hover:border-[#0EA5E9] transition-colors text-sm"
+        title="Trocar jogador"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1 w-52 bg-[#13131A] border border-[#2D2D3D] rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="max-h-72 overflow-y-auto">
+            {sorted.map(p => (
+              <button
+                key={p.playerId}
+                onClick={() => { setOpen(false); router.push(`/player/${p.nickname}`); }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#1F1F2E] transition-colors text-left"
+              >
+                {p.avatar ? (
+                  <Image src={p.avatar} alt={p.nickname} width={28} height={28} className="rounded-full flex-shrink-0" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-[#2D2D3D] flex items-center justify-center text-xs font-bold text-[#9CA3AF] flex-shrink-0">
+                    {p.nickname.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="text-sm text-[#E5E7EB] truncate flex-1">{p.nickname}</span>
+                {p.pot && (
+                  <span className="text-[10px] text-[#9CA3AF] flex-shrink-0">P{p.pot}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function PlayerPage({ params }: PlayerPageProps) {
   const { id } = use(params);
@@ -282,6 +342,9 @@ export default function PlayerPage({ params }: PlayerPageProps) {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h1 className="text-3xl font-bold truncate">{player.nickname}</h1>
+                {allPlayers.length > 1 && (
+                  <PlayerSwitcher current={player} players={allPlayers} />
+                )}
                 {player.pot && (
                   <span className={`badge badge-pot-${player.pot} text-sm leading-none inline-flex items-center`}>
                     Pote {player.pot}
