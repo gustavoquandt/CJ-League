@@ -413,12 +413,12 @@ As colunas não têm altura forçada — cada uma ocupa o espaço necessário pe
 
 | Seção | Dados |
 |---|---|
-| Hero | Avatar, nickname, badge de pote, posição, forma recente (8 partidas), rating |
-| Quick Stats | K/D, ADR, HS%, Win Rate, KAST, Aces |
+| Hero | Avatar, nickname, badge de pote, dropdown de troca de jogador, posição, forma recente (8 partidas — mais antiga à esquerda, mais recente à direita), rating |
+| Quick Stats | K/D, ADR, HS%, Win Rate, Aces, Knife Kills |
 | Rating por Partida | Gráfico AreaChart (verde=vitória, vermelho=derrota, linha de referência em 1.0) — alimentado por `matchRatings` (batch popula histórico; incremental mantém atualizado) |
 | Clutch | Breakdown 1v1→1v5 com barras de progresso e label HARD para 1v4/1v5 |
-| Desempenho na Season | Pontos, peak, partidas, barra W/L, barra de peak vs teto (1500) |
-| Estatísticas Detalhadas | Por Jogo (K/D/A) + Totais na Season (kills, deaths, headshots, rounds, dano) + Especialidades (First Kills, First Deaths, Flash Successes, Knife Kills — com média por jogo) |
+| Desempenho na Season | Pontos, partidas, barra W/L |
+| Estatísticas Detalhadas | Por Jogo (K/D/A) + Totais na Season (kills, deaths, headshots, rounds, dano) + Especialidades (First Kills, First Deaths, Flash Successes, Entry Success % — calculado como FK/(FK+FD)) |
 | Comparar com | Select para comparar métricas lado a lado com barras bidirecionais (laranja=jogador atual, azul=comparado) |
 | Pote X / N jogadores | Rank do jogador no pote por Rating, K/D, ADR, KAST, Win Rate (com valor, média e `#rank`) |
 | ADR por Partida | Gráfico BarChart (azul=acima da média, cinza=abaixo) — alimentado por `matchADRs` (batch popula histórico; incremental mantém atualizado) |
