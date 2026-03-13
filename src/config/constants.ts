@@ -40,7 +40,6 @@ export const POT_CONFIG: PotConfig[] = [
 export const FREE_PLAYERS = [
  'BITENCOURT95',
   'SnalpinhA',
-  'pablitanus',
   'Matheusgsr1',
   'nansch',
   'NegaoReinert',
@@ -106,6 +105,7 @@ export const PLAYER_POTS: Record<string, number> = {
   'mateustoto': 5,  
   'VeKasss': 5,
   'P0K4B4L4': 5, 
+  'pablitanus': 5,
 };
 
 /**

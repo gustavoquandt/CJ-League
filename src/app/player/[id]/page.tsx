@@ -637,6 +637,8 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                  
                   { label: 'HS%',      a: player.headshotPercentage,   b: comparePlayer.headshotPercentage,   fmt: (v: number) => `${v.toFixed(1)}%` },
                   { label: 'Win Rate', a: player.winRate,              b: comparePlayer.winRate,              fmt: (v: number) => `${v.toFixed(1)}%` },
+                  { label: 'Entry %',  a: (() => { const t = (player.totalFirstKills || 0) + (player.totalFirstDeaths || 0); return t > 0 ? (player.totalFirstKills || 0) / t * 100 : 0; })(), b: (() => { const t = (comparePlayer.totalFirstKills || 0) + (comparePlayer.totalFirstDeaths || 0); return t > 0 ? (comparePlayer.totalFirstKills || 0) / t * 100 : 0; })(), fmt: (v: number) => `${v.toFixed(1)}%` },
+                  { label: 'Flash Assists/Jogo', a: player.matchesPlayed > 0 ? (player.totalFlashSuccesses || 0) / player.matchesPlayed : 0, b: comparePlayer.matchesPlayed > 0 ? (comparePlayer.totalFlashSuccesses || 0) / comparePlayer.matchesPlayed : 0, fmt: (v: number) => v.toFixed(1) },
                 ];
                 return (
                   <div>

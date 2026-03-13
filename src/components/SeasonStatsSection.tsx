@@ -83,6 +83,39 @@ export default function SeasonStatsSection({
       getValue: (p: PlayerStats) => p.headshotPercentage,
       formatter: (val: number) => `${val.toFixed(1)}%`,
     },
+    {
+      label: 'Melhor Entry',
+      icon: '🚪',
+      leader: (() => {
+        const eligible = filteredPlayers.filter(p => (p.totalFirstKills || 0) + (p.totalFirstDeaths || 0) > 0);
+        if (eligible.length === 0) return filteredPlayers[0];
+        return eligible.reduce((max, p) => {
+          const pRate = (p.totalFirstKills || 0) / ((p.totalFirstKills || 0) + (p.totalFirstDeaths || 0)) * 100;
+          const maxRate = (max.totalFirstKills || 0) / ((max.totalFirstKills || 0) + (max.totalFirstDeaths || 0)) * 100;
+          return pRate > maxRate ? p : max;
+        }, eligible[0]);
+      })(),
+      getValue: (p: PlayerStats) => {
+        const total = (p.totalFirstKills || 0) + (p.totalFirstDeaths || 0);
+        return total > 0 ? (p.totalFirstKills || 0) / total * 100 : 0;
+      },
+      formatter: (val: number) => `${val.toFixed(1)}%`,
+    },
+    {
+      label: 'Flash Assists/Jogo',
+      icon: '💡',
+      leader: (() => {
+        const eligible = filteredPlayers.filter(p => p.matchesPlayed > 0 && (p.totalFlashSuccesses || 0) > 0);
+        if (eligible.length === 0) return filteredPlayers[0];
+        return eligible.reduce((max, p) => {
+          const pRate = (p.totalFlashSuccesses || 0) / p.matchesPlayed;
+          const maxRate = (max.totalFlashSuccesses || 0) / max.matchesPlayed;
+          return pRate > maxRate ? p : max;
+        }, eligible[0]);
+      })(),
+      getValue: (p: PlayerStats) => p.matchesPlayed > 0 ? (p.totalFlashSuccesses || 0) / p.matchesPlayed : 0,
+      formatter: (val: number) => val.toFixed(1),
+    },
   ];
 
   return (

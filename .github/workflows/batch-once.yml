@@ -1,7 +1,16 @@
 name: Batch Update Complete (Run Once)
 
 on:
-  workflow_dispatch:  # Manual apenas
+  workflow_dispatch:
+    inputs:
+      skipCached:
+        description: 'Pular jogadores já em cache'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   batch-update-complete:
@@ -14,6 +23,7 @@ jobs:
           echo "⚡ Iniciando batch-update COMPLETO..."
           
           SEASON="SEASON_1"
+          SKIP_CACHED="${{ github.event.inputs.skipCached || 'false' }}"
           BATCH=0
           HAS_MORE=true
           PLAYERS_JSON="[]"
@@ -30,7 +40,7 @@ jobs:
             
             # Chamar endpoint
             RESPONSE=$(curl -X POST \
-              "https://www.statscj.com/api/admin/batch-update?season=$SEASON" \
+              "https://www.statscj.com/api/admin/batch-update?season=$SEASON&skipCached=$SKIP_CACHED" \
               -H "Authorization: Bearer ${{ secrets.ADMIN_SECRET }}" \
               -H "Content-Type: application/json" \
               -d "$BODY" \

@@ -81,6 +81,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const nickname = PLAYER_NICKNAMES[playerIndex];
+    const skipCached = searchParams.get('skipCached') === 'true';
 
     console.log(`📊 [BATCH ${batchNumber + 1}/${totalBatches}] Processando ${nickname}`);
 
@@ -88,6 +89,52 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const startTime = Date.now();
 
     try {
+      // Se skipCached=true, verificar se jogador já tem cache
+      if (skipCached) {
+        const cached = await kvCacheService.getPlayerCache(nickname, seasonId);
+        if (cached && cached.matchesPlayed > 0) {
+          console.log(`   ⏭️ ${nickname} já tem cache (${cached.matchesPlayed} partidas) — pulando`);
+
+          // Adicionar ao array se não estiver
+          const existingIndex = existingPlayers.findIndex(
+            (p: any) => p.nickname.toLowerCase() === nickname.toLowerCase()
+          );
+          if (existingIndex >= 0) {
+            existingPlayers[existingIndex] = cached;
+          } else {
+            existingPlayers.push(cached);
+          }
+
+          // Ordenar e posicionar
+          existingPlayers.sort((a: any, b: any) => {
+            if (a.rankingPoints !== b.rankingPoints) return b.rankingPoints - a.rankingPoints;
+            if (a.wins !== b.wins) return b.wins - a.wins;
+            return a.matchesPlayed - b.matchesPlayed;
+          });
+          existingPlayers.forEach((player: any, index: number) => {
+            player.position = index + 1;
+          });
+
+          await kvCacheService.saveCache(existingPlayers, seasonId);
+
+          const hasMore = playerIndex + 1 < PLAYER_NICKNAMES.length;
+          return NextResponse.json({
+            success: true,
+            batch: {
+              current: batchNumber + 1,
+              total: totalBatches,
+              processed: 0,
+              totalPlayers: existingPlayers.length,
+              currentPlayer: nickname,
+              skipped: true,
+            },
+            hasMore,
+            nextBatch: hasMore ? batchNumber + 1 : null,
+            players: existingPlayers,
+          });
+        }
+      }
+
       console.log(`   🔍 Buscando dados para ${nickname}...`);
       console.log(`   🔍 Queue ID: ${queueId}`);
       console.log(`   🔍 Max matches: ${MAX_MATCHES_PER_PLAYER}`);
