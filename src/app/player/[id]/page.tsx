@@ -354,11 +354,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-sm text-[#9CA3AF] mb-4">
-                <span>{player.country}</span>
-                <span className="text-[#2D2D3D]">|</span>
-                <span>Nível <span className="text-white font-semibold">{player.skillLevel}</span></span>
-              </div>
 
               {player.matchResults && player.matchResults.length > 0 && (
                 <div className="flex items-center gap-3">

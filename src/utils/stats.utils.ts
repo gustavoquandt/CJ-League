@@ -211,11 +211,18 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     totalRounds: player.totalRounds,
     totalHeadshots: player.totalHeadshots,
     pentaKills: player.pentaKills,
-    // ✅ RIVAL DATA
+    // RIVAL DATA
     rivalNickname: player.rivalNickname,
     rivalMatchCount: player.rivalMatchCount,
     rivalWins: player.rivalWins,
     rivalLosses: player.rivalLosses,
+    // AMULETO / KRIPTONITA
+    amuletoNickname: player.amuletoNickname,
+    amuletoWinRate: player.amuletoWinRate,
+    amuletoMatchCount: player.amuletoMatchCount,
+    kriptoniaNickname: player.kriptoniaNickname,
+    kritoniaWinRate: player.kritoniaWinRate,
+    kritoniaMatchCount: player.kritoniaMatchCount,
     // ✅ MATCH HISTORY
     matchResults: player.matchResults,
     matchADRs: player.matchADRs,

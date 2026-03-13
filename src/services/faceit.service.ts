@@ -49,9 +49,15 @@ interface QueuePlayerStats {
   matchRatings: number[];
   matchResults: boolean[];
   rivalNickname?: string;
-  rivalMatchCount?: number;     // ✅ NOVO
-  rivalWins?: number;           // ✅ NOVO
-  rivalLosses?: number;         // ✅ NOVO
+  rivalMatchCount?: number;
+  rivalWins?: number;
+  rivalLosses?: number;
+  amuletoNickname?: string;
+  amuletoWinRate?: number;
+  amuletoMatchCount?: number;
+  kriptoniaNickname?: string;
+  kritoniaWinRate?: number;
+  kritoniaMatchCount?: number;
 }
 
 class FaceitService {
@@ -168,11 +174,13 @@ class FaceitService {
     const faceitElo = player.faceit_elo || 0;
     const skillLevel = player.skill_level || 0;
 
-    const { 
+    const {
       wins, losses, matchesPlayed, points, lastMatchId,
       totalKills, totalDeaths, totalDamage, totalRounds,
       totalHeadshots, totalPentaKills, matchADRs, matchRatings, matchResults,
-      rivalNickname, rivalMatchCount, rivalWins, rivalLosses
+      rivalNickname, rivalMatchCount, rivalWins, rivalLosses,
+      amuletoNickname, amuletoWinRate, amuletoMatchCount,
+      kriptoniaNickname, kritoniaWinRate, kritoniaMatchCount,
     } = queueStats;
     
     const kd = totalDeaths > 0 ? parseFloat((totalKills / totalDeaths).toFixed(2)) : 0;
@@ -248,6 +256,8 @@ class FaceitService {
       totalKills, totalDeaths, totalDamage, totalRounds, totalHeadshots,
       pentaKills: totalPentaKills,
       rivalNickname, rivalMatchCount, rivalWins, rivalLosses,
+      amuletoNickname, amuletoWinRate, amuletoMatchCount,
+      kriptoniaNickname, kritoniaWinRate, kritoniaMatchCount,
       matchResults, matchADRs, matchRatings,
     });
   }
@@ -401,11 +411,17 @@ class FaceitService {
           matchRatings:  combinedMatchRatings,
           matchResults:  combinedMatchResults,
           lastMatchId:   allMatches[0].match_id,
-          // Rival mantém o do cache (tem histórico completo)
-          rivalNickname:  previousStats.rivalNickname,
-          rivalMatchCount: previousStats.rivalMatchCount,
-          rivalWins:      previousStats.rivalWins,
-          rivalLosses:    previousStats.rivalLosses,
+          // Rival / amuleto / kriptonita mantém do cache (histórico completo)
+          rivalNickname:    previousStats.rivalNickname,
+          rivalMatchCount:  previousStats.rivalMatchCount,
+          rivalWins:        previousStats.rivalWins,
+          rivalLosses:      previousStats.rivalLosses,
+          amuletoNickname:  previousStats.amuletoNickname,
+          amuletoWinRate:   previousStats.amuletoWinRate,
+          amuletoMatchCount: previousStats.amuletoMatchCount,
+          kriptoniaNickname: previousStats.kriptoniaNickname,
+          kritoniaWinRate:  previousStats.kritoniaWinRate,
+          kritoniaMatchCount: previousStats.kritoniaMatchCount,
         });
       }
 
@@ -441,6 +457,13 @@ class FaceitService {
       count: number;
       wins: number;
       losses: number;
+    }>();
+
+    // Rastrear companheiros de time (amuleto / kriptonita)
+    const teammateMap = new Map<string, {
+      nickname: string;
+      count: number;
+      wins: number;
     }>();
 
     if (matches.length === 0) {
@@ -491,30 +514,30 @@ class FaceitService {
             ? 'faction1' : 'faction2';
           const won = match.results?.winner === playerTeam;
 
-          // ✅ NOVO: Rastrear oponentes desta partida
+          // Rastrear oponentes desta partida (rival)
           const opponentTeam = playerTeam === 'faction1' ? 'faction2' : 'faction1';
           const opponents = match.teams?.[opponentTeam]?.players || [];
-          
           for (const opponent of opponents) {
             const oppNickname = opponent.nickname;
-            
             if (!opponentMap.has(oppNickname)) {
-              opponentMap.set(oppNickname, {
-                nickname: oppNickname,
-                count: 0,
-                wins: 0,
-                losses: 0
-              });
+              opponentMap.set(oppNickname, { nickname: oppNickname, count: 0, wins: 0, losses: 0 });
             }
-            
             const rivalStats = opponentMap.get(oppNickname)!;
             rivalStats.count++;
-            
-            if (won) {
-              rivalStats.wins++;
-            } else {
-              rivalStats.losses++;
+            if (won) rivalStats.wins++; else rivalStats.losses++;
+          }
+
+          // Rastrear companheiros de time (amuleto / kriptonita)
+          const teammates = (match.teams?.[playerTeam]?.players || []) as any[];
+          for (const teammate of teammates) {
+            if (teammate.player_id === playerInfo.player_id) continue;
+            const tmNickname = teammate.nickname;
+            if (!teammateMap.has(tmNickname)) {
+              teammateMap.set(tmNickname, { nickname: tmNickname, count: 0, wins: 0 });
             }
+            const tmStats = teammateMap.get(tmNickname)!;
+            tmStats.count++;
+            if (won) tmStats.wins++;
           }
 
           // ✅ NOVO: Calcular ADR da partida
@@ -547,13 +570,28 @@ class FaceitService {
     const matchesPlayed = wins + losses;
     const points = RANKING_CONFIG.INITIAL_POINTS + (wins * 3) - (losses * 3);
 
-    // ✅ NOVO: Encontrar maior rival (com desempate por ordem alfabética)
+    // Encontrar maior rival (mais encontros, desempate alfabético)
     let biggestRival = null;
     for (const rival of opponentMap.values()) {
       if (!biggestRival ||
           rival.count > biggestRival.count ||
           (rival.count === biggestRival.count && rival.nickname < biggestRival.nickname)) {
         biggestRival = rival;
+      }
+    }
+
+    // Amuleto (maior win rate junto, mín. 3 partidas) / Kriptonita (menor win rate, mín. 3 partidas)
+    const MIN_TEAMMATE_GAMES = 3;
+    let amuleto: { nickname: string; winRate: number; count: number } | null = null;
+    let kriptonita: { nickname: string; winRate: number; count: number } | null = null;
+    for (const tm of teammateMap.values()) {
+      if (tm.count < MIN_TEAMMATE_GAMES) continue;
+      const wr = (tm.wins / tm.count) * 100;
+      if (!amuleto || wr > amuleto.winRate || (wr === amuleto.winRate && tm.count > amuleto.count)) {
+        amuleto = { nickname: tm.nickname, winRate: wr, count: tm.count };
+      }
+      if (!kriptonita || wr < kriptonita.winRate || (wr === kriptonita.winRate && tm.count > kriptonita.count)) {
+        kriptonita = { nickname: tm.nickname, winRate: wr, count: tm.count };
       }
     }
 
@@ -564,6 +602,12 @@ class FaceitService {
       rivalMatchCount: biggestRival?.count || 0,
       rivalWins: biggestRival?.wins || 0,
       rivalLosses: biggestRival?.losses || 0,
+      amuletoNickname: amuleto?.nickname,
+      amuletoWinRate: amuleto ? parseFloat(amuleto.winRate.toFixed(1)) : undefined,
+      amuletoMatchCount: amuleto?.count,
+      kriptoniaNickname: kriptonita?.nickname,
+      kritoniaWinRate: kriptonita ? parseFloat(kriptonita.winRate.toFixed(1)) : undefined,
+      kritoniaMatchCount: kriptonita?.count,
     }, null);
   }
 
