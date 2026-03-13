@@ -10,7 +10,6 @@ export const FACEIT_API = {
   BASE_URL: 'https://open.faceit.com/data/v4',
   ENDPOINTS: {
     PLAYERS: '/players',
-    PLAYER_STATS: '/players/{player_id}/stats/cs2',
   },
 } as const;
 
@@ -36,8 +35,7 @@ export const POT_CONFIG: PotConfig[] = [
 // ==================== FREE PLAYERS ====================
 
 /**
- * ✅ NOVO: Jogadores marcados como "Free"
- * Não aparecem no site (nem cards, nem destaques, nem tabela)
+ * Players marked as "Free" — excluded from all site displays.
  */
 export const FREE_PLAYERS = [
  'BITENCOURT95',
@@ -111,7 +109,7 @@ export const PLAYER_POTS: Record<string, number> = {
 };
 
 /**
- * ✅ MODIFICADO: Lista de nicknames EXCLUINDO jogadores Free
+ * Active player nicknames (excludes Free players).
  */
 export const PLAYER_NICKNAMES = Object.keys(PLAYER_POTS).filter(
   nickname => !isPlayerFree(nickname)
@@ -148,6 +146,14 @@ export const SEASONS = {
     startDate: '2025-02-01',
     endDate: null,
     status: 'active' as const,
+  },
+  COPA_JUNGE_6: {
+    id: '',
+    name: 'Copa Junge 6',
+    description: 'Em breve',
+    startDate: null,
+    endDate: null,
+    status: 'locked' as const,
   },
 } as const;
 

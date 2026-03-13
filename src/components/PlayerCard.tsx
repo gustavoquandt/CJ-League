@@ -100,7 +100,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         </div>
       </div>
 
-      {/* ✅ NOVO: Maior Rival */}
+      {/* Biggest rival */}
       {player.rivalNickname && player.rivalMatchCount && player.rivalMatchCount > 2 && (
         <div className="mb-3 px-1">
           <div className="flex items-center justify-between">

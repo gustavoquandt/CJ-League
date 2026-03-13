@@ -51,7 +51,7 @@ export function useAdmin() {
     if (password === ADMIN_SECRET) {
       setIsAdmin(true);
       sessionStorage.setItem('admin_auth', 'true');
-      // ✅ NÃO FECHA O MODAL - deixa aberto para mostrar opções
+      // Keep modal open to show admin options
       console.log('🔓 Modo admin ativado via modal');
       return true;
     }
@@ -62,7 +62,7 @@ export function useAdmin() {
   const adminLogout = () => {
     setIsAdmin(false);
     sessionStorage.removeItem('admin_auth');
-    setShowAdminModal(false); // ✅ Fecha modal ao fazer logout
+    setShowAdminModal(false);
     console.log('🔒 Modo admin desativado');
   };
 

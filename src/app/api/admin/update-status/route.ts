@@ -23,15 +23,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }, { status: 404 });
     }
 
-    // ✅ Buscar timestamp da última verificação
     const lastCheck = await kvCacheService.getLastCheck(seasonId);
 
     return NextResponse.json({
       success: true,
       seasonId,
-      // ✅ Quando os DADOS foram atualizados
       lastDataUpdate: cache.lastUpdated,
-      // ✅ Quando foi VERIFICADO pela última vez
       lastCheck: lastCheck || cache.lastUpdated,
       totalPlayers: cache.players.length,
       totalMatches: mapStats?.totalMatches || 0,

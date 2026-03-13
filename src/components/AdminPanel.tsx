@@ -30,7 +30,7 @@ export default function AdminPanel({
       onLogin(password);
       setPassword('');
       setError('');
-      // ✅ NÃO FECHA O MODAL - deixa o hook decidir
+      // Modal stays open — the hook controls closing
     }
   };
 
@@ -95,7 +95,7 @@ export default function AdminPanel({
             </div>
 
             <div className="space-y-3">
-              {/* ✅ ATUALIZAR Season 1 (Batch Update) */}
+              {/* Season 1 update */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
                   Season 1 (Atual)
@@ -127,7 +127,7 @@ export default function AdminPanel({
                 </p>
               </div>
 
-              {/* ✅ ATUALIZAR Season 0 (Histórico) */}
+              {/* Season 0 update */}
               <div className="space-y-2 pt-2 border-t border-faceit-light-gray">
                 <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
                   Season 0 (Histórico)

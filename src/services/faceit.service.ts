@@ -4,25 +4,17 @@
  * Incremental: acumula partidas novas sobre o cache existente
  */
 
-import type {
-  FaceitPlayer,
-  FaceitPlayerStats,
-} from '@/types/faceit.types';
+import type { FaceitPlayer } from '@/types/faceit.types';
 import type { PlayerStats } from '@/types/app.types';
 import {
   FACEIT_API,
   PLAYER_POTS,
   RANKING_CONFIG,
 } from '@/config/constants';
-import {
-  parseStatValue,
-  sanitizePlayer,
-} from '@/utils/stats.utils';
+import { sanitizePlayer } from '@/utils/stats.utils';
 import { calculateSimplifiedRating } from '@/utils/rating.utils';
 
-const QUEUE_ID = process.env.NEXT_PUBLIC_COMPETITION_ID || 'f2dec63c-b3c1-4df6-8193-0b83fc6640ef';
-
-// CONFIGURAÇÕES CONSERVADORAS
+// Configurações de rate limiting
 const PARALLEL_MATCHES = 3;           // 3 partidas em paralelo
 const REQUEST_TIMEOUT = 20000;        // 20s timeout
 const MIN_DELAY_BETWEEN_REQUESTS = 1200; // 1.2s entre requests
@@ -158,20 +150,10 @@ class FaceitService {
     }
   }
 
-  async getPlayerStats(playerId: string): Promise<FaceitPlayerStats | null> {
-    try {
-      const endpoint = FACEIT_API.ENDPOINTS.PLAYER_STATS.replace('{player_id}', playerId);
-      return await this.request<FaceitPlayerStats>(endpoint);
-    } catch (error) {
-      return null;
-    }
-  }
-
   private buildPlayerStats(
     nickname: string,
     player: FaceitPlayer,
     queueStats: QueuePlayerStats,
-    stats?: FaceitPlayerStats | null
   ): PlayerStats {
     const playerId = player.player_id;
     const avatar = player.avatar;
@@ -192,20 +174,18 @@ class FaceitService {
     
     const kd = totalDeaths > 0 ? parseFloat((totalKills / totalDeaths).toFixed(2)) : 0;
     
-    // ✅ NOVO: ADR correto (média dos ADRs individuais)
-    const adr = matchADRs.length > 0 
+    // ADR: average of per-match ADRs
+    const adr = matchADRs.length > 0
       ? parseFloat((matchADRs.reduce((sum, adr) => sum + adr, 0) / matchADRs.length).toFixed(1))
       : 0;
     
     const kills = matchesPlayed > 0 ? parseFloat((totalKills / matchesPlayed).toFixed(1)) : 0;
     const deaths = matchesPlayed > 0 ? parseFloat((totalDeaths / matchesPlayed).toFixed(1)) : 0;
 
-    // ✅ NOVO: HS% calculado das partidas
-    const headshotPercentage = totalKills > 0 
+    const headshotPercentage = totalKills > 0
       ? parseFloat(((totalHeadshots / totalKills) * 100).toFixed(1))
       : 0;
 
-    // ✅ NOVO: WinStreak calculado da sequência de vitórias
     let currentStreakCalc = 0;
     let longestStreak = 0;
     for (const won of matchResults) {
@@ -218,8 +198,7 @@ class FaceitService {
     }
     const longestWinStreak = longestStreak;
 
-    // ✅ NOVO: Calcular maior pontuação já alcançada (peak)
-    // Simula o histórico de pontos partida por partida
+    // Simulate point history match-by-match to find peak ranking points
     let currentPoints: number = RANKING_CONFIG.INITIAL_POINTS; // 1000
     let peakPoints: number = currentPoints;
     
@@ -230,10 +209,18 @@ class FaceitService {
     }
     const peakRankingPoints = peakPoints;
 
-    const lifetime = stats?.lifetime as any;
     const assists = matchesPlayed > 0 ? parseFloat((totalAssists / matchesPlayed).toFixed(1)) : 0;
-    const kr = parseStatValue(lifetime?.['K/R Ratio']) || 0;
-    const currentStreak = parseStatValue(lifetime?.['Current Win Streak']) || 0;
+    const kr = totalRounds > 0 ? parseFloat((totalKills / totalRounds).toFixed(2)) : 0;
+
+    // Current streak: count consecutive results from most recent (index 0)
+    let currentStreak = 0;
+    if (matchResults.length > 0) {
+      const first = matchResults[0];
+      for (const won of matchResults) {
+        if (won !== first) break;
+        currentStreak += first ? 1 : -1;
+      }
+    }
 
     const winRate = matchesPlayed > 0 
       ? parseFloat(((wins / matchesPlayed) * 100).toFixed(1))
@@ -254,7 +241,7 @@ class FaceitService {
       playerId, nickname, avatar, country, pot,
       rating,  // Rating simplificado
       rankingPoints: points,
-      peakRankingPoints,  // ✅ NOVO: Maior pontuação histórica
+      peakRankingPoints,
       position: 0,
       matchesPlayed, wins, losses, winRate,
       kills, deaths, assists, kd, kr, adr,
@@ -271,23 +258,22 @@ class FaceitService {
   }
 
   /**
-   * ✅ NOVO: Buscar jogador com suas partidas (até 200)
-   * Suporta busca incremental a partir do lastMatchId
-   * Aceita previousStats para acumular estatísticas
+   * Fetch a player and their match history (up to maxMatches).
+   * Supports incremental fetching from lastMatchId and
+   * accumulation over previousStats.
    */
   async fetchPlayerWithMatches(
     nickname: string,
     maxMatches: number = 200,
     lastMatchId?: string | null,
-    queueId?: string, // ✅ Queue ID opcional (para seasons)
-    previousStats?: PlayerStats | null // ✅ NOVO: Stats anteriores para acumular
+    queueId?: string,
+    previousStats?: PlayerStats | null
   ): Promise<(PlayerStats & { lastMatchId?: string }) | null> {
     try {
       const playerInfo = await this.getPlayerByNickname(nickname);
       if (!playerInfo) return null;
 
-      // ✅ Usar queue passada ou padrão
-      const QUEUE_TO_USE = queueId || QUEUE_ID;
+      const QUEUE_TO_USE = queueId || '';
 
       const allMatches: any[] = [];
       let offset = 0;
@@ -300,7 +286,6 @@ class FaceitService {
 
         if (!matchesResponse?.items || matchesResponse.items.length === 0) break;
 
-        // ✅ Filtrar pela queue correta
         const queueMatches = matchesResponse.items.filter(
           (match: any) => match.competition_id === QUEUE_TO_USE
         );
@@ -323,7 +308,7 @@ class FaceitService {
 
       console.log(`   Buscou ${allMatches.length} partidas NOVAS para ${nickname}`);
       
-      // ✅ Se tem stats anteriores e não há partidas novas, retornar as antigas
+      // No new matches found — return previous stats as-is
       if (allMatches.length === 0 && previousStats) {
         console.log(`   ⚡ Sem partidas novas - Mantendo stats antigas (${previousStats.matchesPlayed} partidas)`);
         return {
@@ -334,11 +319,9 @@ class FaceitService {
       
       const newStats = await this.calculateStatsFromMatches(allMatches, playerInfo, nickname);
 
-      // ✅ ACUMULAÇÃO: só acumula se:
-      // 1. Tem stats anteriores (previousStats)
-      // 2. Tem partidas novas (allMatches.length > 0)  
-      // 3. Encontrou o ponto de parada (foundLastMatch) = só partidas realmente novas
-      //    Se lastMatchId era null, foundLastMatch=false → recalcula do zero (correto)
+      // Accumulate only when we have previous stats, new matches, and
+      // confirmed the stop point (foundLastMatch). If lastMatchId was null,
+      // foundLastMatch stays false and we recalculate from scratch.
       if (previousStats && allMatches.length > 0 && foundLastMatch) {
         console.log(`   ⚡ ${nickname}: Acumulando ${allMatches.length} partidas novas com ${previousStats.matchesPlayed} existentes`);
 
@@ -450,7 +433,7 @@ class FaceitService {
   }
 
   /**
-   * ✅ NOVO: Calcular estatísticas a partir das partidas
+   * Calculate player statistics from a list of matches.
    */
   private async calculateStatsFromMatches(
     matches: any[],
@@ -464,7 +447,7 @@ class FaceitService {
     let matchRatings: number[] = [];
     let matchResults: boolean[] = [];
 
-    // ✅ NOVO: Rastrear oponentes (maior rival)
+    // Track opponents to find the biggest rival
     const opponentMap = new Map<string, {
       nickname: string;
       count: number;
@@ -490,7 +473,7 @@ class FaceitService {
         rivalMatchCount: 0,
         rivalWins: 0,
         rivalLosses: 0,
-      }, null);
+      });
     }
 
     const chunks = [];
@@ -561,7 +544,6 @@ class FaceitService {
             if (won) tmStats.wins++;
           }
 
-          // ✅ NOVO: Calcular ADR da partida
           const matchADR = matchRounds > 0 ? matchDamage / matchRounds : 0;
           
           return { kills: matchKills, deaths: matchDeaths, assists: matchAssists, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, pentaKills: matchPentaKills, firstKills: matchFirstKills, firstDeaths: matchFirstDeaths, flashSuccesses: matchFlashSuccesses, knifeKills: matchKnifeKills, adr: matchADR, won };
@@ -636,7 +618,7 @@ class FaceitService {
       kriptoniaNickname: kriptonita?.nickname,
       kritoniaWinRate: kriptonita ? parseFloat(kriptonita.winRate.toFixed(1)) : undefined,
       kritoniaMatchCount: kriptonita?.count,
-    }, null);
+    });
   }
 
 }

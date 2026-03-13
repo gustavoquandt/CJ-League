@@ -49,13 +49,18 @@ interface PlayerDelta {
   losses: number;
   kills: number;
   deaths: number;
+  assists: number;
   damage: number;
   rounds: number;
   headshots: number;
-  matchResults: boolean[];       // resultado de cada partida nova (true=win)
-  matchADRs: number[];           // ADR por partida nova
-  matchRatings: number[];        // rating por partida nova
-  lastMatchId: string | null;    // match_id mais recente
+  firstKills: number;
+  firstDeaths: number;
+  flashSuccesses: number;
+  knifeKills: number;
+  matchResults: boolean[];
+  matchADRs: number[];
+  matchRatings: number[];
+  lastMatchId: string | null;
 }
 
 // ── Rota principal ────────────────────────────────────────────────────────────
@@ -142,11 +147,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           ? parseInt(firstRound.round_stats.Rounds, 10)
           : rounds.length;
 
-        // ✅ CORRIGIDO: Processar stats por player (uma vez por partida)
-        // Primeiro: acumular stats de TODOS os rounds da partida
+        // Accumulate stats from all rounds per player in this match
         const playerMatchStats = new Map<string, {
-          kills: number; deaths: number; damage: number; 
-          headshots: number; won: boolean;
+          kills: number; deaths: number; assists: number; damage: number;
+          headshots: number; firstKills: number; firstDeaths: number;
+          flashSuccesses: number; knifeKills: number; won: boolean;
         }>();
 
         for (const round of rounds) {
@@ -161,16 +166,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
               if (!playerMatchStats.has(playerId)) {
                 playerMatchStats.set(playerId, {
-                  kills: 0, deaths: 0, damage: 0, headshots: 0, won: false
+                  kills: 0, deaths: 0, assists: 0, damage: 0, headshots: 0,
+                  firstKills: 0, firstDeaths: 0, flashSuccesses: 0, knifeKills: 0,
+                  won: false,
                 });
               }
 
               const matchStats = playerMatchStats.get(playerId)!;
-              matchStats.kills     += parseInt(ps.Kills     || '0', 10);
-              matchStats.deaths    += parseInt(ps.Deaths    || '0', 10);
-              matchStats.damage    += Math.round(parseFloat(ps.ADR || '0') * totalRounds);
-              matchStats.headshots += parseInt(ps.Headshots || '0', 10);
-              matchStats.won       = ps.Result === '1'; // Último round define
+              matchStats.kills          += parseInt(ps.Kills              || '0', 10);
+              matchStats.deaths         += parseInt(ps.Deaths             || '0', 10);
+              matchStats.assists        += parseInt(ps.Assists            || '0', 10);
+              matchStats.damage         += Math.round(parseFloat(ps.ADR  || '0') * totalRounds);
+              matchStats.headshots      += parseInt(ps.Headshots          || '0', 10);
+              matchStats.firstKills     += parseInt(ps['First Kills']     || '0', 10);
+              matchStats.firstDeaths    += parseInt(ps['First Deaths']    || '0', 10);
+              matchStats.flashSuccesses += parseInt(ps['Flash Successes'] || '0', 10);
+              matchStats.knifeKills     += parseInt(ps['Knife Kills']     || '0', 10);
+              matchStats.won             = ps.Result === '1';
             }
           }
         }
@@ -180,18 +192,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           if (!deltas.has(playerId)) {
             deltas.set(playerId, {
               wins: 0, losses: 0,
-              kills: 0, deaths: 0, damage: 0, rounds: 0, headshots: 0,
+              kills: 0, deaths: 0, assists: 0, damage: 0, rounds: 0, headshots: 0,
+              firstKills: 0, firstDeaths: 0, flashSuccesses: 0, knifeKills: 0,
               matchResults: [], matchADRs: [], matchRatings: [],
               lastMatchId: null,
             });
           }
 
           const d = deltas.get(playerId)!;
-          d.kills     += matchStats.kills;
-          d.deaths    += matchStats.deaths;
-          d.damage    += matchStats.damage;
-          d.rounds    += totalRounds;
-          d.headshots += matchStats.headshots;
+          d.kills          += matchStats.kills;
+          d.deaths         += matchStats.deaths;
+          d.assists        += matchStats.assists;
+          d.damage         += matchStats.damage;
+          d.rounds         += totalRounds;
+          d.headshots      += matchStats.headshots;
+          d.firstKills     += matchStats.firstKills;
+          d.firstDeaths    += matchStats.firstDeaths;
+          d.flashSuccesses += matchStats.flashSuccesses;
+          d.knifeKills     += matchStats.knifeKills;
           d.matchResults.push(matchStats.won);
           d.matchADRs.push(totalRounds > 0 ? matchStats.damage / totalRounds : 0);
           d.matchRatings.push(calculateSimplifiedRating({
@@ -255,7 +273,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       const kd  = totalDeaths > 0 ? parseFloat((totalKills  / totalDeaths).toFixed(2)) : totalKills;
       
-      // ✅ ADR calculado dos totais (não depende de cache ter matchADRs)
       const adr = totalRounds > 0
         ? parseFloat((totalDamage / totalRounds).toFixed(1))
         : cachedPlayer.adr;
@@ -295,6 +312,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         break;
       }
 
+      // Accumulate new stat fields
+      const totalAssists       = (cachedPlayer.assists * oldMatches) + delta.assists;
+      const totalFirstKills    = (cachedPlayer.totalFirstKills    || 0) + delta.firstKills;
+      const totalFirstDeaths   = (cachedPlayer.totalFirstDeaths   || 0) + delta.firstDeaths;
+      const totalFlashSuccesses = (cachedPlayer.totalFlashSuccesses || 0) + delta.flashSuccesses;
+      const totalKnifeKills    = (cachedPlayer.totalKnifeKills    || 0) + delta.knifeKills;
+
+      const assists = totalMatches > 0 ? parseFloat((totalAssists / totalMatches).toFixed(1)) : 0;
+
       const updatedPlayer: PlayerStats = {
         ...cachedPlayer,
         wins: totalWins,
@@ -305,6 +331,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         winRate,
         kills,
         deaths,
+        assists,
         kd,
         adr,
         headshotPercentage,
@@ -315,8 +342,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         totalDamage,
         totalRounds,
         totalHeadshots,
+        totalFirstKills,
+        totalFirstDeaths,
+        totalFlashSuccesses,
+        totalKnifeKills,
         rating: calculateSimplifiedRating({ totalKills, totalDeaths, totalDamage, totalRounds, totalHeadshots }),
-        // ✅ Preservar dados de rival do cache
         rivalNickname: cachedPlayer.rivalNickname,
         rivalMatchCount: cachedPlayer.rivalMatchCount,
         rivalWins: cachedPlayer.rivalWins,
@@ -350,7 +380,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // ✅ CORRIGIDO: MapStats removido - use update-map-stats separadamente
+    // Map stats are updated separately via update-map-stats
 
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);

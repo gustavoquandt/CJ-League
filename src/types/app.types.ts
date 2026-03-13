@@ -24,7 +24,7 @@ export interface PlayerStats {
 
   // Ranking no Hub
   rankingPoints: number;
-  peakRankingPoints?: number; // ✅ Maior pontuação já alcançada na season
+  peakRankingPoints?: number; // Highest ranking points reached in the season
   position: number;
 
   // Partidas no Hub
@@ -58,8 +58,8 @@ export interface PlayerStats {
   currentStreak: number;
   longestWinStreak: number;
 
-  // ✅ NOVO: Maior Rival (adversário mais frequente)
-  rivalNickname?: string;      // Nome do rival
+  // Biggest rival (most frequent opponent)
+  rivalNickname?: string;
   rivalMatchCount?: number;    // Vezes que jogou contra
   rivalWins?: number;          // Vitórias contra o rival
   rivalLosses?: number;        // Derrotas contra o rival
@@ -100,7 +100,7 @@ export interface PlayerStats {
   // Meta
   lastMatch?: Date;
 
-  lastMatchId?: string;  // ← ADICIONAR
+  lastMatchId?: string;
 }
 
 // ==================== CACHE TYPES ====================
@@ -179,7 +179,9 @@ export type SortOption =
   | 'adr'
   | 'matchesPlayed'
   | 'faceitElo'
-  | 'rating';
+  | 'rating'
+  | 'pentaKills'
+  | 'totalKnifeKills';
 
 /**
  * Estado da aplicação

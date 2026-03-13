@@ -1,7 +1,7 @@
 /**
  * Serviço de Cache com Upstash Redis
  * Armazena dados dos jogadores de forma persistente
- * ✅ Cache individual por jogador + Suporte a múltiplas seasons + Map stats
+ * Per-player cache + multi-season support + map stats
  */
 
 import { Redis } from '@upstash/redis';
@@ -14,7 +14,7 @@ const redis = new Redis({
   token: process.env.KV_REST_API_TOKEN!,
 });
 
-// ✅ ATUALIZADO: Cache keys com season
+// Cache keys scoped by season
 const getCacheKey = (seasonId: SeasonId = 'SEASON_1') => `cj-stats:players:${seasonId}`;
 const getPlayerCacheKey = (nickname: string, seasonId: SeasonId = 'SEASON_1') => 
   `cj-stats:player:${seasonId}:${nickname.toLowerCase()}`;
@@ -207,7 +207,7 @@ export const kvCacheService = {
   },
 
   /**
-   * ✅ NOVO: Salvar estatísticas de mapas no cache
+   * Save map statistics to cache
    */
   async saveMapStats(mapStats: any, seasonId: SeasonId = 'SEASON_1'): Promise<void> {
     try {
@@ -221,7 +221,7 @@ export const kvCacheService = {
   },
 
   /**
-   * ✅ NOVO: Buscar estatísticas de mapas do cache
+   * Retrieve map statistics from cache
    */
   async getMapStats(seasonId: SeasonId = 'SEASON_1'): Promise<any | null> {
     try {
@@ -244,7 +244,7 @@ export const kvCacheService = {
   },
 
   /**
-   * ✅ NOVO: Salvar timestamp da última verificação
+   * Save the timestamp of the last check
    */
   async setLastCheck(seasonId: SeasonId = 'SEASON_1'): Promise<void> {
     try {
@@ -258,7 +258,7 @@ export const kvCacheService = {
   },
 
   /**
-   * ✅ NOVO: Buscar timestamp da última verificação
+   * Retrieve the timestamp of the last check
    */
   async getLastCheck(seasonId: SeasonId = 'SEASON_1'): Promise<string | null> {
     try {

@@ -100,6 +100,8 @@ export default function PlayerTable({ players }: PlayerTableProps) {
             <SortableHeader column="adr" label="ADR" className="hidden lg:table-cell" />
             <SortableHeader column="rating" label="Rating" className="hidden xl:table-cell" />
             <th className="hidden xl:table-cell">HS%</th>
+            <SortableHeader column="pentaKills" label="Aces" className="hidden xl:table-cell" />
+            <SortableHeader column="totalKnifeKills" label="Facadas" className="hidden xl:table-cell" />
           </tr>
         </thead>
         <tbody>
@@ -204,6 +206,20 @@ export default function PlayerTable({ players }: PlayerTableProps) {
                 <td className="hidden xl:table-cell">
                   <span className="font-semibold">
                     {formatStat(player.headshotPercentage, 1)}%
+                  </span>
+                </td>
+
+                {/* Aces */}
+                <td className="hidden xl:table-cell">
+                  <span className={`font-semibold ${(player.pentaKills ?? 0) > 0 ? 'text-[#e31e24]' : ''}`}>
+                    {player.pentaKills ?? 0}
+                  </span>
+                </td>
+
+                {/* Facadas */}
+                <td className="hidden xl:table-cell">
+                  <span className={`font-semibold ${(player.totalKnifeKills ?? 0) > 0 ? 'text-[#F59E0B]' : ''}`}>
+                    {player.totalKnifeKills ?? 0}
                   </span>
                 </td>
               </tr>

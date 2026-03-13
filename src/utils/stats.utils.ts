@@ -3,7 +3,7 @@
  */
 
 import type { PlayerStats } from '@/types/app.types';
-import { RANKING_CONFIG } from '@/config/constants';
+import { RANKING_CONFIG, type SeasonId } from '@/config/constants';
 
 // ==================== CALCULATION UTILITIES ====================
 
@@ -70,7 +70,7 @@ export function comparePlayers(
   b: PlayerStats,
   sortBy: keyof PlayerStats,
   order: 'asc' | 'desc' = 'desc',
-  season?: 'SEASON_0' | 'SEASON_1'
+  season?: SeasonId
 ): number {
   const aValue = a[sortBy];
   const bValue = b[sortBy];
@@ -84,7 +84,7 @@ export function comparePlayers(
   if (typeof aValue === 'number' && typeof bValue === 'number') {
     result = aValue - bValue;
     
-    // ✅ SEASON 1: Critérios de desempate quando sortBy é rankingPoints
+    // Season 1 tiebreak criteria for rankingPoints sort
     if (season === 'SEASON_1' && sortBy === 'rankingPoints' && result === 0) {
       // 1º critério: Vitórias (mais vitórias = melhor)
       const winsResult = b.wins - a.wins;
@@ -227,10 +227,12 @@ export function sanitizePlayer(player: Partial<PlayerStats>): PlayerStats {
     kriptoniaNickname: player.kriptoniaNickname,
     kritoniaWinRate: player.kritoniaWinRate,
     kritoniaMatchCount: player.kritoniaMatchCount,
-    // ✅ MATCH HISTORY
+    // Match history
     matchResults: player.matchResults,
     matchADRs: player.matchADRs,
     matchRatings: player.matchRatings,
+    // Meta
+    lastMatchId: player.lastMatchId,
   };
 }
 
@@ -264,23 +266,10 @@ export function formatLargeNumber(value: number): string {
 }
 
 /**
- * Formata ranking position com sufixo (1st, 2nd, 3rd, 4th, ...)
+ * Formata posição com sufixo ordinal (1º, 2º, 3º...)
  */
 export function formatPosition(position: number): string {
-  const suffixes = ['º']; // Português
-  const lastDigit = position % 10;
-  const lastTwoDigits = position % 100;
-  
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 13) {
-    return `${position}º`;
-  }
-  
-  switch (lastDigit) {
-    case 1: return `${position}º`;
-    case 2: return `${position}º`;
-    case 3: return `${position}º`;
-    default: return `${position}º`;
-  }
+  return `${position}º`;
 }
 
 // ==================== COLOR UTILITIES ====================

@@ -1,6 +1,6 @@
 /**
  * Rota: /api/admin/update-map-stats
- * ✅ CORRIGIDO: Busca TODAS as partidas (paginação) ao invés de apenas 100
+ * Fetches all matches (paginated) to compute map distribution
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,9 +12,8 @@ import type { MapStats } from '@/types/app.types';
 const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'default_admin_secret_change_me';
 
-// ✅ NOVO: Configurações para buscar mais partidas
-const MATCHES_PER_PAGE = 100;  // Máximo por página da API
-const MAX_PAGES = 5;            // 5 páginas = até 500 partidas
+const MATCHES_PER_PAGE = 100;
+const MAX_PAGES = 5; // Up to 500 matches
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   console.log('🗺️ [UPDATE-MAP-STATS] Iniciando...');
@@ -40,7 +39,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const faceitService = getFaceitService(FACEIT_API_KEY);
 
-    // ✅ NOVO: Buscar múltiplas páginas de partidas
     console.log(`   Buscando partidas do hub (até ${MAX_PAGES * MATCHES_PER_PAGE} partidas)...`);
     
     const allMatches: any[] = [];

@@ -420,7 +420,7 @@ As colunas não têm altura forçada — cada uma ocupa o espaço necessário pe
 | Desempenho na Season | Pontos, partidas, barra W/L |
 | Estatísticas Detalhadas | Por Jogo (K/D/A) + Totais na Season (kills, deaths, headshots, rounds, dano) + Especialidades (First Kills, First Deaths, Flash Successes, Entry Success % — calculado como FK/(FK+FD)) |
 | Comparar com | Select para comparar métricas lado a lado com barras bidirecionais (laranja=jogador atual, azul=comparado) |
-| Pote X / N jogadores | Rank do jogador no pote por Rating, K/D, ADR, KAST, Win Rate (com valor, média e `#rank`) |
+| Pote X / N jogadores | Rank do jogador no pote por Rating, K/D, ADR, Win Rate (com valor, média e `#rank`) |
 | ADR por Partida | Gráfico BarChart (azul=acima da média, cinza=abaixo) — alimentado por `matchADRs` (batch popula histórico; incremental mantém atualizado) |
 | Vitórias & Derrotas | Donut chart com win rate central |
 | Sequência | Streak atual e maior sequência de vitórias |
@@ -429,7 +429,6 @@ As colunas não têm altura forçada — cada uma ocupa o espaço necessário pe
 | Kriptonita | Pior parceiro (menor win rate juntos) em vermelho |
 
 > **Seções removidas (dados indisponíveis na API da FACEIT):**
-> - **Entry Performance** — entryKills/entryDeaths não são expostos pela API do FACEIT para CS2
 > - **Suporte & Impacto** — flashAssists e utilityDamage não disponíveis na API; MVPs disponível mas ainda não coletado no batch
 > - **Posição na Liga** — exigiria snapshot de todos os jogadores a cada partida; histórico perdido, inviável retroativamente
 
@@ -632,9 +631,6 @@ DELAY_BETWEEN_CHUNKS = 1500         // 1.5s entre chunks
 **`getPlayerByNickname(nickname)`**
 Busca informações do jogador (ID, avatar, ELO, skill level).
 
-**`getPlayerStats(playerId)`**
-Busca estatísticas lifetime do jogador na FACEIT.
-
 **`fetchPlayerWithMatches(nickname, maxMatches?, lastMatchId?, queueId?, previousStats?)`**
 Versão incremental: se `lastMatchId` for encontrado, acumula stats sobre os dados anteriores. Caso contrário, recalcula do zero.
 
@@ -661,6 +657,8 @@ Processa uma lista de partidas e retorna um `PlayerStats` completo com K/D, ADR,
 > **Nota sobre Assists:** `assists` (per-game) é calculado diretamente das partidas coletadas (`totalAssists / matchesPlayed`), não dos stats lifetime da FACEIT API.
 
 > **Nota sobre batch-update:** O batch-update sempre passa `null` como `previousStats`, forçando recálculo completo do zero. Isso garante consistência nos arrays de histórico. O update-incremental acumula sobre o cache existente quando encontra o `lastMatchId`.
+
+> **Nota sobre stats derivadas:** `kr` (kills/round) e `currentStreak` são calculados diretamente dos dados das partidas — não dependem dos stats lifetime da FACEIT API.
 
 #### Singleton
 ```typescript

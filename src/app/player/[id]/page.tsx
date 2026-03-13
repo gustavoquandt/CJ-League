@@ -391,7 +391,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                 : undefined}
             />
             <StatBox
-              label="Knife Kills"
+              label="Facadas"
               value={player.totalKnifeKills ?? 0}
               colorClass={(player.totalKnifeKills ?? 0) > 0 ? 'text-[#F59E0B]' : undefined}
               sub={(player.totalKnifeKills ?? 0) > 0
@@ -551,7 +551,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                   sub={player.matchesPlayed > 0 ? `${((player.totalFirstDeaths ?? 0) / player.matchesPlayed).toFixed(2)}/jogo` : undefined}
                 />
                 <StatTile
-                  label="Flash Successes"
+                  label="Flash Assists"
                   size="sm"
                   value={(player.totalFlashSuccesses ?? 0).toLocaleString('pt-BR')}
                   colorClass="text-[#0EA5E9]"

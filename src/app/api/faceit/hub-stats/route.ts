@@ -14,12 +14,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   console.log('📥 [API] Requisição de usuário recebida');
 
   try {
-    // ✅ Ler seasonId da query
     const seasonId = (request.nextUrl.searchParams.get('season') as SeasonId) || 'SEASON_1';
     
     console.log(`📊 [API] Season solicitada: ${seasonId}`);
 
-    // ✅ LER APENAS DO REDIS (com season)
     const cached = await kvCacheService.getCache(seasonId);
 
     if (!cached || !cached.players || cached.players.length === 0) {

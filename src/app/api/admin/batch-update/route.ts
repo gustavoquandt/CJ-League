@@ -2,7 +2,7 @@
  * Rota: /api/admin/batch-update
  * 1 JOGADOR POR BATCH (evita timeout de 300s)
  * Sistema otimizado com cache incremental + Suporte a seasons
- * ✅ CORRIGIDO: Funciona sem body (pega season do query param)
+ * Reads season from query param (body is optional, used in recursive calls)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,8 +12,8 @@ import { PLAYER_NICKNAMES, SEASONS, type SeasonId } from '@/config/constants';
 
 const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'default_admin_secret_change_me';
-const BATCH_SIZE = 1; // ✅ 1 JOGADOR POR BATCH (seguro para 300s)
-const MAX_MATCHES_PER_PLAYER = 200; // ✅ Até 200 partidas
+const BATCH_SIZE = 1;
+const MAX_MATCHES_PER_PLAYER = 200;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   console.log('📦 [BATCH] Requisição recebida');
@@ -37,12 +37,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 500 });
     }
 
-    // ✅ CORRIGIDO: Ler season do query param
     const { searchParams } = new URL(request.url);
     const seasonId: SeasonId = (searchParams.get('season') as SeasonId) || 'SEASON_1';
     const queueId = SEASONS[seasonId].id;
     
-    // ✅ Body é opcional (só usado em chamadas recursivas internas)
     let body: any = {};
     try {
       const text = await request.text();
@@ -114,7 +112,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
 
       if (playerData) {
-        // ✅ Salvar cache individual do jogador (com season)
         await kvCacheService.savePlayerCache(nickname, playerData, seasonId);
         console.log(`   💾 Cache salvo`);
         
@@ -159,7 +156,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
     console.log(`   🔍 DEPOIS DE ORDENAR: ${existingPlayers.length} jogadores`);
 
-    // ✅ Salvar ranking geral no Redis (com season)
     console.log(`   💾 Salvando ${existingPlayers.length} jogadores no Redis...`);
     await kvCacheService.saveCache(existingPlayers, seasonId);
     

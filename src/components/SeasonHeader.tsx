@@ -28,38 +28,49 @@ export default function SeasonHeader({
 
         {/* Tabs de Season */}
         <div className="flex gap-2 overflow-x-auto pb-3 lg:pb-0">
-          {seasons.map(([key, season]) => (
-            <button
-              key={key}
-              onClick={() => onSeasonChange(key)}
-              className={`
-                px-4 lg:px-6 py-3 font-semibold transition-all relative whitespace-nowrap
-                ${activeSeason === key
-                  ? 'text-[#e31e24] border-b-2 border-[#e31e24]'
-                  : 'text-text-secondary hover:text-white'
-                }
-              `}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm lg:text-base">{season.name}</span>
-                {season.status === 'active' && (
-                  <span className="px-2 py-0.5 text-xs bg-[#10B981]/20 text-[#10B981] rounded-full border border-[#10B981]/30">
-                    Ativa
-                  </span>
+          {seasons.map(([key, season]) => {
+            const isLocked = season.status === 'locked';
+            return (
+              <button
+                key={key}
+                onClick={() => !isLocked && onSeasonChange(key)}
+                disabled={isLocked}
+                className={`
+                  px-4 lg:px-6 py-3 font-semibold transition-all relative whitespace-nowrap
+                  ${isLocked
+                    ? 'text-text-secondary/50 cursor-not-allowed'
+                    : activeSeason === key
+                      ? 'text-[#e31e24] border-b-2 border-[#e31e24]'
+                      : 'text-text-secondary hover:text-white'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm lg:text-base">{season.name}</span>
+                  {season.status === 'active' && (
+                    <span className="px-2 py-0.5 text-xs bg-[#10B981]/20 text-[#10B981] rounded-full border border-[#10B981]/30">
+                      Ativa
+                    </span>
+                  )}
+                  {season.status === 'finished' && (
+                    <span className="hidden lg:inline-flex px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full border border-gray-500/30">
+                      Finalizada
+                    </span>
+                  )}
+                  {isLocked && (
+                    <svg className="w-3.5 h-3.5 text-text-secondary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  )}
+                </div>
+                {season.description && !isLocked && (
+                  <p className="hidden lg:block text-xs text-text-secondary mt-0.5">
+                    {season.description}
+                  </p>
                 )}
-                {season.status === 'finished' && (
-                  <span className="hidden lg:inline-flex px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full border border-gray-500/30">
-                    Finalizada
-                  </span>
-                )}
-              </div>
-              {season.description && (
-                <p className="hidden lg:block text-xs text-text-secondary mt-0.5">
-                  {season.description}
-                </p>
-              )}
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
 
         {/* Info de atualização + Botão — inline */}

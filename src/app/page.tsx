@@ -33,7 +33,7 @@ function HomePageContent() {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [showToast, setShowToast] = useState(false);
   const [showPlayerManagement, setShowPlayerManagement] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false); // ✅ NOVO
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeSeason, setActiveSeason] = useState<SeasonId>('SEASON_1');
   const [mapStats, setMapStats] = useState<MapStats | null>(null);
   const [isLoadingMapStats, setIsLoadingMapStats] = useState(false);
@@ -67,7 +67,6 @@ function HomePageContent() {
       try {
         setLoading(true);
 
-        // ✅ NÃO LIMPAR O CACHE! Deixar funcionar normalmente
         const cache = storageService.getCache();
 
         if (cache && cache.players.length > 0) {
@@ -81,7 +80,6 @@ function HomePageContent() {
           await loadFromAPI();
         }
 
-        // ✅ Carregar map stats da season inicial
         await loadMapStats(activeSeason);
 
       } catch (err) {
@@ -122,7 +120,7 @@ function HomePageContent() {
     }
   };
 
-  // ✅ NOVO: Função para atualizar dados do Redis (com season)
+  // Fetch fresh data from Redis for the active season
   const handleRefreshData = async () => {
     setIsRefreshing(true);
     setError(null);
@@ -187,7 +185,6 @@ function HomePageContent() {
     setShowPlayerManagement(true);
   };
 
-  // ✅ NOVO: Trocar de season
   const handleSeasonChange = async (seasonId: SeasonId) => {
     setActiveSeason(seasonId);
     setLoading(true);
@@ -209,7 +206,6 @@ function HomePageContent() {
         await loadFromAPI(seasonId);
       }
 
-      // ✅ Carregar map stats também
       await loadMapStats(seasonId);
 
     } catch (err) {
@@ -225,7 +221,7 @@ function HomePageContent() {
   const filteredPlayers = useMemo(() => {
     let result = [...players];
 
-    // ✅ PRIMEIRO: Remover jogadores "Free" (não aparecem no site)
+    // Exclude "Free" players from display
     result = result.filter(player => !isPlayerFree(player.nickname));
 
     // Filtro de mínimo de partidas
@@ -239,16 +235,15 @@ function HomePageContent() {
     const potFilter = pot === 'all' ? 'all' : Number(pot);
     result = filterByPot(result, potFilter);
 
-    // ✅ Ordenar com critérios de desempate específicos da Season 1
     result.sort((a, b) => comparePlayers(
       a,
       b,
       filters.sortBy,
       filters.sortOrder,
-      activeSeason // ✅ Passa a season ativa para aplicar critérios de desempate
+      activeSeason
     ));
 
-    // ✅ NOVO: Recalcular posições apenas para jogadores visíveis
+    // Recalculate positions relative to the visible (filtered) list
     const playersWithNewPositions = result.map((player, index) => ({
       ...player,
       position: index + 1, // Posição relativa aos jogadores visíveis
@@ -278,12 +273,10 @@ function HomePageContent() {
     );
   }
 
-  // ✅ Empty state com botão "Buscar do Banco" + Abas de Season
   if (!loading && players.length === 0 && !error) {
     return (
       <div className="min-h-screen bg-faceit-darker">
         <div className="container mx-auto px-4 py-8 max-w-7xl">
-          {/* ✅ Abas de Seasons */}
           <SeasonHeader
             activeSeason={activeSeason}
             onSeasonChange={handleSeasonChange}
@@ -385,7 +378,7 @@ function HomePageContent() {
     <div className="min-h-screen">
       {/* Container */}
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* ✅ Season Header (Tabs + Última atualização na mesma linha) */}
+        {/* Season Header */}
         <SeasonHeader
           activeSeason={activeSeason}
           onSeasonChange={handleSeasonChange}
@@ -430,14 +423,14 @@ function HomePageContent() {
           isUpdating={isRefreshing}
         />
 
-        {/* ✅ Destaques e Mapas - TODAS AS SEASONS */}
+        {/* Highlights and map stats */}
         {filteredPlayers.length > 0 && (
           <SeasonStatsSection
             players={filteredPlayers}
             seasonName={SEASONS[activeSeason].name}
             mapStats={mapStats}
             isLoadingMapStats={isLoadingMapStats}
-            minGamesFilter={10}  // ✅ 10+ jogos apenas Season 0
+            minGamesFilter={10}
           />
         )}
 

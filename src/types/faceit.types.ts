@@ -176,7 +176,11 @@ export interface FaceitMatchStats {
           "Quadro Kills": string;
           "Penta Kills": string;
           Result: string;
-          ADR: string; // <- Importante!
+          ADR: string;
+          "First Kills"?: string;
+          "First Deaths"?: string;
+          "Flash Successes"?: string;
+          "Knife Kills"?: string;
         };
       }>;
     }>;
