@@ -129,14 +129,6 @@ function RecentForm({ results }: { results: boolean[] }) {
   );
 }
 
-function ProgressBar({ value, max, colorClass }: { value: number; max: number; colorClass: string }) {
-  const pct = Math.min(100, (value / max) * 100);
-  return (
-    <div className="w-full bg-[#2D2D3D] rounded-full h-1.5 overflow-hidden">
-      <div className={`h-full rounded-full ${colorClass}`} style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
@@ -308,7 +300,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   const accentColor = POT_ACCENT[player.pot ?? 0] ?? '#0EA5E9';
   const winPct = player.winRate;
   const lossPct = 100 - winPct;
-  const peakRef = 1500;
 
   return (
     <main className="min-h-screen bg-[#0A0A0F] text-[#E5E7EB]">
@@ -399,6 +390,14 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                 ? `1/${(player.matchesPlayed / player.pentaKills!).toFixed(0)}p`
                 : undefined}
             />
+            <StatBox
+              label="Knife Kills"
+              value={player.totalKnifeKills ?? 0}
+              colorClass={(player.totalKnifeKills ?? 0) > 0 ? 'text-[#F59E0B]' : undefined}
+              sub={(player.totalKnifeKills ?? 0) > 0
+                ? `1/${(player.matchesPlayed / player.totalKnifeKills!).toFixed(0)}p`
+                : undefined}
+            />
           </motion.div>
 
           {/* Rating Trend */}
@@ -487,14 +486,10 @@ export default function PlayerPage({ params }: PlayerPageProps) {
           <motion.div {...fadeUp(0.21)}>
             <Card>
               <SectionTitle>Desempenho na Season</SectionTitle>
-              <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
                   <p className="text-xs text-[#9CA3AF] mb-1">Pontos</p>
                   <p className="text-3xl font-bold text-[#FF6B35]">{player.rankingPoints}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-[#9CA3AF] mb-1">Peak</p>
-                  <p className="text-3xl font-bold text-[#0EA5E9]">{player.peakRankingPoints ?? player.rankingPoints}</p>
                 </div>
                 <div>
                   <p className="text-xs text-[#9CA3AF] mb-1">Partidas</p>
@@ -511,15 +506,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                   <div className="bg-[#e31e24] transition-all" style={{ width: `${lossPct}%` }} />
                 </div>
               </div>
-              {player.peakRankingPoints && (
-                <div className="mt-4">
-                  <div className="flex justify-between text-xs text-[#9CA3AF] mb-1">
-                    <span>Peak ({player.peakRankingPoints} pts)</span>
-                    <span>{((player.peakRankingPoints / peakRef) * 100).toFixed(0)}% do teto</span>
-                  </div>
-                  <ProgressBar value={player.peakRankingPoints} max={peakRef} colorClass="bg-[#0EA5E9]" />
-                </div>
-              )}
             </Card>
           </motion.div>
 
@@ -572,11 +558,20 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                   sub={player.matchesPlayed > 0 ? `${((player.totalFlashSuccesses ?? 0) / player.matchesPlayed).toFixed(1)}/jogo` : undefined}
                 />
                 <StatTile
-                  label="Knife Kills"
+                  label="Entry Success"
                   size="sm"
-                  value={(player.totalKnifeKills ?? 0).toLocaleString('pt-BR')}
-                  colorClass="text-[#F59E0B]"
-                  sub={(player.totalKnifeKills ?? 0) > 0 ? `1/${(player.matchesPlayed / player.totalKnifeKills!).toFixed(0)}p` : undefined}
+                  value={(() => {
+                    const fk = player.totalFirstKills ?? 0;
+                    const fd = player.totalFirstDeaths ?? 0;
+                    return fk + fd > 0 ? `${((fk / (fk + fd)) * 100).toFixed(1)}%` : '—';
+                  })()}
+                  colorClass={(() => {
+                    const fk = player.totalFirstKills ?? 0;
+                    const fd = player.totalFirstDeaths ?? 0;
+                    const pct = fk + fd > 0 ? (fk / (fk + fd)) * 100 : 0;
+                    return pct >= 55 ? 'text-[#10B981]' : pct >= 45 ? 'text-[#F59E0B]' : 'text-[#e31e24]';
+                  })()}
+                  sub={`${player.totalFirstKills ?? 0}FK / ${player.totalFirstDeaths ?? 0}FD`}
                 />
               </div>
             </Card>
