@@ -237,6 +237,91 @@ function UpdateRatingsCard({ adminSecret }: { adminSecret: string }) {
   );
 }
 
+// ── Card: Backfill Match IDs ──────────────────────────────────────────────────
+
+function BackfillMatchIdsCard({ adminSecret }: { adminSecret: string }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<ActionResult | null>(null);
+
+  const handleUpdate = async () => {
+    setIsLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/admin/backfill-match-ids?season=SEASON_1', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${adminSecret}` },
+      });
+      const data = await res.json();
+      if (res.status === 401) {
+        setResult({ success: false, error: 'Senha incorreta.' });
+      } else {
+        setResult(data);
+      }
+    } catch {
+      setResult({ success: false, error: 'Erro de conexão.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const results = result?.results as { nickname: string; status: string; matchIds?: number }[] | undefined;
+
+  return (
+    <div className="card p-6">
+      <h2 className="text-xl font-bold mb-1">Backfill Match IDs</h2>
+      <p className="text-sm text-text-secondary mb-4">
+        Busca apenas os IDs das partidas e adiciona ao cache existente. Permite links para o FACEIT no gráfico de rating. (~2-3 min).
+      </p>
+
+      <button
+        onClick={handleUpdate}
+        disabled={isLoading}
+        className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+      >
+        {isLoading && (
+          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        )}
+        {isLoading ? 'Buscando...' : 'Backfill Match IDs'}
+      </button>
+
+      {result && (
+        <div className={`mt-4 p-4 rounded-lg border text-sm space-y-1 ${result.success ? 'bg-green-900/20 border-green-500' : 'bg-red-900/20 border-red-500'}`}>
+          {result.success ? (
+            <>
+              <p className="font-bold text-green-400">Concluído</p>
+              {results && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-text-secondary hover:text-white">
+                    Ver detalhes ({results.filter(r => r.status === 'ok').length} atualizados, {results.filter(r => r.status.startsWith('already')).length} já tinham, {results.filter(r => r.status.startsWith('skipped')).length} pulados)
+                  </summary>
+                  <div className="mt-2 space-y-0.5 max-h-48 overflow-y-auto">
+                    {results.map((r, i) => (
+                      <div key={i} className="flex justify-between text-xs">
+                        <span>{r.nickname}</span>
+                        <span className={r.status === 'ok' ? 'text-green-400' : 'text-text-secondary'}>
+                          {r.status === 'ok' ? `${r.matchIds} IDs` : r.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="font-bold text-red-400">Erro</p>
+              <p>{result.error as string}</p>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Card: Batch Update (Full Refresh) ─────────────────────────────────────────
 
 function BatchUpdateCard({ adminSecret }: { adminSecret: string }) {
@@ -403,6 +488,7 @@ export default function AdminPage() {
           <UpdateIncrementalCard adminSecret={password} />
           <UpdateMapStatsCard adminSecret={password} />
           <UpdateRatingsCard adminSecret={password} />
+          <BackfillMatchIdsCard adminSecret={password} />
           <BatchUpdateCard adminSecret={password} />
         </div>
       </div>

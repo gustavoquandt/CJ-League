@@ -49,6 +49,7 @@ function RatingTooltip({ active, payload }: any) {
       <p className="text-[#9CA3AF] mb-1">Partida {d.match}</p>
       <p className={`font-bold text-sm ${getRatingColor(d.rating)}`}>{d.rating.toFixed(2)}</p>
       <p className={d.won ? 'text-[#10B981]' : 'text-[#e31e24]'}>{d.won ? '✓ Vitória' : '✗ Derrota'}</p>
+      {d.matchId && <p className="text-[#6B7280] mt-1">Clique para abrir no FACEIT</p>}
     </div>
   );
 }
@@ -72,6 +73,7 @@ const RatingDot = (props: any) => {
     <circle cx={cx} cy={cy} r={4}
       fill={payload.won ? '#10B981' : '#e31e24'}
       stroke="#0A0A0F" strokeWidth={1.5}
+      style={payload.matchId ? { cursor: 'pointer' } : undefined}
     />
   );
 };
@@ -256,8 +258,9 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   // ── Chart data ──────────────────────────────────────────────────────────────
   const allRatings = [...(player.matchRatings ?? [])].slice(0, 50).reverse();
   const allResults = [...(player.matchResults ?? [])].slice(0, 50).reverse();
+  const allMatchIds = [...(player.matchIds ?? [])].slice(0, 50).reverse();
   const ratingChartData = allRatings.map((rating, i) => ({
-    match: i + 1, rating, won: allResults[i] ?? false,
+    match: i + 1, rating, won: allResults[i] ?? false, matchId: allMatchIds[i] ?? null,
   }));
 
   const adrChartData = [...(player.matchADRs ?? [])]
@@ -409,7 +412,11 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                   <span className="text-xs text-[#9CA3AF]">Últimas {ratingChartData.length} partidas</span>
                 </div>
                 <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={ratingChartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
+                  <AreaChart data={ratingChartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}
+                    onClick={(e: any) => {
+                      const matchId = e?.activePayload?.[0]?.payload?.matchId;
+                      if (matchId) window.open(`https://www.faceit.com/en/cs2/room/${matchId}`, '_blank');
+                    }}>
                     <defs>
                       <linearGradient id="ratingGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%"  stopColor="#0EA5E9" stopOpacity={0.25} />

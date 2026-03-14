@@ -188,7 +188,7 @@ export default function SeasonStatsSection({
       {isVisible && (
         <div className="space-y-4 animate-fadeIn">
           {/* Cards de estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
             {stats.map((stat, index) => {
               if (!stat.leader) return null;
               
@@ -196,15 +196,15 @@ export default function SeasonStatsSection({
               
               return (
                 <div key={index} className="card card-hover">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-2xl">{stat.icon}</span>
-                    <h3 className="text-white">{stat.label}</h3>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-lg xl:text-base">{stat.icon}</span>
+                    <h3 className="text-white text-sm xl:text-xs">{stat.label}</h3>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     {/* Avatar com fallback para inicial */}
                     {stat.leader.avatar ? (
-                      <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#0EA5E9] flex-shrink-0">
+                      <div className="relative w-10 h-10 xl:w-8 xl:h-8 rounded-full overflow-hidden border-2 border-[#0EA5E9] flex-shrink-0">
                         <Image
                           src={stat.leader.avatar}
                           alt={stat.leader.nickname}
@@ -214,18 +214,18 @@ export default function SeasonStatsSection({
                         />
                       </div>
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-faceit-light-gray border-2 border-[#0EA5E9] flex items-center justify-center flex-shrink-0">
-                        <span className="text-xl font-bold text-white">
+                      <div className="w-10 h-10 xl:w-8 xl:h-8 rounded-full bg-faceit-light-gray border-2 border-[#0EA5E9] flex items-center justify-center flex-shrink-0">
+                        <span className="text-base xl:text-sm font-bold text-white">
                           {stat.leader.nickname.charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-white truncate">
+                      <p className="font-bold text-white text-sm xl:text-xs truncate">
                         {stat.leader.nickname}
                       </p>
-                      <p className="text-2xl font-bold text-[#0EA5E9]">
+                      <p className="text-xl xl:text-lg font-bold text-[#0EA5E9]">
                         {stat.formatter(value)}
                       </p>
                     </div>

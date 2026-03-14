@@ -45,6 +45,7 @@ interface QueuePlayerStats {
   matchADRs: number[];
   matchRatings: number[];
   matchResults: boolean[];
+  matchIds: string[];
   rivalNickname?: string;
   rivalMatchCount?: number;
   rivalWins?: number;
@@ -150,6 +151,48 @@ class FaceitService {
     }
   }
 
+  /**
+   * Fetch only match IDs for a player (no per-match stats).
+   * Much faster than full fetchPlayerWithMatches.
+   */
+  async fetchMatchIds(
+    nickname: string,
+    maxMatches: number = 200,
+    queueId: string = '',
+  ): Promise<string[] | null> {
+    try {
+      const playerInfo = await this.getPlayerByNickname(nickname);
+      if (!playerInfo) return null;
+
+      const matchIds: string[] = [];
+      let offset = 0;
+      const limit = 100;
+
+      while (matchIds.length < maxMatches) {
+        const endpoint = `/players/${playerInfo.player_id}/history?game=cs2&offset=${offset}&limit=${limit}`;
+        const response: any = await this.request(endpoint);
+        if (!response?.items || response.items.length === 0) break;
+
+        const queueMatches = response.items.filter(
+          (match: any) => match.competition_id === queueId
+        );
+        for (const match of queueMatches) {
+          matchIds.push(match.match_id);
+          if (matchIds.length >= maxMatches) break;
+        }
+
+        offset += limit;
+        if (response.items.length < limit) break;
+        if (matchIds.length < maxMatches) await this.delay(800);
+      }
+
+      return matchIds;
+    } catch (error) {
+      console.error(`❌ fetchMatchIds(${nickname}):`, error);
+      return null;
+    }
+  }
+
   private buildPlayerStats(
     nickname: string,
     player: FaceitPlayer,
@@ -166,7 +209,7 @@ class FaceitService {
       totalKills, totalDeaths, totalDamage, totalRounds,
       totalHeadshots, totalPentaKills, totalAssists,
       totalFirstKills, totalFirstDeaths, totalFlashSuccesses, totalKnifeKills,
-      matchADRs, matchRatings, matchResults,
+      matchADRs, matchRatings, matchResults, matchIds,
       rivalNickname, rivalMatchCount, rivalWins, rivalLosses,
       amuletoNickname, amuletoWinRate, amuletoMatchCount,
       kriptoniaNickname, kritoniaWinRate, kritoniaMatchCount,
@@ -253,7 +296,7 @@ class FaceitService {
       rivalNickname, rivalMatchCount, rivalWins, rivalLosses,
       amuletoNickname, amuletoWinRate, amuletoMatchCount,
       kriptoniaNickname, kritoniaWinRate, kritoniaMatchCount,
-      matchResults, matchADRs, matchRatings,
+      matchResults, matchADRs, matchRatings, matchIds,
     });
   }
 
@@ -347,6 +390,10 @@ class FaceitService {
           ...(newStats.matchRatings || []),
           ...(previousStats.matchRatings || []),
         ];
+        const combinedMatchIds = [
+          ...(newStats.matchIds || []),
+          ...(previousStats.matchIds || []),
+        ];
 
         // Recalcular stats derivadas
         const rankingPoints = RANKING_CONFIG.INITIAL_POINTS + (combinedWins * 3) - (combinedLosses * 3);
@@ -405,6 +452,7 @@ class FaceitService {
           matchADRs:     combinedMatchADRs,
           matchRatings:  combinedMatchRatings,
           matchResults:  combinedMatchResults,
+          matchIds:      combinedMatchIds,
           lastMatchId:   allMatches[0].match_id,
           // Rival / amuleto / kriptonita mantém do cache (histórico completo)
           rivalNickname:    previousStats.rivalNickname,
@@ -446,6 +494,7 @@ class FaceitService {
     let matchADRs: number[] = [];
     let matchRatings: number[] = [];
     let matchResults: boolean[] = [];
+    let matchIds: string[] = [];
 
     // Track opponents to find the biggest rival
     const opponentMap = new Map<string, {
@@ -468,7 +517,7 @@ class FaceitService {
         totalKills: 0, totalDeaths: 0, totalDamage: 0, totalRounds: 0,
         totalHeadshots: 0, totalPentaKills: 0, totalAssists: 0,
         totalFirstKills: 0, totalFirstDeaths: 0, totalFlashSuccesses: 0, totalKnifeKills: 0,
-        matchADRs: [], matchRatings: [], matchResults: [],
+        matchADRs: [], matchRatings: [], matchResults: [], matchIds: [],
         rivalNickname: undefined,
         rivalMatchCount: 0,
         rivalWins: 0,
@@ -550,7 +599,7 @@ class FaceitService {
 
           const matchADR = matchRounds > 0 ? matchDamage / matchRounds : 0;
           
-          return { kills: matchKills, deaths: matchDeaths, assists: matchAssists, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, pentaKills: matchPentaKills, firstKills: matchFirstKills, firstDeaths: matchFirstDeaths, flashSuccesses: matchFlashSuccesses, knifeKills: matchKnifeKills, adr: matchADR, won };
+          return { matchId: match.match_id, kills: matchKills, deaths: matchDeaths, assists: matchAssists, damage: matchDamage, rounds: matchRounds, headshots: matchHeadshots, pentaKills: matchPentaKills, firstKills: matchFirstKills, firstDeaths: matchFirstDeaths, flashSuccesses: matchFlashSuccesses, knifeKills: matchKnifeKills, adr: matchADR, won };
         } catch (error) {
           return null;
         }
@@ -573,6 +622,7 @@ class FaceitService {
           matchADRs.push(result.adr);
           matchRatings.push(calculateSimplifiedRating({ totalKills: result.kills, totalDeaths: result.deaths, totalDamage: result.damage, totalRounds: result.rounds, totalHeadshots: result.headshots }));
           matchResults.push(result.won);
+          matchIds.push(result.matchId);
           if (result.won) wins++; else losses++;
         }
       }
@@ -611,7 +661,7 @@ class FaceitService {
       wins, losses, matchesPlayed, points, totalKills, totalDeaths, totalDamage, totalRounds,
       totalHeadshots, totalPentaKills, totalAssists,
       totalFirstKills, totalFirstDeaths, totalFlashSuccesses, totalKnifeKills,
-      matchADRs, matchRatings, matchResults,
+      matchADRs, matchRatings, matchResults, matchIds,
       rivalNickname: biggestRival?.nickname,
       rivalMatchCount: biggestRival?.count || 0,
       rivalWins: biggestRival?.wins || 0,
