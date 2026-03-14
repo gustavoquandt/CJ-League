@@ -60,6 +60,7 @@ interface PlayerDelta {
   matchResults: boolean[];
   matchADRs: number[];
   matchRatings: number[];
+  matchIds: string[];
   lastMatchId: string | null;
 }
 
@@ -197,7 +198,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               wins: 0, losses: 0,
               kills: 0, deaths: 0, assists: 0, damage: 0, rounds: 0, headshots: 0,
               firstKills: 0, firstDeaths: 0, flashSuccesses: 0, knifeKills: 0,
-              matchResults: [], matchADRs: [], matchRatings: [],
+              matchResults: [], matchADRs: [], matchRatings: [], matchIds: [],
               lastMatchId: null,
             });
           }
@@ -219,6 +220,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             totalKills: matchStats.kills, totalDeaths: matchStats.deaths,
             totalDamage: matchStats.damage, totalRounds, totalHeadshots: matchStats.headshots,
           }));
+          d.matchIds.push(matchId);
           d.lastMatchId = matchId;
 
           if (matchStats.won) d.wins++; else d.losses++;
@@ -357,6 +359,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         matchResults: allMatchResults,
         matchADRs:    [...delta.matchADRs,    ...(cachedPlayer.matchADRs    || [])],
         matchRatings: [...delta.matchRatings, ...(cachedPlayer.matchRatings || [])],
+        matchIds:     [...delta.matchIds,     ...(cachedPlayer.matchIds     || [])],
         lastMatchId: delta.lastMatchId || cachedPlayer.lastMatchId,
       };
 
