@@ -12,14 +12,47 @@ import {
   getRatingColor,
 } from '@/utils/stats.utils';
 
+const PRIZE_KNIVES: Record<number, { name: string; image: string }> = {
+  1: {
+    name: 'Huntsman Knife | Lore',
+    image: 'https://community.fastly.steamstatic.com/economy/image/-9a81dlWLwJ2UXp-JjlDtt1HZPqOfPkdijZTOGOnUK1_0Yrjl4DOxcjLMKBJkWIfHd_qGYOEIcSFJt5eewRbx-vFOa_BRWJ6KhFo4rnxJlMygfGcJW0Qu-isYa0kqD9YrmCwjsHu5V1j-rE9Ivtjg3h-hBuZT3xJoDAcAA2ZFuC8gW_wO-81JO86c_K1iE27Skn5HDXR-LU0AYMMLkaq_FkxE/256fx192f',
+  },
+  2: {
+    name: 'Paracord Knife | Stained',
+    image: 'https://community.fastly.steamstatic.com/economy/image/-9a81dlWLwJ2UXp-JjlDtt1HZPqOfPkdyjZTOGOnUK1_0Yrjl4DOxcjLMKBJkWIfHd_qGYOEIcSFJt5eewRbx-vFOa_BRWJ6KhFo4rnxfEBncOecIW9HuNi1kNbcz6OtZe6Cwm1X6Z0h372SpdTx3Fay_hY_ZGGmcoeVIlI5aF3Wrge-xOzqhZK16cjByn4x6CA8pSGKvhyAZHU/256fx192f',
+  },
+  3: {
+    name: 'Shadow Daggers | Rust Coat',
+    image: 'https://community.fastly.steamstatic.com/economy/image/-9a81dlWLwJ2UXp-JjlDtt1HZPqOfPkdyjZTOGOnUK1_0Yrjl4DOxcjLMKBJkWIfHd_qGYOEIcSFJt5eewRbx-vFOa_BRWJ6KhFo4rnxfEBncOecIW9Duo-1l9Lcz6egZe-Fxj4Hvcdy2LyX99Sn3wbk_0drYz_1J4OXdFM2NQzR-gDrlLi5h5_u7p-f1zI97TpGtnU/256fx192f',
+  },
+};
+
 interface PlayerCardProps {
   player: PlayerStats;
 }
 
 export default function PlayerCard({ player }: PlayerCardProps) {
+  const prize = player.position ? PRIZE_KNIVES[player.position] : null;
+
   return (
     <Link href={`/player/${player.playerId}`} className="block">
-    <div className="card animate-fade-in hover:border-[#0EA5E9] transition-colors cursor-pointer">
+    <div className="card animate-fade-in hover:border-[#0EA5E9] transition-colors cursor-pointer relative overflow-visible">
+      {/* Prize knife bubble */}
+      {prize && (
+        <div
+          className="absolute -top-5 -left-5 z-10 w-14 h-14 rounded-full bg-[#13131A] border-2 border-[#0EA5E9] flex items-center justify-center shadow-lg shadow-[#0EA5E9]/20"
+          title={prize.name}
+        >
+          <Image
+            src={prize.image}
+            alt={prize.name}
+            width={36}
+            height={36}
+            className="object-contain drop-shadow-md"
+            unoptimized
+          />
+        </div>
+      )}
       {/* Header com Avatar, Nome e Pote */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
