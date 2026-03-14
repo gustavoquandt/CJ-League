@@ -54,7 +54,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
               />
               <span className="text-xs font-semibold text-[#0EA5E9]">{prize.name}</span>
               <span className="text-[10px] text-[#6B7280] uppercase tracking-wider">
-                {player.position === 1 ? '1o Lugar' : player.position === 2 ? '2o Lugar' : '3o Lugar'}
+                {player.position === 1 ? '1º Lugar' : player.position === 2 ? '2º Lugar' : '3º Lugar'}
               </span>
             </div>
           </div>
