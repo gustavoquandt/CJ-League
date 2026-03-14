@@ -154,14 +154,14 @@ export default function PlayerCard({ player }: PlayerCardProps) {
 
       {/* Rating, Win Rate e Partidas */}
       <div className="grid grid-cols-3 gap-3 text-center">
-        <div className="bg-[#13131A] rounded-xl p-3 flex flex-col items-center justify-center">
+        <div className="bg-[#13131A] rounded-xl p-3 flex flex-col">
           <p className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Rating</p>
-          <p className={`text-lg font-bold ${player.rating ? getRatingColor(player.rating) : ''}`}>
+          <p className={`text-lg font-bold flex-1 flex items-center justify-center ${player.rating ? getRatingColor(player.rating) : ''}`}>
             {player.rating ? player.rating.toFixed(2) : '—'}
           </p>
         </div>
 
-        <div className="bg-[#13131A] rounded-xl p-3">
+        <div className="bg-[#13131A] rounded-xl p-3 flex flex-col">
           <p className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Win Rate</p>
           <p className={`text-lg font-bold ${getWinRateColor(player.winRate)}`}>
             {formatPercentage(player.winRate)}
@@ -171,9 +171,9 @@ export default function PlayerCard({ player }: PlayerCardProps) {
           </p>
         </div>
 
-        <div className="bg-[#13131A] rounded-xl p-3 flex flex-col items-center justify-center">
+        <div className="bg-[#13131A] rounded-xl p-3 flex flex-col">
           <p className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Partidas</p>
-          <p className="text-lg font-bold">{player.matchesPlayed}</p>
+          <p className="text-lg font-bold flex-1 flex items-center justify-center">{player.matchesPlayed}</p>
         </div>
       </div>
     </div>
