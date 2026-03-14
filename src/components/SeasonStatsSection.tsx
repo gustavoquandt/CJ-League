@@ -96,7 +96,7 @@ export default function SeasonStatsSection({
       formatter: (val: number) => `${val.toFixed(1)}%`,
     },
     {
-      label: 'Flash Assists/Jogo',
+      label: 'Flashes/Jogo',
       leader: (() => {
         const eligible = filteredPlayers.filter(p => p.matchesPlayed > 0 && (p.totalFlashSuccesses || 0) > 0);
         if (eligible.length === 0) return filteredPlayers[0];

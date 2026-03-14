@@ -13,18 +13,9 @@ import {
 } from '@/utils/stats.utils';
 
 const PRIZE_KNIVES: Record<number, { name: string; image: string }> = {
-  1: {
-    name: 'Huntsman Knife | Lore',
-    image: 'https://community.fastly.steamstatic.com/economy/image/-9a81dlWLwJ2UXp-JjlDtt1HZPqOfPkdijZTOGOnUK1_0Yrjl4DOxcjLMKBJkWIfHd_qGYOEIcSFJt5eewRbx-vFOa_BRWJ6KhFo4rnxJlMygfGcJW0Qu-isYa0kqD9YrmCwjsHu5V1j-rE9Ivtjg3h-hBuZT3xJoDAcAA2ZFuC8gW_wO-81JO86c_K1iE27Skn5HDXR-LU0AYMMLkaq_FkxE/256fx192f',
-  },
-  2: {
-    name: 'Paracord Knife | Stained',
-    image: 'https://community.fastly.steamstatic.com/economy/image/-9a81dlWLwJ2UXp-JjlDtt1HZPqOfPkdyjZTOGOnUK1_0Yrjl4DOxcjLMKBJkWIfHd_qGYOEIcSFJt5eewRbx-vFOa_BRWJ6KhFo4rnxfEBncOecIW9HuNi1kNbcz6OtZe6Cwm1X6Z0h372SpdTx3Fay_hY_ZGGmcoeVIlI5aF3Wrge-xOzqhZK16cjByn4x6CA8pSGKvhyAZHU/256fx192f',
-  },
-  3: {
-    name: 'Shadow Daggers | Rust Coat',
-    image: 'https://community.fastly.steamstatic.com/economy/image/-9a81dlWLwJ2UXp-JjlDtt1HZPqOfPkdyjZTOGOnUK1_0Yrjl4DOxcjLMKBJkWIfHd_qGYOEIcSFJt5eewRbx-vFOa_BRWJ6KhFo4rnxfEBncOecIW9Duo-1l9Lcz6egZe-Fxj4Hvcdy2LyX99Sn3wbk_0drYz_1J4OXdFM2NQzR-gDrlLi5h5_u7p-f1zI97TpGtnU/256fx192f',
-  },
+  1: { name: 'Huntsman Knife | Lore', image: '/knives/1st.png' },
+  2: { name: 'Paracord Knife | Stained', image: '/knives/2nd.png' },
+  3: { name: 'Shadow Daggers | Rust Coat', image: '/knives/3rd.png' },
 };
 
 interface PlayerCardProps {
