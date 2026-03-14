@@ -98,10 +98,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const cacheTimestamp = new Date(currentCache.lastUpdated).getTime();
     console.log(`📦 Cache: ${currentCache.players.length} jogadores, atualizado: ${currentCache.lastUpdated}`);
+    console.log(`📦 Cache timestamp (ms): ${cacheTimestamp} → ${new Date(cacheTimestamp).toISOString()}`);
 
     // ── PASSO 2: Partidas novas ─────────────────────────────────────────────
-    const hubData = await faceitGet(`/hubs/${queueId}/matches?type=past&offset=0&limit=100`);
+    const hubUrl = `/hubs/${queueId}/matches?type=past&offset=0&limit=100`;
+    console.log(`🔍 Buscando: ${hubUrl}`);
+    const hubData = await faceitGet(hubUrl);
     const allMatches: any[] = hubData.items || [];
+
+    // Debug: mostrar timestamps das primeiras partidas
+    if (allMatches.length > 0) {
+      const first = allMatches[0];
+      console.log(`🔍 Partida mais recente: ${first.match_id?.substring(0, 8)} | finished_at=${first.finished_at} (${new Date(toMs(first.finished_at || 0)).toISOString()}) | started_at=${first.started_at}`);
+      console.log(`🔍 competition_id: ${first.competition_id} | status: ${first.status}`);
+    } else {
+      console.log(`⚠️ Hub retornou 0 partidas! Resposta:`, JSON.stringify(hubData).substring(0, 500));
+    }
 
     const newMatches = allMatches.filter((m: any) => {
       const ts = toMs(m.finished_at || m.started_at || 0);
@@ -109,6 +121,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     console.log(`🎮 ${allMatches.length} partidas no hub, ${newMatches.length} novas`);
+    if (allMatches.length > 0 && newMatches.length === 0) {
+      const mostRecent = allMatches[0];
+      const mostRecentTs = toMs(mostRecent.finished_at || mostRecent.started_at || 0);
+      console.log(`⚠️ Partida mais recente (${new Date(mostRecentTs).toISOString()}) é ANTERIOR ao cache (${new Date(cacheTimestamp).toISOString()}) — diff: ${((cacheTimestamp - mostRecentTs) / 1000 / 60).toFixed(1)} min`);
+    }
 
     // Salvar timestamp de verificação independentemente do resultado
     await kvCacheService.setLastCheck(seasonId);
