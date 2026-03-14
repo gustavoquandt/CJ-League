@@ -499,7 +499,7 @@ function HomePageContent() {
               <p className="text-text-secondary">Tente ajustar os filtros</p>
             </div>
           ) : viewMode === 'cards' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-visible pt-5 -mt-5">
               {filteredPlayers.map((player) => (
                 <PlayerCard key={player.playerId} player={player} />
               ))}
