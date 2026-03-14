@@ -115,10 +115,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const hubData = await faceitGet(hubUrl);
     const allMatches: any[] = hubData.items || [];
 
-    // Filtrar partidas que NÃO estão no cache (por match_id, não por timestamp)
-    const newMatches = allMatches.filter((m: any) => !knownMatchIds.has(m.match_id));
+    // Filtrar: apenas partidas da queue correta, finalizadas, e não conhecidas
+    const newMatches = allMatches.filter((m: any) =>
+      m.competition_id === queueId &&
+      m.status === 'FINISHED' &&
+      !knownMatchIds.has(m.match_id)
+    );
 
-    console.log(`🎮 ${allMatches.length} partidas do hub, ${newMatches.length} novas (${allMatches.length - newMatches.length} já conhecidas)`);
+    const fromOtherQueues = allMatches.filter((m: any) => m.competition_id !== queueId).length;
+    console.log(`🎮 ${allMatches.length} partidas do hub, ${newMatches.length} novas, ${fromOtherQueues} de outras queues (ignoradas)`);
     if (newMatches.length > 0) {
       for (const m of newMatches) {
         console.log(`   🆕 ${m.match_id.substring(0, 8)} | finished_at=${new Date(toMs(m.finished_at || 0)).toISOString()}`);
@@ -257,6 +262,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     console.log(`   ✅ ${deltas.size} jogadores com deltas calculados`);
+
+    // Debug: mostrar quais playerIds estão nos deltas vs cache
+    const cachedPlayerIds = new Set(currentCache.players.map(p => p.playerId));
+    const deltaPlayerIds = [...deltas.keys()];
+    const matchedIds = deltaPlayerIds.filter(id => cachedPlayerIds.has(id));
+    const unmatchedIds = deltaPlayerIds.filter(id => !cachedPlayerIds.has(id));
+    console.log(`   🔍 Deltas: ${deltaPlayerIds.length} players | Match com cache: ${matchedIds.length} | Sem match: ${unmatchedIds.length}`);
+    if (unmatchedIds.length > 0) {
+      console.log(`   ⚠️ PlayerIDs sem match no cache: ${unmatchedIds.slice(0, 5).join(', ')}`);
+    }
+    if (matchedIds.length > 0) {
+      for (const id of matchedIds) {
+        const d = deltas.get(id)!;
+        const cached = currentCache.players.find(p => p.playerId === id);
+        console.log(`   ✅ Match: ${cached?.nickname} (${id.substring(0, 8)}) → +${d.wins}W/${d.losses}L`);
+      }
+    }
 
     // ── PASSO 4: Aplicar deltas no cache ────────────────────────────────────
     const updatedPlayers: PlayerStats[] = [];
