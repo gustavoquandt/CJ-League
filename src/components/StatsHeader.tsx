@@ -35,8 +35,8 @@ export default function StatsHeader({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Search */}
           <div>
-            <label className="block text-sm font-semibold mb-2 text-[var(--text-primary)]">
-              🔍 Buscar Jogador
+            <label className="block text-[10px] text-[#6B7280] uppercase tracking-wider font-semibold mb-2">
+              Buscar Jogador
             </label>
             <input
               type="text"
@@ -49,8 +49,8 @@ export default function StatsHeader({
 
           {/* Pot Filter */}
           <div>
-            <label className="block text-sm font-semibold mb-2 text-[var(--text-primary)]">
-              🎯 Filtrar por Pote
+            <label className="block text-[10px] text-[#6B7280] uppercase tracking-wider font-semibold mb-2">
+              Filtrar por Pote
             </label>
             <select
               value={filters.pot || 'all'}
@@ -73,8 +73,8 @@ export default function StatsHeader({
 
           {/* Sort */}
           <div>
-            <label className="block text-sm font-semibold mb-2 text-[var(--text-primary)]">
-              📊 Ordenar por
+            <label className="block text-[10px] text-[#6B7280] uppercase tracking-wider font-semibold mb-2">
+              Ordenar por
             </label>
             <div className="flex gap-2">
               <select
@@ -93,7 +93,7 @@ export default function StatsHeader({
                   ...filters,
                   sortOrder: filters.sortOrder === 'desc' ? 'asc' : 'desc'
                 })}
-                className="px-4 py-2 bg-[var(--bg-dark)] hover:bg-[var(--bg-medium)] rounded-lg border border-[#0EA5E9] text-[#0EA5E9] hover:text-[#38BDF8] transition-all font-bold text-lg"
+                className="px-4 py-2 bg-[#13131A] hover:bg-[#1A1A24] rounded-xl border border-[#2D2D3D] text-[#0EA5E9] hover:text-[#38BDF8] transition-all font-bold text-lg"
                 title={filters.sortOrder === 'desc' ? 'Ordem Decrescente' : 'Ordem Crescente'}
               >
                 {filters.sortOrder === 'desc' ? '↓' : '↑'}
@@ -110,14 +110,14 @@ export default function StatsHeader({
               minMatches: filters.minMatches === 10 ? 0 : 10,
             })}
             className={`relative w-10 h-5 rounded-full transition-colors overflow-hidden ${
-              filters.minMatches === 10 ? 'bg-[#0EA5E9]' : 'bg-faceit-light-gray'
+              filters.minMatches === 10 ? 'bg-[#0EA5E9]' : 'bg-[#2D2D3D]'
             }`}
           >
             <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
               filters.minMatches === 10 ? 'translate-x-5' : 'translate-x-0.5'
             }`} />
           </button>
-          <span className="text-sm text-text-secondary">Apenas jogadores com 10+ partidas</span>
+          <span className="text-xs text-[#9CA3AF]">Apenas jogadores com 10+ partidas</span>
         </div>
       </div>
   );

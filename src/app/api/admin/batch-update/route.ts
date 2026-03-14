@@ -135,20 +135,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
       }
 
+      // Buscar cache do jogador para modo incremental
+      const cachedPlayer = await kvCacheService.getPlayerCache(nickname, seasonId);
+      const lastMatchId = cachedPlayer?.lastMatchId || null;
+
+      const isIncremental = lastMatchId !== null;
       console.log(`   🔍 Buscando dados para ${nickname}...`);
       console.log(`   🔍 Queue ID: ${queueId}`);
       console.log(`   🔍 Max matches: ${MAX_MATCHES_PER_PLAYER}`);
+      console.log(`   🔧 Modo: ${isIncremental ? 'INCREMENTAL' : 'FULL REFRESH'} (${seasonId})`);
+      if (cachedPlayer) {
+        console.log(`   📦 Cache: ${cachedPlayer.matchesPlayed} partidas, último match: ${lastMatchId?.substring(0, 8) || 'N/A'}`);
+      }
 
-      // Batch-update sempre recalcula do zero (últimas MAX_MATCHES partidas)
-      // Não usa previousStats para evitar inconsistências de ordenação nos arrays
-      console.log(`   🔧 Modo: FULL REFRESH (${seasonId})`);
-
+      // Modo incremental: busca apenas partidas novas e acumula sobre o cache
+      // Os arrays matchIds/matchRatings/matchResults/matchADRs são construídos no
+      // mesmo loop em calculateStatsFromMatches, garantindo alinhamento perfeito
       const playerData = await faceitService.fetchPlayerWithMatches(
         nickname,
         MAX_MATCHES_PER_PLAYER,
-        null,
+        lastMatchId,
         queueId,
-        null
+        cachedPlayer
       );
 
       // 🔍 DEBUG: Log resultado

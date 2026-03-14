@@ -17,16 +17,6 @@ interface PlayerCardProps {
 }
 
 export default function PlayerCard({ player }: PlayerCardProps) {
-  // 🔍 DEBUG - Remove depois de confirmar que funciona
-  console.log('🎯 PlayerCard Rival Debug:', {
-    nickname: player.nickname,
-    rivalNickname: player.rivalNickname,
-    rivalMatchCount: player.rivalMatchCount,
-    rivalWins: player.rivalWins,
-    rivalLosses: player.rivalLosses,
-    shouldShowRival: !!(player.rivalNickname && player.rivalMatchCount && player.rivalMatchCount > 2),
-  });
-
   return (
     <Link href={`/player/${player.playerId}`} className="block">
     <div className="card animate-fade-in hover:border-[#0EA5E9] transition-colors cursor-pointer">
@@ -42,9 +32,10 @@ export default function PlayerCard({ player }: PlayerCardProps) {
                 width={56}
                 height={56}
                 className="rounded-full border-2 border-[#0EA5E9]"
+                unoptimized
               />
             ) : (
-              <div className="w-14 h-14 rounded-full bg-faceit-light-gray flex items-center justify-center text-2xl font-bold">
+              <div className="w-14 h-14 rounded-full bg-[#13131A] border-2 border-[#0EA5E9] flex items-center justify-center text-2xl font-bold text-[#0EA5E9]">
                 {player.nickname.charAt(0).toUpperCase()}
               </div>
             )}
@@ -68,32 +59,32 @@ export default function PlayerCard({ player }: PlayerCardProps) {
       {/* Stats Principais - Grid 2x2 */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         {/* Pontos */}
-        <div className="bg-faceit-darker rounded-lg p-3">
-          <p className="text-xs text-text-secondary mb-1">Pontos</p>
+        <div className="bg-[#13131A] rounded-xl p-3">
+          <p className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Pontos</p>
           <p className="text-2xl font-bold text-[#FF6B35]">
             {player.rankingPoints}
           </p>
         </div>
 
         {/* ADR */}
-        <div className="bg-faceit-darker rounded-lg p-3">
-          <p className="text-xs text-text-secondary mb-1">ADR</p>
+        <div className="bg-[#13131A] rounded-xl p-3">
+          <p className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">ADR</p>
           <p className={`text-2xl font-bold ${getADRColor(player.adr)}`}>
             {formatStat(player.adr, 1)}
           </p>
         </div>
 
         {/* K/D */}
-        <div className="bg-faceit-darker rounded-lg p-3">
-          <p className="text-xs text-text-secondary mb-1">K/D Ratio</p>
+        <div className="bg-[#13131A] rounded-xl p-3">
+          <p className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">K/D Ratio</p>
           <p className={`text-2xl font-bold ${getKDColor(player.kd)}`}>
             {formatStat(player.kd)}
           </p>
         </div>
 
         {/* HS% */}
-        <div className="bg-faceit-darker rounded-lg p-3">
-          <p className="text-xs text-text-secondary mb-1">HS%</p>
+        <div className="bg-[#13131A] rounded-xl p-3">
+          <p className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">HS%</p>
           <p className="text-2xl font-bold">
             {formatStat(player.headshotPercentage, 1)}%
           </p>
@@ -119,32 +110,30 @@ export default function PlayerCard({ player }: PlayerCardProps) {
       )}
 
       {/* Separator */}
-      <div className="border-t border-faceit-dark-lighter my-3"></div>
+      <div className="border-t border-[#2D2D3D] my-3"></div>
 
       {/* Rating, Win Rate e Partidas */}
-      <div className="grid grid-cols-3 gap-4 text-center">
-        <div>
-          <p className="text-xs text-text-secondary mb-1">Rating</p>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div className="bg-[#13131A] rounded-xl p-3">
+          <p className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Rating</p>
           <p className={`text-lg font-bold ${player.rating ? getRatingColor(player.rating) : ''}`}>
             {player.rating ? player.rating.toFixed(2) : '—'}
           </p>
-          <p className="text-xs text-text-secondary mt-1">&nbsp;</p>
         </div>
 
-        <div>
-          <p className="text-xs text-text-secondary mb-1">Win Rate</p>
+        <div className="bg-[#13131A] rounded-xl p-3">
+          <p className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Win Rate</p>
           <p className={`text-lg font-bold ${getWinRateColor(player.winRate)}`}>
             {formatPercentage(player.winRate)}
           </p>
-          <p className="text-xs text-text-secondary mt-1">
+          <p className="text-[10px] text-[#6B7280] mt-0.5">
             {player.wins}W / {player.losses}L
           </p>
         </div>
 
-        <div>
-          <p className="text-xs text-text-secondary mb-1">Partidas</p>
+        <div className="bg-[#13131A] rounded-xl p-3">
+          <p className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Partidas</p>
           <p className="text-lg font-bold">{player.matchesPlayed}</p>
-          <p className="text-xs text-text-secondary mt-1">jogadas</p>
         </div>
       </div>
     </div>

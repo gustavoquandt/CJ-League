@@ -14,11 +14,11 @@ import {
 import { sanitizePlayer } from '@/utils/stats.utils';
 import { calculateSimplifiedRating } from '@/utils/rating.utils';
 
-// Configurações de rate limiting
+// Configurações de rate limiting (FACEIT permite 60 req/min = 1000ms mínimo)
 const PARALLEL_MATCHES = 3;           // 3 partidas em paralelo
 const REQUEST_TIMEOUT = 20000;        // 20s timeout
-const MIN_DELAY_BETWEEN_REQUESTS = 1200; // 1.2s entre requests
-const DELAY_BETWEEN_CHUNKS = 1500;    // 1.5s entre chunks
+const MIN_DELAY_BETWEEN_REQUESTS = 1000; // 1s entre requests (60 req/min)
+const DELAY_BETWEEN_CHUNKS = 500;     // 0.5s entre chunks (rate limiter já garante espaçamento)
 
 interface FaceitServiceConfig {
   apiKey: string;
@@ -147,48 +147,6 @@ class FaceitService {
       return await this.request<FaceitPlayer>(endpoint);
     } catch (error) {
       console.error(`   ❌ ${nickname}: Não encontrado`);
-      return null;
-    }
-  }
-
-  /**
-   * Fetch only match IDs for a player (no per-match stats).
-   * Much faster than full fetchPlayerWithMatches.
-   */
-  async fetchMatchIds(
-    nickname: string,
-    maxMatches: number = 200,
-    queueId: string = '',
-  ): Promise<string[] | null> {
-    try {
-      const playerInfo = await this.getPlayerByNickname(nickname);
-      if (!playerInfo) return null;
-
-      const matchIds: string[] = [];
-      let offset = 0;
-      const limit = 100;
-
-      while (matchIds.length < maxMatches) {
-        const endpoint = `/players/${playerInfo.player_id}/history?game=cs2&offset=${offset}&limit=${limit}`;
-        const response: any = await this.request(endpoint);
-        if (!response?.items || response.items.length === 0) break;
-
-        const queueMatches = response.items.filter(
-          (match: any) => match.competition_id === queueId
-        );
-        for (const match of queueMatches) {
-          matchIds.push(match.match_id);
-          if (matchIds.length >= maxMatches) break;
-        }
-
-        offset += limit;
-        if (response.items.length < limit) break;
-        if (matchIds.length < maxMatches) await this.delay(800);
-      }
-
-      return matchIds;
-    } catch (error) {
-      console.error(`❌ fetchMatchIds(${nickname}):`, error);
       return null;
     }
   }
@@ -344,9 +302,7 @@ class FaceitService {
 
         offset += limit;
         if (matchesResponse.items.length < limit) break;
-        if (!foundLastMatch && allMatches.length < maxMatches) {
-          await this.delay(800);
-        }
+        // waitForRateLimit() em this.request() já garante o espaçamento
       }
 
       console.log(`   Buscou ${allMatches.length} partidas NOVAS para ${nickname}`);

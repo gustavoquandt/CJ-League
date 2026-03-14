@@ -453,19 +453,19 @@ function HomePageContent() {
 
         {/* Results count */}
         <div className="mt-6 flex items-center justify-between">
-          <p className="text-text-secondary">
+          <p className="text-xs text-[#9CA3AF]">
             {filteredPlayers.length === players.length
               ? `${players.length} jogadores`
               : `${filteredPlayers.length} de ${players.length} jogadores`}
           </p>
 
           {/* View mode toggle */}
-          <div className="flex bg-faceit-darker rounded-lg p-1 border border-faceit-light-gray">
+          <div className="flex bg-[#13131A] rounded-xl p-1 border border-[#2D2D3D]">
             <button
               onClick={() => setViewMode('cards')}
-              className={`px-4 py-2 rounded-md transition-all ${viewMode === 'cards'
-                ? 'bg-faceit-orange text-white'
-                : 'text-text-secondary hover:text-white'
+              className={`px-4 py-2 rounded-lg transition-all ${viewMode === 'cards'
+                ? 'bg-[#0EA5E9] text-white'
+                : 'text-[#6B7280] hover:text-white'
                 }`}
               title="Vista de Cards"
             >
@@ -475,9 +475,9 @@ function HomePageContent() {
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`px-4 py-2 rounded-md transition-all ${viewMode === 'table'
-                ? 'bg-faceit-orange text-white'
-                : 'text-text-secondary hover:text-white'
+              className={`px-4 py-2 rounded-lg transition-all ${viewMode === 'table'
+                ? 'bg-[#0EA5E9] text-white'
+                : 'text-[#6B7280] hover:text-white'
                 }`}
               title="Vista de Tabela"
             >

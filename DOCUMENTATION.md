@@ -4,7 +4,7 @@
 
 **CJ-League** é uma aplicação web para exibir rankings e estatísticas de jogadores de um hub FACEIT de CS2. Construída com Next.js 15 (App Router), TypeScript, Tailwind CSS e Redis (Upstash) como cache.
 
-- **Versão:** 2.0.0
+- **Versão:** 2.1.0
 - **Framework:** Next.js 15 com App Router
 - **Linguagem:** TypeScript
 - **Estilo:** Tailwind CSS com tema customizado FACEIT
@@ -255,17 +255,17 @@ Tenta o Redis primeiro. Se vazio, busca da FACEIT API (até 100 partidas) e salv
 
 #### `POST /api/admin/batch-update`
 
-Processa todos os jogadores em lotes de 1 por vez para não ultrapassar o timeout de 300s da Vercel.
+Processa todos os jogadores em lotes de 1 por vez para não ultrapassar o timeout de 300s da Vercel. Sempre recalcula do zero (full refresh) — não usa `previousStats` para evitar inconsistências nos arrays de histórico.
 
 **Query params:**
 - `season` — `SEASON_0` | `SEASON_1`
+- `skipCached` — `true` para pular jogadores que já têm cache (acelera re-execução parcial)
 
 **Body:**
 ```json
 {
   "batchNumber": 0,
-  "existingPlayers": [],
-  "seasonId": "SEASON_1"
+  "existingPlayers": []
 }
 ```
 
@@ -291,15 +291,17 @@ Processa todos os jogadores em lotes de 1 por vez para não ultrapassar o timeou
 - `BATCH_SIZE`: 1 jogador por requisição
 - `MAX_MATCHES_PER_PLAYER`: 200 partidas
 
+> **Nota de performance:** O batch-update sempre passa `null` como `lastMatchId` e `previousStats`, forçando recálculo completo do zero para cada jogador. Isso é necessário para garantir que os arrays `matchIds`, `matchRatings`, `matchResults` e `matchADRs` estejam perfeitamente alinhados entre si. O trade-off é que o batch é mais lento (~25-98 min), mas produz dados 100% consistentes.
+
 ---
 
 #### `POST /api/admin/update-incremental`
 
 Atualização delta: busca apenas as novas partidas e aplica incrementos nas estatísticas existentes. Mais rápido que o batch-update completo.
 
-**Deltas calculados:** kills, deaths, assists, damage, headshots, wins/losses, `matchADRs`, `matchRatings`, `matchResults`, `totalFirstKills`, `totalFirstDeaths`, `totalFlashSuccesses`, `totalKnifeKills`
+**Deltas calculados:** kills, deaths, assists, damage, headshots, wins/losses, `matchADRs`, `matchRatings`, `matchResults`, `matchIds`, `totalFirstKills`, `totalFirstDeaths`, `totalFlashSuccesses`, `totalKnifeKills`
 
-> Os arrays de histórico por partida (`matchADRs`, `matchRatings`, `matchResults`) são atualizados incrementalmente — novas partidas são acrescentadas ao início do array, mantendo o histórico existente.
+> Os arrays de histórico por partida (`matchADRs`, `matchRatings`, `matchResults`, `matchIds`) são atualizados incrementalmente — novas partidas são acrescentadas ao início do array (mais recente primeiro), mantendo o histórico existente. Os 4 arrays são construídos no mesmo loop, garantindo alinhamento perfeito entre si.
 
 **Resposta:**
 ```json
@@ -391,6 +393,8 @@ Retorna metadados sobre o estado atual do cache.
 
 O card de Batch Update exibe um log em tempo real com o progresso de cada jogador processado.
 
+> **Removido:** O card "Backfill Match IDs" foi removido — os `matchIds` agora são populados automaticamente durante o batch-update e update-incremental, no mesmo loop que calcula as demais stats.
+
 ---
 
 ## Página de Jogador (`/player/[id]`)
@@ -415,7 +419,7 @@ As colunas não têm altura forçada — cada uma ocupa o espaço necessário pe
 |---|---|
 | Hero | Avatar, nickname, badge de pote, dropdown de troca de jogador, posição, forma recente (8 partidas — mais antiga à esquerda, mais recente à direita), rating |
 | Quick Stats | K/D, ADR, HS%, Win Rate, Aces, Knife Kills |
-| Rating por Partida | Gráfico AreaChart (verde=vitória, vermelho=derrota, linha de referência em 1.0) — alimentado por `matchRatings` (batch popula histórico; incremental mantém atualizado) |
+| Rating por Partida | Gráfico AreaChart (verde=vitória, vermelho=derrota, linha de referência em 1.0) — alimentado por `matchRatings` (batch popula histórico; incremental mantém atualizado). **Clicável:** clicar na bolinha abre a partida no FACEIT (`matchIds` alinhado com `matchRatings`). Tooltip mostra "Clique para abrir no FACEIT". Usa `ActiveRatingDot` component com `onClick` no SVG circle. |
 | Clutch | Breakdown 1v1→1v5 com barras de progresso e label HARD para 1v4/1v5 |
 | Desempenho na Season | Pontos, partidas, barra W/L |
 | Estatísticas Detalhadas | Por Jogo (K/D/A) + Totais na Season (kills, deaths, headshots, rounds, dano) + Especialidades (First Kills, First Deaths, Flash Successes, Entry Success % — calculado como FK/(FK+FD)) |
@@ -495,11 +499,11 @@ Exibe as estatísticas de um jogador em formato de card.
 **Props:** `{ player: PlayerStats }`
 
 **Exibe:**
-- Avatar, posição no ranking, nickname
-- Badge do pote e badge de rating (com valor numérico)
-- Grid 2×2: Pontos, ADR, K/D, HS%
-- Rival (se tiver 2+ partidas contra o mesmo oponente)
-- Win rate e total de partidas
+- Avatar (com fallback de inicial em `bg-[#13131A]` + borda `#0EA5E9`), posição no ranking, nickname
+- Badge do pote (cores por pote)
+- Grid 2×2: Pontos, ADR, K/D, HS% (boxes com `bg-[#13131A] rounded-xl`)
+- Rival (se tiver 3+ partidas contra o mesmo oponente)
+- Rating, Win Rate (com W/L) e total de partidas (boxes com `bg-[#13131A] rounded-xl`)
 
 ---
 
@@ -590,13 +594,13 @@ Toast de notificação quando novos dados estão prontos para serem aplicados.
 
 ### `SeasonStatsSection`
 
-Seção que agrupa `MapStatsCards` e outras estatísticas da season ativa.
+Seção de destaques da season com cards de estatísticas (Maior Win Rate, Mais Headshot%, Melhor Entry%, Melhor Flash Assist, etc.). Layout em grid `grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7` para caber todos os cards em uma linha. Cards usam `bg-[#13131A] rounded-xl p-4` com labels em `text-[10px] text-[#6B7280] uppercase tracking-wider` — sem emojis, visual consistente com a player page.
 
 ---
 
 ### `StatsHeader`
 
-Barra de busca, filtros (pote, ordenação) e informações de atualização.
+Barra de busca, filtros (pote, ordenação) e toggle de mínimo de partidas. Labels em `text-[10px] text-[#6B7280] uppercase tracking-wider font-semibold` — sem emojis. Sort button com `rounded-xl bg-[#13131A] border border-[#2D2D3D]`. Toggle de 10+ partidas com estilo consistente.
 
 ---
 
@@ -635,7 +639,7 @@ Busca informações do jogador (ID, avatar, ELO, skill level).
 Versão incremental: se `lastMatchId` for encontrado, acumula stats sobre os dados anteriores. Caso contrário, recalcula do zero.
 
 **`calculateStatsFromMatches(matches, playerInfo, nickname)`**
-Processa uma lista de partidas e retorna um `PlayerStats` completo com K/D, ADR, assists, win rate, streaks, peak points, matchRatings, matchADRs, matchResults, rivais e as quatro estatísticas especializadas abaixo.
+Processa uma lista de partidas e retorna um `PlayerStats` completo com K/D, ADR, assists, win rate, streaks, peak points, matchRatings, matchADRs, matchResults, matchIds, rivais, amuleto/kriptonita e as estatísticas especializadas abaixo. Os 4 arrays de histórico são construídos no mesmo loop para garantir alinhamento perfeito.
 
 **Campos coletados por partida via `/matches/{id}/stats`:**
 
@@ -648,7 +652,7 @@ Processa uma lista de partidas e retorna um `PlayerStats` completo com K/D, ADR,
 | `Headshots` | `totalHeadshots` | Headshots totais |
 | `Penta Kills` | `pentaKills` | Aces (penta kills) totais |
 | `First Kills` | `totalFirstKills` | First kills totais na season |
-| `First Deaths` | `totalFirstDeaths` | First deaths totais na season |
+| `Entry Count` - `Entry Wins` | `totalFirstDeaths` | First deaths totais (calculado: FACEIT API não tem campo "First Deaths" direto) |
 | `Flash Successes` | `totalFlashSuccesses` | Flashes que acertaram inimigos |
 | `Knife Kills` | `totalKnifeKills` | Kills de faca totais |
 
@@ -656,9 +660,11 @@ Processa uma lista de partidas e retorna um `PlayerStats` completo com K/D, ADR,
 
 > **Nota sobre Assists:** `assists` (per-game) é calculado diretamente das partidas coletadas (`totalAssists / matchesPlayed`), não dos stats lifetime da FACEIT API.
 
-> **Nota sobre batch-update:** O batch-update sempre passa `null` como `previousStats`, forçando recálculo completo do zero. Isso garante consistência nos arrays de histórico. O update-incremental acumula sobre o cache existente quando encontra o `lastMatchId`.
+> **Nota sobre batch-update:** O batch-update sempre passa `null` como `lastMatchId` e `previousStats`, forçando recálculo completo do zero. Isso garante que os arrays `matchIds`, `matchRatings`, `matchResults` e `matchADRs` estejam perfeitamente alinhados entre si. O update-incremental acumula sobre o cache existente quando encontra o `lastMatchId`.
 
-> **Nota sobre stats derivadas:** `kr` (kills/round) e `currentStreak` são calculados diretamente dos dados das partidas — não dependem dos stats lifetime da FACEIT API.
+> **Nota sobre stats derivadas:** `kr` (kills/round), `currentStreak`, `assists` (per-game) são todos calculados diretamente dos dados das partidas — não dependem dos stats lifetime da FACEIT API. Os métodos `getPlayerStats()` e `getConsolidatedPlayerData()` foram removidos; toda a coleta de dados é feita via `fetchPlayerWithMatches()` → `calculateStatsFromMatches()`.
+
+> **Nota sobre First Deaths:** A FACEIT API não expõe um campo "First Deaths" diretamente. O valor é calculado como `Entry Count - Entry Wins` (tentativas de entry que não resultaram em first kill).
 
 #### Singleton
 ```typescript
@@ -839,6 +845,7 @@ interface PlayerStats {
   matchResults?: boolean[];   // Histórico de vitórias/derrotas (mais recente primeiro — índice 0 = partida mais recente)
   matchADRs?: number[];       // ADR por partida
   matchRatings?: number[];    // Rating por partida (para gráfico de tendência)
+  matchIds?: string[];        // IDs das partidas (para link ao FACEIT — alinhado com matchRatings/matchResults/matchADRs)
 
   // FACEIT
   faceitElo: number;
@@ -950,6 +957,10 @@ type SortOption =
 | `getWinRateColor(winRate)` | Cor baseada no win rate |
 | `getADRColor(adr)` | Cor baseada no ADR |
 | `formatPosition(pos)` | Posição ordinal (1º, 2º...) |
+| `sanitizePlayer(player)` | Whitelist de campos do `PlayerStats` — campos não listados são descartados. Inclui `matchIds`, `matchRatings`, `matchResults`, `matchADRs` e todos os campos de identidade, combate, rival, amuleto/kriptonita |
+| `getRatingColor(rating)` | Cor baseada no rating (gold/orange/green/yellow/red) |
+| `formatStat(value, decimals?)` | Formata número com casas decimais |
+| `formatPercentage(value)` | Formata porcentagem com 1 casa decimal |
 
 ---
 
@@ -1009,20 +1020,38 @@ Implementação do HLTV Rating 2.0 adaptada para os dados disponíveis na API da
 }
 ```
 
-### `tailwind.config.ts` — Cores customizadas
+### `tailwind.config.ts` e `globals.css` — Design System
 
-| Token | Valor | Uso |
+**Paleta CJL (5 cores vibrantes)** definida em CSS variables em `globals.css`:
+
+| Variável | Valor | Uso (%) |
 |---|---|---|
-| `faceit-orange` | `#ff5500` | Cor primária (botões, destaques) |
-| `faceit-dark` | `#0d0f12` | Background principal |
-| `faceit-darker` | `#07080a` | Background mais escuro |
-| `faceit-gray` | `#1e2126` | Cards e superfícies |
-| `faceit-light-gray` | `#2d3137` | Bordas e divisores |
-| `text-primary` | `#ffffff` | Texto principal |
-| `text-secondary` | `#b0b3b8` | Texto secundário |
-| `success` | `#22c55e` | Verde |
-| `warning` | `#f59e0b` | Amarelo/Aviso |
-| `danger` | `#ef4444` | Vermelho/Erro |
+| `--color-primary` | `#0EA5E9` (Sky Blue) | 60% — cor principal |
+| `--color-accent-orange` | `#FF6B35` (FACEIT Orange) | 15% — pontos, destaques |
+| `--color-accent-red` | `#e31e24` (CJL Red) | 10% — derrotas, perigo |
+| `--color-success` | `#10B981` (Emerald) | 10% — vitórias, positivo |
+| `--color-special` | `#A855F7` (Purple) | 5% — uso especial |
+
+**Backgrounds:**
+
+| Variável | Valor | Uso |
+|---|---|---|
+| `--bg-darker` | `#0A0A0F` | Background mais escuro |
+| `--bg-dark` | `#13131A` | Inner boxes, stat cards |
+| `--bg-medium` | `#1A1A24` | Background intermediário |
+| `--bg-card` | `#1F1F2E` | Cards principais |
+
+**Classes CSS utilitárias (em `@layer components`):**
+
+| Classe | Estilo |
+|---|---|
+| `.card` | `bg-[var(--bg-card)] border rounded-2xl p-6` (mobile: `p-4`) |
+| `.input` | Input com focus ring sky blue |
+| `.badge` | Pill badge (`px-3 py-1 rounded-full`) |
+| `.badge-pot-{1-5}` | Cores por pote (rosa, lilás, verde, laranja, amarelo) |
+| `.table-container` | `rounded-2xl border` com scroll horizontal |
+
+**Padrão de stat boxes:** `bg-[#13131A] rounded-xl p-3` com labels `text-[10px] text-[#6B7280] uppercase tracking-wider` — usado consistentemente em PlayerCard, StatsHeader, SeasonStatsSection e player page.
 
 ---
 
