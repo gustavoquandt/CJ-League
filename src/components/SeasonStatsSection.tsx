@@ -49,43 +49,37 @@ export default function SeasonStatsSection({
   // Definir estatísticas com líderes
   const stats = [
     {
-      label: 'Pontuação Histórica',
-      icon: '🏆',
+      label: 'Pontuacao Historica',
       leader: getPeakLeader(),
       getValue: (p: PlayerStats) => p.peakRankingPoints || p.rankingPoints,
       formatter: (val: number) => val.toString(),
     },
     {
       label: 'Maior K/D',
-      icon: '⚔️',
       leader: getLeader('kd'),
       getValue: (p: PlayerStats) => p.kd,
       formatter: (val: number) => val.toFixed(2),
     },
     {
       label: 'Maior ADR',
-      icon: '💥',
       leader: getLeader('adr'),
       getValue: (p: PlayerStats) => p.adr,
       formatter: (val: number) => val.toFixed(1),
     },
     {
       label: 'Maior Win Rate',
-      icon: '🎯',
       leader: getLeader('winRate'),
       getValue: (p: PlayerStats) => p.winRate,
       formatter: (val: number) => `${val.toFixed(0)}%`,
     },
     {
       label: 'Mais Headshots',
-      icon: '🎯',
       leader: getLeader('headshotPercentage'),
       getValue: (p: PlayerStats) => p.headshotPercentage,
       formatter: (val: number) => `${val.toFixed(1)}%`,
     },
     {
       label: 'Melhor Entry',
-      icon: '🚪',
       leader: (() => {
         const eligible = filteredPlayers.filter(p => (p.totalFirstKills || 0) + (p.totalFirstDeaths || 0) > 0);
         if (eligible.length === 0) return filteredPlayers[0];
@@ -103,7 +97,6 @@ export default function SeasonStatsSection({
     },
     {
       label: 'Flash Assists/Jogo',
-      icon: '💡',
       leader: (() => {
         const eligible = filteredPlayers.filter(p => p.matchesPlayed > 0 && (p.totalFlashSuccesses || 0) > 0);
         if (eligible.length === 0) return filteredPlayers[0];
@@ -126,48 +119,14 @@ export default function SeasonStatsSection({
         className="w-full flex items-center justify-between mb-4 hover:opacity-80 transition-opacity gap-2"
       >
         <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
-          <h2 className="text-lg lg:text-2xl font-bold flex items-center gap-2">
-            <span className="text-[#e31e24]">📈</span>
-            <span className="truncate">Destaques - {seasonName}</span>
+          <h2 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest">
+            Destaques - {seasonName}
           </h2>
-          
-          {/* Tag ao lado do título - esconde no mobile */}
-          <div className="hidden lg:inline-flex items-center gap-2 px-3 py-1.5 bg-faceit-dark border border-faceit-light-gray/50 rounded-full">
-            <span className="text-[#e31e24] text-xs">ℹ️</span>
-            <p className="text-xs text-white whitespace-nowrap">
-              Estatísticas referentes a toda a season
-            </p>
-          </div>
         </div>
         
-        {/* Botão toggle - Desktop: texto + ícone | Mobile: apenas ícone com fundo */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="hidden lg:inline text-sm text-faceit-light-gray">
-            {isVisible ? 'Ocultar' : 'Mostrar'}
-          </span>
-          
-          {/* Mobile: ícone com fundo redondo */}
-          <div className="lg:hidden w-10 h-10 flex items-center justify-center bg-[#e31e24]/20 rounded-full border border-[#e31e24]/30">
-            <svg
-              className={`w-5 h-5 text-[#e31e24] transition-transform ${
-                isVisible ? 'rotate-180' : ''
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
-          
-          {/* Desktop: apenas ícone sem fundo */}
           <svg
-            className={`hidden lg:block w-6 h-6 text-[#e31e24] transition-transform ${
+            className={`w-4 h-4 text-[#9CA3AF] transition-transform ${
               isVisible ? 'rotate-180' : ''
             }`}
             fill="none"
@@ -188,48 +147,36 @@ export default function SeasonStatsSection({
       {isVisible && (
         <div className="space-y-4 animate-fadeIn">
           {/* Cards de estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3">
             {stats.map((stat, index) => {
               if (!stat.leader) return null;
-              
+
               const value = stat.getValue(stat.leader);
-              
+
               return (
-                <div key={index} className="card card-hover">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-lg xl:text-base">{stat.icon}</span>
-                    <h3 className="text-white text-sm xl:text-xs">{stat.label}</h3>
-                  </div>
+                <div key={index} className="bg-[#13131A] rounded-xl p-4 flex flex-col items-center gap-2">
+                  <span className="text-[10px] text-[#6B7280] uppercase tracking-wider text-center">{stat.label}</span>
 
-                  <div className="flex items-center gap-2">
-                    {/* Avatar com fallback para inicial */}
-                    {stat.leader.avatar ? (
-                      <div className="relative w-10 h-10 xl:w-8 xl:h-8 rounded-full overflow-hidden border-2 border-[#0EA5E9] flex-shrink-0">
-                        <Image
-                          src={stat.leader.avatar}
-                          alt={stat.leader.nickname}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-10 h-10 xl:w-8 xl:h-8 rounded-full bg-faceit-light-gray border-2 border-[#0EA5E9] flex items-center justify-center flex-shrink-0">
-                        <span className="text-base xl:text-sm font-bold text-white">
-                          {stat.leader.nickname.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-white text-sm xl:text-xs truncate">
-                        {stat.leader.nickname}
-                      </p>
-                      <p className="text-xl xl:text-lg font-bold text-[#0EA5E9]">
-                        {stat.formatter(value)}
-                      </p>
+                  {stat.leader.avatar ? (
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#0EA5E9] flex-shrink-0">
+                      <Image
+                        src={stat.leader.avatar}
+                        alt={stat.leader.nickname}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
                     </div>
-                  </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[#1F1F2E] border-2 border-[#0EA5E9] flex items-center justify-center flex-shrink-0">
+                      <span className="text-base font-bold text-[#0EA5E9]">
+                        {stat.leader.nickname.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+
+                  <p className="text-xs font-medium text-white truncate max-w-full">{stat.leader.nickname}</p>
+                  <span className="text-2xl font-bold text-[#0EA5E9] leading-none">{stat.formatter(value)}</span>
                 </div>
               );
             })}
