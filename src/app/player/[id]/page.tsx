@@ -73,7 +73,24 @@ const RatingDot = (props: any) => {
     <circle cx={cx} cy={cy} r={4}
       fill={payload.won ? '#10B981' : '#e31e24'}
       stroke="#0A0A0F" strokeWidth={1.5}
-      style={payload.matchId ? { cursor: 'pointer' } : undefined}
+    />
+  );
+};
+
+const ActiveRatingDot = (props: any) => {
+  const { cx, cy, payload } = props;
+  if (!cx || !cy) return null;
+  const handleClick = () => {
+    if (payload.matchId) {
+      window.open(`https://www.faceit.com/en/cs2/room/${payload.matchId}`, '_blank');
+    }
+  };
+  return (
+    <circle cx={cx} cy={cy} r={6}
+      fill="#0EA5E9"
+      stroke="#0A0A0F" strokeWidth={2}
+      style={{ cursor: payload.matchId ? 'pointer' : 'default' }}
+      onClick={handleClick}
     />
   );
 };
@@ -412,11 +429,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                   <span className="text-xs text-[#9CA3AF]">Últimas {ratingChartData.length} partidas</span>
                 </div>
                 <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={ratingChartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}
-                    onClick={(e: any) => {
-                      const matchId = e?.activePayload?.[0]?.payload?.matchId;
-                      if (matchId) window.open(`https://www.faceit.com/en/cs2/room/${matchId}`, '_blank');
-                    }}>
+                  <AreaChart data={ratingChartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="ratingGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%"  stopColor="#0EA5E9" stopOpacity={0.25} />
@@ -431,7 +444,8 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                     <Tooltip content={<RatingTooltip />} cursor={{ stroke: '#2D2D3D' }} />
                     <ReferenceLine y={1.0} stroke="#6B7280" strokeDasharray="4 4" />
                     <Area type="monotone" dataKey="rating" stroke="#0EA5E9" strokeWidth={2}
-                      fill="url(#ratingGrad)" dot={<RatingDot />} activeDot={{ r: 6, fill: '#0EA5E9' }} />
+                      fill="url(#ratingGrad)" dot={<RatingDot />}
+                      activeDot={<ActiveRatingDot />} />
                   </AreaChart>
                 </ResponsiveContainer>
                 <div className="flex items-center gap-4 mt-3 text-xs text-[#9CA3AF]">
