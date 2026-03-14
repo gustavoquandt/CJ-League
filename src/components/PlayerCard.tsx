@@ -30,18 +30,34 @@ export default function PlayerCard({ player }: PlayerCardProps) {
     <div className="card animate-fade-in hover:border-[#0EA5E9] transition-colors cursor-pointer relative overflow-visible">
       {/* Prize knife bubble */}
       {prize && (
-        <div
-          className="absolute -top-5 -left-5 z-10 w-14 h-14 rounded-full bg-[#13131A] border-2 border-[#0EA5E9] flex items-center justify-center shadow-lg shadow-[#0EA5E9]/20"
-          title={prize.name}
-        >
-          <Image
-            src={prize.image}
-            alt={prize.name}
-            width={36}
-            height={36}
-            className="object-contain drop-shadow-md"
-            unoptimized
-          />
+        <div className="group/knife absolute -top-5 -left-5 z-10">
+          <div className="w-14 h-14 rounded-full bg-[#13131A] border-2 border-[#0EA5E9] flex items-center justify-center shadow-lg shadow-[#0EA5E9]/20 transition-transform group-hover/knife:scale-110">
+            <Image
+              src={prize.image}
+              alt={prize.name}
+              width={36}
+              height={36}
+              className="object-contain drop-shadow-md"
+              unoptimized
+            />
+          </div>
+          {/* Hover tooltip */}
+          <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-2 opacity-0 group-hover/knife:opacity-100 transition-opacity duration-200">
+            <div className="bg-[#13131A] border border-[#0EA5E9] rounded-xl p-3 flex flex-col items-center gap-2 shadow-xl shadow-[#0EA5E9]/10 whitespace-nowrap">
+              <Image
+                src={prize.image}
+                alt={prize.name}
+                width={120}
+                height={90}
+                className="object-contain drop-shadow-lg"
+                unoptimized
+              />
+              <span className="text-xs font-semibold text-[#0EA5E9]">{prize.name}</span>
+              <span className="text-[10px] text-[#6B7280] uppercase tracking-wider">
+                {player.position === 1 ? '1o Lugar' : player.position === 2 ? '2o Lugar' : '3o Lugar'}
+              </span>
+            </div>
+          </div>
         </div>
       )}
       {/* Header com Avatar, Nome e Pote */}
